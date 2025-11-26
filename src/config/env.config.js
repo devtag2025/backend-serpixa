@@ -21,7 +21,6 @@ const requiredEnvVars = [
   "ADMIN_PASSWORD",
 ];
 
-
 const optionalEnvVars = [
   "COOKIE_SECRET",
   "RATE_LIMIT_WINDOW_MS",
@@ -45,7 +44,7 @@ optionalEnvVars.forEach((key) => {
 });
 
 if (process.env.NODE_ENV === "production") {
-  const productionRequiredVars = ["JWT_SECRET", "COOKIE_SECRET", "FACEBOOK_APP_SECRET"];
+  const productionRequiredVars = ["JWT_SECRET", "COOKIE_SECRET"];
   const missingProdVars = productionRequiredVars.filter(key => !process.env[key]);
 
   if (missingProdVars.length > 0) {
@@ -58,19 +57,13 @@ if (process.env.NODE_ENV === "production") {
     console.error("JWT_SECRET must be at least 32 characters in production");
     process.exit(1);
   }
-
-  if (process.env.FACEBOOK_APP_SECRET.length < 16) {
-    console.error("FACEBOOK_APP_SECRET must be at least 16 characters in production");
-    process.exit(1);
-  }
 }
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   PORT: parseInt(process.env.PORT) || 5000,
   MONGO_URI: process.env.MONGO_URI,
-  DB_NAME: process.env.DB_NAME || "meta_ads_platform",
-
+  DB_NAME: process.env.DB_NAME || "serpixa_db",
 
   // JWT & Security
   JWT_SECRET: process.env.JWT_SECRET || "dev-jwt-secret-change-in-production",
@@ -105,7 +98,6 @@ export const env = {
   // Admin User (created on startup if none exist)
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
-
 
   // AWS Configuration
   AWS_REGION: process.env.AWS_REGION || "us-east-1",
