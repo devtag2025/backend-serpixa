@@ -2,10 +2,10 @@ import 'dotenv/config';
 
 import app from './app.js';
 import connectDB from './config/db.js';
-import { APP_CONFIG } from './config/app.config.js';
-import { Logger } from './utils/logger.js';
+import { env } from './config/index.js';
+import { Logger } from './utils/index.js';
 
-const PORT = APP_CONFIG.APP_PORT;
+const PORT = env.PORT;
 
 // Graceful shutdown handler
 const gracefulShutdown = (signal) => {
@@ -23,7 +23,7 @@ const startServer = async () => {
 
     const server = app.listen(PORT, () => {
       Logger.log(`Server running on http://localhost:${PORT}`);
-      Logger.log(`Environment: ${APP_CONFIG.NODE_ENV}`);
+      Logger.log(`Environment: ${env.NODE_ENV}`);
     });
 
     server.on('error', (error) => {

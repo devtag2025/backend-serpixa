@@ -6,9 +6,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 
-import { APP_CONFIG } from './config/app.config.js';
-import { ApiResponse } from './utils/response.js';
-import { notFoundHandler } from './middlewares/notFound.middleware.js';
+import { env } from './config/index.js';
 
 const app = express();
 
@@ -21,7 +19,7 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: APP_CONFIG.NODE_ENV === 'development' 
+    origin: env.NODE_ENV === 'development' 
       ? ['http://localhost:3000', 'http://localhost:5173'] 
       : process.env.ALLOWED_ORIGINS?.split(',') || [],
     credentials: true,
@@ -34,7 +32,7 @@ app.use(
 app.use(cookieParser());
 
 // Request logging (dev only)
-if (APP_CONFIG.NODE_ENV === 'development') {
+if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
@@ -61,7 +59,6 @@ app.get('/health', (req, res) => {
 
 // TODO: Mount API routes here
 // app.use('/api', routes);
-
 // 404 handler
 app.use(notFoundHandler);
 
