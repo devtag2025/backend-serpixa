@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-import { notFoundHandler, errorHandler } from './middlewares/error.middleware.js';
 
 import { env } from './config/index.js';
 
@@ -16,10 +15,6 @@ app.use(compression());
 
 // Security Headers
 app.use(helmet());
-
-// Error handling middleware
-app.use(notFoundHandler);
-app.use(errorHandler);
 
 // CORS
 app.use(
@@ -49,7 +44,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
@@ -59,14 +54,12 @@ app.use('/api', limiter);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({ success: true, message: 'Serpixa API is running' });
+  return ApiResponse(res, 200, 'Serpixa API is running');
 });
 
 // TODO: Mount API routes here
 // app.use('/api', routes);
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
+app.use(notFoundHandler);
 
 export default app;
