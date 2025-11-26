@@ -7,7 +7,7 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import { notFoundHandler, errorHandler } from './middlewares/error.middleware.js';
 
-import { APP_CONFIG } from './config/app.config.js';
+import { env } from './config/index.js';
 
 const app = express();
 
@@ -24,7 +24,7 @@ app.use(errorHandler);
 // CORS
 app.use(
   cors({
-    origin: APP_CONFIG.NODE_ENV === 'development' 
+    origin: env.NODE_ENV === 'development' 
       ? ['http://localhost:3000', 'http://localhost:5173'] 
       : process.env.ALLOWED_ORIGINS?.split(',') || [],
     credentials: true,
@@ -37,7 +37,7 @@ app.use(
 app.use(cookieParser());
 
 // Request logging (dev only)
-if (APP_CONFIG.NODE_ENV === 'development') {
+if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
@@ -64,7 +64,6 @@ app.get('/health', (req, res) => {
 
 // TODO: Mount API routes here
 // app.use('/api', routes);
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });

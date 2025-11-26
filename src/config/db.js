@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
-import { APP_CONFIG } from './app.config.js';
-import { Logger } from '../utils/logger.js';
+import { env } from './index.js';
+import { Logger } from '../utils/index.js';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(APP_CONFIG.MONGODB_URI);
+    const conn = await mongoose.connect(env.MONGO_URI);
     Logger.log(`MongoDB Connected: ${conn.connection.host}`);
     Logger.log(`Database: ${conn.connection.name}`);
   } catch (error) {

@@ -1,5 +1,5 @@
-import { APP_CONFIG } from '../config/app.config.js';
-import { Logger } from '../utils/logger.js';
+import { env } from '../config/index.js';
+import { Logger } from '../utils/index.js';
 
 // 404 - Not Found Handler
 export const notFoundHandler = (req, res, next) => {
@@ -18,6 +18,6 @@ export const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json({
     success: false,
     message: err.message || 'Internal Server Error',
-    ...(APP_CONFIG.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };
