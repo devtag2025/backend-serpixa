@@ -6,7 +6,6 @@ export const clearAuthCookies = (res) => {
   res.clearCookie("g_pkce");
 };
 
-
 export const getCookieOptions = (maxAge, httpOnly = true, userType = 'user') => {
   let domain;
   if (env.NODE_ENV === "production") {
