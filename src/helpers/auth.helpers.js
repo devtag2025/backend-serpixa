@@ -36,7 +36,7 @@ export const setAuthTokens = (res, user) => {
   // Get user type for domain-specific cookie setting
   const userType = user.user_type || USER_TYPES.USER;
   
-  res.cookie("accessToken", accessToken, getCookieOptions(24 * 60 * 60 * 1000, false, userType));
+  res.cookie("accessToken", accessToken, getCookieOptions(24 * 60 * 60 * 1000, true, userType));
   res.cookie("refreshToken", refreshToken, getCookieOptions(7 * 24 * 60 * 60 * 1000, true, userType));
   
   return { accessToken };

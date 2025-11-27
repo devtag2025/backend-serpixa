@@ -9,6 +9,7 @@ import compression from 'compression';
 import { env } from './config/index.js';
 import routes from './routes/index.js';
 import { ApiResponse } from './utils/index.js';
+import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 
 const app = express();
 
@@ -63,5 +64,8 @@ app.get('/health', (req, res) => {
     .status(200)
     .json(new ApiResponse(200, null, 'Serpixa API is running'));
 });
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
