@@ -30,13 +30,21 @@ export const signup = async (req, res, next) => {
     const emailToken = user.generateEmailVerificationToken();
     await user.save();
 
-    await emailService.sendEmailVerification(email, emailToken, { userName: name });
+    // Best-effort email sending; don't block signup in development if email fails
+    try {
+      await emailService.sendEmailVerification(email, emailToken, { userName: name });
+    } catch (err) {
+      if (env.NODE_ENV === 'development') {
+        // Log and continue so local testing works even without valid email credentials
+        console.error('Email verification send failed:', err.message || err);
+      } else {
+        throw err;
+      }
+    }
 
-    res.status(201).json(new ApiResponse(201, { 
-      userId: user._id,
-      trialDays,
-      isWebinarUser: trialDays === 30
-    }, "User created successfully"));
+    res.status(201).json(
+      new ApiResponse(201, { userId: user._id }, 'User created successfully')
+    );
   } catch (error) {
     next(error);
   }
@@ -121,13 +129,19 @@ export const resendVerification = async (req, res, next) => {
     const emailToken = user.generateEmailVerificationToken();
     await user.save();
 
-    await emailService.sendEmailVerification(email, emailToken, {
-      userName: user.name,
-    });
+    try {
+      await emailService.sendEmailVerification(email, emailToken, {
+        userName: user.name,
+      });
+    } catch (err) {
+      if (env.NODE_ENV === 'development') {
+        console.error('Resend verification email failed:', err.message || err);
+      } else {
+        throw err;
+      }
+    }
 
-    res.json(
-      new ApiResponse(200, null, "Verification email sent if the account exists")
-    );
+    res.json(new ApiResponse(200, null, 'Verification email sent if the account exists'));
   } catch (error) {
     next(error);
   }
@@ -152,7 +166,17 @@ export const forgotPassword = async (req, res, next) => {
     user.reset_password_expires = new Date(Date.now() + 3600000);
     await user.save();
 
-    await emailService.sendPasswordResetEmail(email, resetToken, { userName: user.name });
+    try {
+      await emailService.sendPasswordResetEmail(email, resetToken, {
+        userName: user.name,
+      });
+    } catch (err) {
+      if (env.NODE_ENV === 'development') {
+        console.error('Password reset email failed:', err.message || err);
+      } else {
+        throw err;
+      }
+    }
 
     res.json(new ApiResponse(200, null, "If email exists, reset link sent"));
   } catch (error) {
@@ -267,10 +291,6 @@ export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user.id);
-
-    if (user.google_id && !user.password) {
-      return res.status(400).json(new ApiResponse(400, null, "Google users cannot change password"));
-    }
 
     if (!(await user.isPasswordCorrect(currentPassword))) {
       return res.status(400).json(new ApiResponse(400, null, "Current password incorrect"));
