@@ -7,6 +7,8 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 
 import { env } from './config/index.js';
+import routes from './routes/index.js';
+import { ApiResponse } from './utils/index.js';
 
 const app = express();
 
@@ -19,8 +21,8 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: env.NODE_ENV === 'development' 
-      ? ['http://localhost:3000', 'http://localhost:5173'] 
+    origin: env.NODE_ENV === 'development'
+      ? ['http://localhost:3000', 'http://localhost:5173']
       : process.env.ALLOWED_ORIGINS?.split(',') || [],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -52,14 +54,14 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
+// API routes
+app.use('/api/v1', routes);
+
 // Health check
 app.get('/health', (req, res) => {
-  return ApiResponse(res, 200, 'Serpixa API is running');
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, 'Serpixa API is running'));
 });
-
-// TODO: Mount API routes here
-// app.use('/api', routes);
-// 404 handler
-app.use(notFoundHandler);
 
 export default app;

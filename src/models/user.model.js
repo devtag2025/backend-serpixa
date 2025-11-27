@@ -120,19 +120,16 @@ UserSchema.virtual('_cached_subscription');
 
 
 //  mongoDB Hooks 
-UserSchema.pre('save', function (next) {
+UserSchema.pre('save', function () {
   if (this._refresh_token_plain) {
     this.refresh_token_enc = encrypt(this._refresh_token_plain);
     this._refresh_token_plain = undefined;
   }
-  
-  next();
 });
 
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+UserSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 export const User = model('User', UserSchema);

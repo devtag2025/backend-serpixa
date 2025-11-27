@@ -23,6 +23,4 @@ router.post('/logout', authController.logout);
 // User management routes
 router.delete('/user/:userId', authController.deleteUser);
 
-
-
 export default router;
