@@ -29,7 +29,6 @@ const UserSchema = new Schema(
     reset_password_token: { type: String },
     reset_password_expires: { type: Date },
     refresh_token_enc: { type: String },
-    stripe_customer_id: { type: String, index: true },
   },
   {
     timestamps: true, 
@@ -114,10 +113,6 @@ UserSchema.methods.generateEmailVerificationToken = function () {
   this.email_verification_expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
   return token;
 };
-
-// virtual field for caching
-UserSchema.virtual('_cached_subscription');
-
 
 //  mongoDB Hooks 
 UserSchema.pre('save', function () {

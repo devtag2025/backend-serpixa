@@ -70,6 +70,14 @@ const changePassword = validateRequest(Joi.object({
   confirmPassword: confirmPassword('newPassword')
 }));
 
+// Claude/Content Optimization validations
+const optimizeContent = validateRequest(Joi.object({
+  url: Joi.string().uri().optional().allow('', null),
+  keyword: Joi.string().min(2).max(200).optional().allow('', null)
+}).or('url', 'keyword').messages({
+  'object.missing': 'Either URL or keyword must be provided'
+}));
+
 export const validate = {
   // Auth
   registerUser,
@@ -79,5 +87,7 @@ export const validate = {
   verifyEmailToken,
   resendVerification,
   updateProfile,
-  changePassword
+  changePassword,
+  // Claude
+  optimizeContent
 }

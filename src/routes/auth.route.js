@@ -20,7 +20,5 @@ router.put('/profile', validate.updateProfile, authController.updateProfile);
 router.post('/change-password', validate.changePassword, authController.changePassword);
 router.post('/logout', authController.logout);
 
-// User management routes
-router.delete('/user/:userId', authController.deleteUser);
 
 export default router;
