@@ -118,6 +118,51 @@ UserSchema.methods.generateEmailVerificationToken = function () {
 // virtual field for caching
 UserSchema.virtual('_cached_subscription');
 
+// Optimize the getCurrentSubscription method
+UserSchema.methods.getCurrentSubscription = async function() {
+  if (this._cached_subscription) return this._cached_subscription;
+  
+  const { Subscription } = await import('./index.js');
+  this._cached_subscription = await Subscription.findOne({
+    user_id: this._id,
+    status: { $in: [enums.SUBSCRIPTION_STATUS.TRIAL, enums.SUBSCRIPTION_STATUS.ACTIVE, enums.SUBSCRIPTION_STATUS.LIFETIME] }
+  }).populate('plan_id');
+  
+  return this._cached_subscription;
+};
+
+UserSchema.methods.hasActiveSubscription = async function() {
+  const subscription = await this.getCurrentSubscription();
+  return subscription?.isActive() || false;
+};
+
+UserSchema.methods.hasFeature = async function(feature) {
+  const subscription = await this.getCurrentSubscription();
+  if (!subscription?.isActive()) return false;
+  
+  const features = {
+    basic_analytics: ['basic', 'advanced'],
+    advanced_analytics: ['advanced'],
+    api_access: subscription.plan_id?.features?.includes('api_access') || false
+  };
+  
+  if (typeof features[feature] === 'boolean') return features[feature];
+  return features[feature]?.includes(subscription.plan_id?.limits?.analytics_level);
+};
+
+UserSchema.methods.canPerformSearch = async function() {
+  const subscription = await this.getCurrentSubscription();
+  if (!subscription) return false;
+  
+  return subscription.canPerformSearch(subscription.plan_id?.limits);
+};
+
+UserSchema.methods.incrementUsage = async function(type = 'search') {
+  const subscription = await this.getCurrentSubscription();
+  if (subscription) {
+    await subscription.incrementUsage(type);
+  }
+};
 
 //  mongoDB Hooks 
 UserSchema.pre('save', function () {

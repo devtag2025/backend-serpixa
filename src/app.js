@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-
 import { env } from './config/index.js';
 import routes from './routes/index.js';
 import { ApiResponse } from './utils/index.js';
@@ -39,19 +38,23 @@ if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+// Stripe webhook endpoint needs raw body for signature verification
+app.use('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }));
+
 // Parse JSON
 app.use(express.json({ limit: '10mb' }));
 
 // Parse URL-encoded
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting
+// Rate limiting (exclude webhook endpoint)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/api/v1/webhooks/stripe', // Skip rate limiting for webhooks
 });
 app.use('/api', limiter);
 

@@ -1,6 +1,5 @@
 import { ApiError } from './index.js';
 
-
 export const paginate = async (model, query = {}, options = {}) => {
   const {
     page = 1,

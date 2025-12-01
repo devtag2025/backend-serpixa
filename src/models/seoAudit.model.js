@@ -22,7 +22,7 @@ const SEOAuditSchema = new Schema(
     },
     keyword: {
       type: String,
-      default: null,
+      required: true,
     },
     score: {
       type: Number,
@@ -35,6 +35,21 @@ const SEOAuditSchema = new Schema(
     recommendations: {
       type: [RecommendationSchema],
       default: [],
+    },
+    competitors: {
+      type: [{
+        position: Number,
+        title: String,
+        url: String,
+        domain: String,
+        description: String,
+        breadcrumb: String,
+      }],
+      default: [],
+    },
+    serpInfo: {
+      type: Schema.Types.Mixed,
+      default: null,
     },
     raw_data: {
       type: Schema.Types.Mixed,
