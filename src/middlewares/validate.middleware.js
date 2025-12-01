@@ -33,6 +33,15 @@ const name = Joi.string().min(2).max(100);
 const token = Joi.string().required();
 const confirmPassword = (ref) => Joi.string().valid(Joi.ref(ref)).required().messages({ 'any.only': 'Passwords do not match' });
 
+const url = Joi.string().uri().required().messages({
+  'string.uri': 'Please provide a valid URL',
+  'any.required': 'URL is required',
+});
+const keyword = Joi.string().max(100).optional().allow('', null);
+const mongoId = Joi.string().regex(/^[a-fA-F0-9]{24}$/).required().messages({
+  'string.pattern.base': 'Invalid ID format',
+});
+
 // Auth validations
 const registerUser = validateRequest(Joi.object({
   name: name.required(),
@@ -70,6 +79,15 @@ const changePassword = validateRequest(Joi.object({
   confirmPassword: confirmPassword('newPassword')
 }));
 
+const runSEOAudit = validateRequest(Joi.object({
+  url,
+  keyword,
+}));
+
+const auditIdParam = validateParams(Joi.object({
+  auditId: mongoId,
+}));
+
 export const validate = {
   // Auth
   registerUser,
@@ -79,5 +97,9 @@ export const validate = {
   verifyEmailToken,
   resendVerification,
   updateProfile,
-  changePassword
+  changePassword,
+
+  // SEO Audit
+  runSEOAudit,
+  auditIdParam,
 }
