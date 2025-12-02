@@ -2,23 +2,34 @@ import { ApiResponse, ApiError } from '../utils/index.js';
 import { SEOAudit } from '../models/index.js';
 import {  dataForSEOService, pdfService  } from '../services/index.js';
 
-
-
-
 export const runAudit = async (req, res, next) => {
   try {
-    const { url, keyword } = req.body;
+    const { url, keyword, locationName, languageName, device } = req.body;
     const userId = req.user._id;
 
-    const auditResult = await dataForSEOService .runOnPageAudit(url, keyword);
+    if (!keyword) {
+      return res.status(400).json(
+        new ApiResponse(400, null, 'Keyword is required for SEO audit')
+      );
+    }
+
+    const auditResult = await dataForSEOService.runOnPageAudit(
+      url,
+      keyword,
+      locationName,
+      languageName,
+      device
+    );
 
     const audit = await SEOAudit.create({
       user: userId,
       url,
-      keyword: keyword || null,
+      keyword,
       score: auditResult.score,
       checks: auditResult.checks,
       recommendations: auditResult.recommendations,
+      competitors: auditResult.competitors || [],
+      serpInfo: auditResult.serpInfo || null,
       raw_data: auditResult.raw,
       status: 'completed',
     });
@@ -115,25 +126,53 @@ export const deleteAudit = async (req, res, next) => {
 };
 
 export const downloadAuditPDF = async (req, res, next) => {
-    try {
-      const { auditId } = req.params;
-      const userId = req.user._id;
-  
-      const audit = await SEOAudit.findOne({ _id: auditId, user: userId }).lean();
-  
-      if (!audit) {
-        throw new ApiError(404, 'Audit not found');
-      }
-  
-      const pdfBuffer = pdfService.generateSEOAuditReport(audit, req.user);
-  
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename=seo-audit-${auditId}.pdf`);
-      res.send(Buffer.from(pdfBuffer));
-    } catch (error) {
-      next(error);
+  try {
+    const { auditId } = req.params;
+    const userId = req.user._id;
+    const { view } = req.query; // Optional: ?view=true to open in browser instead of download
+
+    const audit = await SEOAudit.findOne({ _id: auditId, user: userId }).lean();
+
+    if (!audit) {
+      throw new ApiError(404, 'Audit not found');
     }
-  };
+
+    const pdfBuffer = pdfService.generateSEOAuditReport(audit, req.user);
+
+    // Create a descriptive filename
+    let urlDomain = 'website';
+    try {
+      if (audit.url) {
+        urlDomain = new URL(audit.url).hostname.replace('www.', '').replace(/[^a-z0-9.-]/gi, '-');
+      }
+    } catch (e) {
+      // If URL parsing fails, use a safe default
+      urlDomain = 'website';
+    }
+    
+    const keywordSlug = audit.keyword 
+      ? audit.keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30) 
+      : 'audit';
+    const dateStr = new Date(audit.createdAt).toISOString().split('T')[0];
+    const filename = `seo-audit-${urlDomain}-${keywordSlug}-${dateStr}.pdf`;
+
+    // Set headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', pdfBuffer.byteLength);
+    
+    // Use 'inline' to view in browser, 'attachment' to force download
+    const disposition = view === 'true' ? 'inline' : 'attachment';
+    res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    
+    // Cache control for sharing
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    res.send(Buffer.from(pdfBuffer));
+  } catch (error) {
+    next(error);
+  }
+};
 
 
   export const seoAuditController = {

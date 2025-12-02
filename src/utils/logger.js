@@ -8,9 +8,8 @@ export class Logger {
   }
 
   static error(...args) {
-    if (env.NODE_ENV === 'development') {
-      console.error('[ERROR]', ...args);
-    }
+    // Always log errors, not just in development
+    console.error('[ERROR]', ...args);
   }
 
   static warn(...args) {

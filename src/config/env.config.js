@@ -4,21 +4,21 @@ dotenv.config();
 const requiredEnvVars = [
   "MONGO_URI",
   "CLIENT_URL",
-  //   "ADMIN_PANEL_URL",
+//   "ADMIN_PANEL_URL",
   "JWT_SECRET",
   "ACCESS_TOKEN_SECRET",
   "REFRESH_TOKEN_SECRET",
-  //   "EMAIL_VERIFICATION_SECRET",
-  //   "FROM_NAME",
-  //   "FROM_EMAIL",
-  //   "SMTP_HOST",
-  //   "SMTP_PORT",
-  //   "SMTP_USER",
-  //   "SMTP_PASS",
-  //   "STRIPE_SECRET_KEY",
-  //   "STRIPE_WEBHOOK_SECRET",
-  //   "ADMIN_EMAIL",
-  //   "ADMIN_PASSWORD",
+//   "EMAIL_VERIFICATION_SECRET",
+//   "FROM_NAME",
+//   "FROM_EMAIL",
+//   "SMTP_HOST",
+//   "SMTP_PORT",
+//   "SMTP_USER",
+//   "SMTP_PASS",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+//   "ADMIN_EMAIL",
+//   "ADMIN_PASSWORD",
 ];
 
 const optionalEnvVars = [
@@ -26,14 +26,10 @@ const optionalEnvVars = [
   "RATE_LIMIT_WINDOW_MS",
   "RATE_LIMIT_MAX_REQUESTS",
   // Claude API
-  "CLAUDE_API_KEY"
+  "CLAUDE_API_KEY",
   // AWS optional vars
   "AWS_REGION",
-  "AWS_S3_BUCKET",
-  //DATAFORSEO optional vars
-  "DATAFORSEO_LOGIN",
-  "DATAFORSEO_PASSWORD",
-  "DATAFORSEO_API_URL",
+  "AWS_S3_BUCKET"
 ];
 
 const missingVars = requiredEnvVars.filter(key => !process.env[key]);

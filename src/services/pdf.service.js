@@ -69,6 +69,14 @@ class PDFService {
       y += 5;
     }
 
+    // Competitor Ranking Table
+    if (audit.competitors && audit.competitors.length > 0) {
+      y = this.checkPageBreak(doc, y, 80);
+      y = this.addSection(doc, 'Competitor Rankings', y);
+      y = this.addCompetitorTable(doc, audit.competitors, y);
+      y += 10;
+    }
+
     // Recommendations
     if (audit.recommendations?.length > 0) {
       y = this.checkPageBreak(doc, y, 40);
@@ -101,6 +109,7 @@ class PDFService {
       doc.text('serpixa.ai', pageWidth - 20, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
     }
 
+    // Return as Uint8Array for better compatibility
     return doc.output('arraybuffer');
   }
 
@@ -177,6 +186,53 @@ class PDFService {
     if (score >= 80) return [40, 167, 69];
     if (score >= 50) return [255, 193, 7];
     return [220, 53, 69];
+  }
+
+  addCompetitorTable(doc, competitors, y) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const startX = 20;
+    const colWidths = [15, 50, 60, 65]; // Position, Title, URL, Domain
+    let currentY = y;
+
+    // Table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(startX, currentY, pageWidth - 40, 10, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Pos', startX + 2, currentY + 7);
+    doc.text('Title', startX + colWidths[0] + 2, currentY + 7);
+    doc.text('URL', startX + colWidths[0] + colWidths[1] + 2, currentY + 7);
+    doc.text('Domain', startX + colWidths[0] + colWidths[1] + colWidths[2] + 2, currentY + 7);
+    currentY += 12;
+
+    // Table rows (top 10 only)
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const topCompetitors = competitors.slice(0, 10);
+    
+    for (const competitor of topCompetitors) {
+      currentY = this.checkPageBreak(doc, currentY, 15);
+      
+      // Position
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${competitor.position}`, startX + 2, currentY);
+      
+      // Title (truncated)
+      doc.setFont('helvetica', 'normal');
+      const title = competitor.title.length > 40 ? competitor.title.substring(0, 37) + '...' : competitor.title;
+      doc.text(title, startX + colWidths[0] + 2, currentY, { maxWidth: colWidths[1] - 4 });
+      
+      // URL (truncated)
+      const url = competitor.url.length > 45 ? competitor.url.substring(0, 42) + '...' : competitor.url;
+      doc.text(url, startX + colWidths[0] + colWidths[1] + 2, currentY, { maxWidth: colWidths[2] - 4 });
+      
+      // Domain
+      doc.text(competitor.domain || '', startX + colWidths[0] + colWidths[1] + colWidths[2] + 2, currentY, { maxWidth: colWidths[3] - 4 });
+      
+      currentY += 10;
+    }
+
+    return currentY;
   }
 }
 
