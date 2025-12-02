@@ -6,29 +6,27 @@ import { claudeService } from '../services/index.js';
  */
 export const optimizeContent = async (req, res, next) => {
   try {
-    const { url, keyword } = req.body;
+    const { keyword, locale = 'en-us' } = req.body;
 
-    if (!url && !keyword) {
+    // Validate keyword
+    if (!keyword || keyword.trim().length === 0) {
       return res.status(400).json(
-        new ApiResponse(400, null, 'Either URL or keyword must be provided')
+        new ApiResponse(400, null, 'Keyword is required')
       );
     }
 
-    // If URL is provided, extract content (optional enhancement)
-    let urlData = null;
-    if (url) {
-      try {
-        urlData = await claudeService.extractContentFromURL(url);
-      } catch (error) {
-        // Continue even if URL extraction fails
-        console.warn('URL extraction warning:', error.message);
-      }
+    // Validate locale (optional)
+    const supportedLocales = ['fr-fr', 'fr-be', 'nl-be', 'nl-nl', 'en-us', 'en-gb'];
+    const normalizedLocale = locale.toLowerCase();
+    
+    if (!supportedLocales.includes(normalizedLocale)) {
+      console.warn(`Unsupported locale: ${locale}. Using default (en-us).`);
     }
 
     // Generate SEO content using Claude
     const optimizedContent = await claudeService.generateSEOContent({
-      url,
-      keyword
+      keyword: keyword.trim(),
+      locale: normalizedLocale
     });
 
     res.status(200).json(
@@ -37,8 +35,8 @@ export const optimizeContent = async (req, res, next) => {
         {
           content: optimizedContent,
           input: {
-            url: url || null,
-            keyword: keyword || null
+            keyword: keyword.trim(),
+            locale: normalizedLocale
           }
         },
         'SEO content generated successfully'
@@ -48,6 +46,3 @@ export const optimizeContent = async (req, res, next) => {
     next(error);
   }
 };
-
-
-

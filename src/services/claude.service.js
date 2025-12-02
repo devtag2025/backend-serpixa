@@ -13,27 +13,74 @@ class ClaudeService {
   }
 
   /**
+   * Build locale-specific instructions
+   */
+  buildLocaleInstructions(locale) {
+    switch (locale.toLowerCase()) {
+      case 'fr-fr':
+        return `
+Language: French (France, fr-FR).
+- Use natural French for France (vocabulary, examples, references to the French market).`;
+
+      case 'fr-be':
+        return `
+Language: French (Belgium, fr-BE).
+- Use French adapted to Belgium (vocabulary, natural turns).
+- References to the Belgian context (Belgian market, Belgian cities, local regulations if relevant).`;
+
+      case 'nl-be':
+        return `
+Taal: Nederlands (België, nl-BE).
+- Gebruik natuurlijk Vlaams Nederlands.
+- Verwijs naar België (markt, steden, context) indien relevant.`;
+
+      case 'nl-nl':
+        return `
+Taal: Nederlands (Nederland, nl-NL).
+- Gebruik standaard Nederlands zoals in Nederland.
+- Verwijs eerder naar Nederlandse indien context nodig.`;
+
+      case 'en-us':
+        return `
+Language: English (United States, en-US).
+- Use natural American English.
+- Reference US market, cities, and context where relevant.`;
+
+      case 'en-gb':
+        return `
+Language: English (United Kingdom, en-GB).
+- Use British English spelling and vocabulary.
+- Reference UK market, cities, and context where relevant.`;
+
+      default:
+        return `
+Language: English (default).
+- Use standard English.
+- Keep examples and references general and internationally applicable.`;
+    }
+  }
+
+  /**
    * Generate SEO-optimized content using Claude API
    * @param {Object} params - Content generation parameters
-   * @param {string} params.url - Target URL (optional)
-   * @param {string} params.keyword - Target keyword (optional)
+   * @param {string} params.keyword - Target keyword (required)
+   * @param {string} params.locale - Language locale (optional, default: en-us)
    * @returns {Promise<Object>} Generated SEO content
    */
-  
-  async generateSEOContent({ url, keyword }) {
+  async generateSEOContent({ keyword, locale = 'en-us' }) {
     if (!this.client) {
       throw new ApiError(500, 'Claude API key not configured');
     }
 
-    if (!url && !keyword) {
-      throw new ApiError(400, 'Either URL or keyword must be provided');
+    if (!keyword) {
+      throw new ApiError(400, 'Keyword is required');
     }
 
     try {
-      const prompt = this.buildSEOPrompt(url, keyword);
+      const prompt = this.buildSEOPrompt(keyword, locale);
       
       const message = await this.client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-haiku-20240307',  // ✅ Most likely to work
         max_tokens: 4096,
         messages: [
           {
@@ -44,7 +91,7 @@ class ClaudeService {
       });
 
       const content = message.content[0].text;
-      return this.parseSEOContent(content);
+      return this.parseSEOContent(content, keyword, locale);
     } catch (error) {
       console.error('Claude API Error:', error);
       if (error.status === 401) {
@@ -61,51 +108,51 @@ class ClaudeService {
   /**
    * Build the SEO optimization prompt for Claude
    */
-  buildSEOPrompt(url, keyword) {
-    let prompt = `You are an expert SEO content writer. Generate comprehensive, SEO-optimized content that targets an SEO score of 70-80%.
+buildSEOPrompt(keyword, locale) {
+  const localeInstructions = this.buildLocaleInstructions(locale);
 
-`;
+  return `You are a senior SEO expert specializing in long-tail content for the web.
 
-    if (url) {
-      prompt += `Analyze the URL: ${url}\n`;
-      prompt += `Generate optimized content based on the URL's topic and purpose.\n\n`;
-    }
+Keyword: "${keyword}"
 
-    if (keyword) {
-      prompt += `Target Keyword: ${keyword}\n`;
-      prompt += `Create content optimized for this keyword while maintaining natural readability.\n\n`;
-    }
+${localeInstructions}
 
-    prompt += `Generate the following SEO-optimized content elements:
+Objective:
+Create a complete SEO page, optimized for this keyword, that can be published directly on a website.
 
-1. **Title Tag** (50-60 characters, include target keyword naturally)
-2. **Meta Description** (150-160 characters, compelling and keyword-rich)
-3. **H1 Heading** (main heading, include primary keyword)
-4. **H2 Headings** (2-4 subheadings, include related keywords)
-5. **H3 Headings** (3-6 subheadings for detailed sections)
-6. **Body Content** (800-1200 words, well-structured, keyword-optimized, natural flow)
-7. **FAQ Section** (5-7 relevant questions and answers, include target keyword)
-8. **CTA (Call-to-Action)** (compelling, action-oriented, 1-2 sentences)
+Constraints:
+- Minimum 1500 words
+- Clear structure with:
+  - 1x <h1> containing the keyword
+  - Several <h2> and some <h3>
+- Tone: professional, educational, value-oriented for the reader
+- Integrate the main keyword:
+  - In the H1
+  - In the introduction
+  - In at least 2-3 subtitles (H2/H3)
+  - In the conclusion
+- Also use natural semantic variants (synonyms, similar expressions)
+- Adapt the examples, references, and formulas to the market and language indicated by the locale
 
-**Requirements:**
-- Content should be engaging, informative, and valuable to readers
-- Use target keyword naturally (avoid keyword stuffing)
-- Include related keywords and semantic variations
-- Structure content with proper headings hierarchy
-- Ensure content aligns with SEO best practices for a score of 70-80%
-- Make content scannable with short paragraphs and bullet points where appropriate
-- Include internal linking opportunities (mention related topics)
-- Write in a professional yet accessible tone
+SEO Requirements:
+- Add a meta title (max 60 characters) optimized for the keyword
+- Add a meta description (max 155 characters), persuasive, with the keyword
+- Keyword density: 1-2% (natural integration)
+- Include internal linking opportunities
+- Add FAQ section (5-7 questions)
+- Include a compelling CTA
 
-**Output Format:**
-Please provide the content in the following JSON structure:
+Output format:
+Respond with ONLY valid JSON. The JSON MUST be properly formatted with:
+- NO markdown code blocks or backticks
+- NO literal newlines in string values (use \\n instead)
+- Properly escaped quotes
+- All HTML content on a SINGLE LINE with \\n for line breaks
+
 {
-  "titleTag": "...",
+  "metaTitle": "...",
   "metaDescription": "...",
-  "h1": "...",
-  "h2": ["...", "..."],
-  "h3": ["...", "...", "..."],
-  "bodyContent": "...",
+  "htmlContent": "<h1>Title</h1>\\n<p>Content here...</p>\\n<h2>Subtitle</h2>",
   "faq": [
     {
       "question": "...",
@@ -114,106 +161,203 @@ Please provide the content in the following JSON structure:
   ],
   "cta": "...",
   "seoScore": 75,
-  "keywordDensity": "...",
-  "wordCount": 0
+  "keywordDensity": "1.5%",
+  "wordCount": 1500
 }
 
-Ensure the JSON is valid and properly formatted.`;
-
-    return prompt;
-  }
+CRITICAL RULES:
+1. Your response must start with { and end with }
+2. The htmlContent field must be a SINGLE LINE string with \\n for newlines
+3. Do NOT format the HTML with actual newlines - use \\n escape sequence
+4. Do NOT wrap the JSON in code blocks
+5. Make sure all quotes inside strings are escaped with backslash`;
+}
 
   /**
    * Parse Claude's response into structured SEO content
    */
-  parseSEOContent(content) {
+parseSEOContent(content, keyword, locale) {
+  try {
+    console.log('📋 Parsing Claude response...');
+    
+    // Remove markdown code blocks if present
+    let cleanContent = content.trim();
+    cleanContent = cleanContent.replace(/```json\s*/g, '');
+    cleanContent = cleanContent.replace(/```\s*/g, '');
+    cleanContent = cleanContent.trim();
+    
+    // Try to extract JSON from the response
+    const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('❌ No JSON found in response');
+      throw new Error('No JSON found in Claude response');
+    }
+
+    let jsonString = jsonMatch[0];
+    
+    // Fix: Replace unescaped newlines and control characters in string values
+    // This regex finds string values and escapes newlines within them
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in Claude response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      // Validate required fields
-      const requiredFields = ['titleTag', 'metaDescription', 'h1', 'bodyContent', 'cta'];
-      const missingFields = requiredFields.filter(field => !parsed[field]);
+      // Parse using a more lenient approach
+      // First, try to fix common issues with the HTML content field
       
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      // Find the htmlContent field and fix newlines in it
+      const htmlContentMatch = jsonString.match(/"htmlContent"\s*:\s*"([\s\S]*?)"\s*,\s*"faq"/);
+      
+      if (htmlContentMatch) {
+        const originalHtmlContent = htmlContentMatch[1];
+        // Replace actual newlines with \n escape sequence
+        const fixedHtmlContent = originalHtmlContent
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+        
+        jsonString = jsonString.replace(
+          /"htmlContent"\s*:\s*"[\s\S]*?"\s*,\s*"faq"/,
+          `"htmlContent": "${fixedHtmlContent}", "faq"`
+        );
       }
-
-      // Ensure arrays exist
-      if (!Array.isArray(parsed.h2)) parsed.h2 = [];
-      if (!Array.isArray(parsed.h3)) parsed.h3 = [];
-      if (!Array.isArray(parsed.faq)) parsed.faq = [];
-
-      // Calculate word count if not provided
-      if (!parsed.wordCount) {
-        parsed.wordCount = parsed.bodyContent.split(/\s+/).length;
-      }
-
-      // Ensure SEO score is within target range
-      if (!parsed.seoScore || parsed.seoScore < 70) {
-        parsed.seoScore = 75; // Default to mid-range
-      }
-
-      return {
-        titleTag: parsed.titleTag,
-        metaDescription: parsed.metaDescription,
-        h1: parsed.h1,
-        h2: parsed.h2,
-        h3: parsed.h3,
-        bodyContent: parsed.bodyContent,
-        faq: parsed.faq,
-        cta: parsed.cta,
-        seoScore: parsed.seoScore,
-        keywordDensity: parsed.keywordDensity || 'N/A',
-        wordCount: parsed.wordCount,
-        generatedAt: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error parsing Claude response:', error);
-      // Fallback: return structured content even if JSON parsing fails
-      return {
-        titleTag: 'SEO Optimized Title',
-        metaDescription: 'SEO optimized meta description',
-        h1: 'Main Heading',
-        h2: [],
-        h3: [],
-        bodyContent: content,
-        faq: [],
-        cta: 'Take action now!',
-        seoScore: 75,
-        keywordDensity: 'N/A',
-        wordCount: content.split(/\s+/).length,
-        generatedAt: new Date().toISOString(),
-        rawResponse: content
-      };
+      
+      console.log('✅ JSON control characters fixed');
+    } catch (fixError) {
+      console.warn('⚠️ Could not auto-fix JSON:', fixError.message);
     }
-  }
 
-  /**
-   * Extract content from a URL (basic implementation)
-   * This can be enhanced with web scraping libraries
-   */
-  async extractContentFromURL(url) {
-    // Basic URL validation
+    let parsed;
     try {
-      new URL(url);
-    } catch {
-      throw new ApiError(400, 'Invalid URL format');
+      parsed = JSON.parse(jsonString);
+      console.log('✅ JSON parsed successfully');
+    } catch (parseError) {
+      console.error('❌ JSON parsing failed:', parseError.message);
+      console.error('First 500 chars of JSON:', jsonString.substring(0, 500));
+      
+      // Last resort: try to manually parse key fields
+      try {
+        console.log('⚠️ Attempting manual extraction...');
+        
+        parsed = {
+          metaTitle: this.extractJsonValue(jsonString, 'metaTitle'),
+          metaDescription: this.extractJsonValue(jsonString, 'metaDescription'),
+          htmlContent: this.extractHtmlContent(jsonString),
+          faq: this.extractFaqArray(jsonString),
+          cta: this.extractJsonValue(jsonString, 'cta'),
+          seoScore: parseInt(this.extractJsonValue(jsonString, 'seoScore')) || 75,
+          keywordDensity: this.extractJsonValue(jsonString, 'keywordDensity') || 'N/A',
+          wordCount: parseInt(this.extractJsonValue(jsonString, 'wordCount')) || 0
+        };
+        
+        console.log('✅ Manual extraction successful');
+      } catch (manualError) {
+        console.error('❌ Manual extraction failed:', manualError.message);
+        throw new Error('Failed to parse JSON response from Claude');
+      }
     }
 
-    // For now, we'll just use the URL in the prompt
-    // In production, you might want to use a web scraping service
-    // or fetch the page content here
-    return { url, extracted: false };
+    // Validate required fields
+    const requiredFields = ['metaTitle', 'metaDescription', 'htmlContent'];
+    const missingFields = requiredFields.filter(field => !parsed[field]);
+    
+    if (missingFields.length > 0) {
+      console.warn('⚠️ Missing required fields:', missingFields.join(', '));
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+
+    // Ensure arrays exist
+    if (!Array.isArray(parsed.faq)) {
+      console.warn('⚠️ FAQ not an array, converting...');
+      parsed.faq = [];
+    }
+
+    // Calculate word count from HTML content
+    if (!parsed.wordCount || parsed.wordCount === 0) {
+      const textContent = parsed.htmlContent.replace(/<[^>]*>/g, ' ');
+      parsed.wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length;
+      console.log('📊 Calculated word count:', parsed.wordCount);
+    }
+
+    // Ensure SEO score is within target range
+    if (!parsed.seoScore || parsed.seoScore < 70) {
+      parsed.seoScore = 75;
+    }
+
+    const result = {
+      metaTitle: parsed.metaTitle,
+      metaDescription: parsed.metaDescription,
+      htmlContent: parsed.htmlContent,
+      faq: parsed.faq,
+      cta: parsed.cta || 'Contact us today!',
+      seoScore: parsed.seoScore,
+      keywordDensity: parsed.keywordDensity || 'N/A',
+      wordCount: parsed.wordCount,
+      keyword: keyword,
+      locale: locale,
+      generatedAt: new Date().toISOString()
+    };
+
+    console.log('✅ Content parsed successfully');
+    console.log('📊 Stats:', {
+      wordCount: result.wordCount,
+      seoScore: result.seoScore,
+      faqCount: result.faq.length
+    });
+
+    return result;
+    
+  } catch (error) {
+    console.error('❌ Error parsing Claude response:', error);
+    console.error('Raw content preview:', content.substring(0, 500));
+    
+    // Fallback: Return content as-is with basic structure
+    return {
+      metaTitle: `${keyword} - SEO Optimized Content`,
+      metaDescription: `Learn everything about ${keyword}. Comprehensive guide and insights.`,
+      htmlContent: content,
+      faq: [],
+      cta: 'Get started today!',
+      seoScore: 75,
+      keywordDensity: 'N/A',
+      wordCount: content.split(/\s+/).length,
+      keyword: keyword,
+      locale: locale,
+      generatedAt: new Date().toISOString(),
+      rawResponse: content,
+      parseError: error.message
+    };
   }
+}
+
+// Helper method: Extract simple JSON value
+extractJsonValue(jsonString, key) {
+  const regex = new RegExp(`"${key}"\\s*:\\s*"([^"]*)"`, 'i');
+  const match = jsonString.match(regex);
+  return match ? match[1] : '';
+}
+
+// Helper method: Extract HTML content (handles newlines)
+extractHtmlContent(jsonString) {
+  const match = jsonString.match(/"htmlContent"\s*:\s*"([\s\S]*?)"\s*,\s*"faq"/);
+  if (match) {
+    // The HTML content is between quotes, keep as-is
+    return match[1];
+  }
+  return '';
+}
+
+// Helper method: Extract FAQ array
+extractFaqArray(jsonString) {
+  try {
+    const faqMatch = jsonString.match(/"faq"\s*:\s*\[([\s\S]*?)\]\s*,/);
+    if (faqMatch) {
+      const faqString = '[' + faqMatch[1] + ']';
+      // Try to parse the FAQ array separately
+      return JSON.parse(faqString);
+    }
+  } catch (e) {
+    console.warn('Could not parse FAQ array:', e.message);
+  }
+  return [];
+}
 }
 
 export const claudeService = new ClaudeService();
 export default claudeService;
-
-
