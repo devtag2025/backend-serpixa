@@ -15,6 +15,8 @@ const requiredEnvVars = [
   //   "SMTP_PORT",
   //   "SMTP_USER",
   //   "SMTP_PASS",
+  //   "STRIPE_SECRET_KEY",
+  //   "STRIPE_WEBHOOK_SECRET",
   //   "ADMIN_EMAIL",
   //   "ADMIN_PASSWORD",
 ];
@@ -25,6 +27,13 @@ const optionalEnvVars = [
   "RATE_LIMIT_MAX_REQUESTS",
   // Claude API
   "CLAUDE_API_KEY"
+  // AWS optional vars
+  "AWS_REGION",
+  "AWS_S3_BUCKET",
+  //DATAFORSEO optional vars
+  "DATAFORSEO_LOGIN",
+  "DATAFORSEO_PASSWORD",
+  "DATAFORSEO_API_URL",
 ];
 
 const missingVars = requiredEnvVars.filter(key => !process.env[key]);
@@ -101,4 +110,8 @@ export const env = {
 
   // Claude API Configuration
   CLAUDE_API_KEY: process.env.CLAUDE_API_KEY,
+  // DataForSEO Configuration
+  DATAFORSEO_LOGIN: process.env.DATAFORSEO_LOGIN,
+  DATAFORSEO_PASSWORD: process.env.DATAFORSEO_PASSWORD,
+  DATAFORSEO_API_URL: process.env.DATAFORSEO_API_URL || "https://sandbox.dataforseo.com",
 };
