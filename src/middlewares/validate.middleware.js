@@ -90,6 +90,20 @@ const auditIdParam = validateParams(Joi.object({
 // SERP validations
 
 
+// GBP Audit validations
+const runGBPAudit = validateRequest(Joi.object({
+  businessName: Joi.string().min(2).max(200).optional(),
+  gbpLink: Joi.string().uri().optional(),
+  location: Joi.string().max(100).optional(),
+  languageCode: Joi.string().length(2).optional(),
+}).or('businessName', 'gbpLink').messages({
+  'object.missing': 'Either businessName or gbpLink is required',
+}));
+
+const gbpAuditIdParam = validateParams(Joi.object({
+  auditId: mongoId,
+}));
+
 export const validate = {
   // Auth
   registerUser,
@@ -105,5 +119,7 @@ export const validate = {
   runSEOAudit,
   auditIdParam,
   
-
+  // GBP Audit
+  runGBPAudit,
+  gbpAuditIdParam,
 }
