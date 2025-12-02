@@ -79,6 +79,12 @@ const changePassword = validateRequest(Joi.object({
   confirmPassword: confirmPassword('newPassword')
 }));
 
+// Claude/Content Optimization validations
+const optimizeContent = validateRequest(Joi.object({
+  url: Joi.string().uri().optional().allow('', null),
+  keyword: Joi.string().min(2).max(200).optional().allow('', null)
+}).or('url', 'keyword').messages({
+  'object.missing': 'Either URL or keyword must be provided'
 const runSEOAudit = validateRequest(Joi.object({
   url,
   keyword,
@@ -98,6 +104,8 @@ export const validate = {
   resendVerification,
   updateProfile,
   changePassword,
+  // Claude
+  optimizeContent
 
   // SEO Audit
   runSEOAudit,

@@ -18,4 +18,10 @@ export class Logger {
       console.warn('[WARN]', ...args);
     }
   }
+
+  static info(...args) {
+    if (env.NODE_ENV === 'development' || env.NODE_ENV === 'production') {
+      console.info('[INFO]', ...args);
+    }
+  }
 }
