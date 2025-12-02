@@ -29,7 +29,6 @@ const UserSchema = new Schema(
     reset_password_token: { type: String },
     reset_password_expires: { type: Date },
     refresh_token_enc: { type: String },
-    stripe_customer_id: { type: String, index: true },
   },
   {
     timestamps: true, 

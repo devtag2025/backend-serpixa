@@ -37,11 +37,7 @@ const url = Joi.string().uri().required().messages({
   'string.uri': 'Please provide a valid URL',
   'any.required': 'URL is required',
 });
-const keyword = Joi.string().min(1).max(500).required().messages({
-  'string.empty': 'Keyword cannot be empty',
-  'string.max': 'Keyword must not exceed 500 characters',
-  'any.required': 'Keyword is required',
-});
+const keyword = Joi.string().max(100).optional().allow('', null);
 const mongoId = Joi.string().regex(/^[a-fA-F0-9]{24}$/).required().messages({
   'string.pattern.base': 'Invalid ID format',
 });
@@ -83,18 +79,16 @@ const changePassword = validateRequest(Joi.object({
   confirmPassword: confirmPassword('newPassword')
 }));
 
-// SEO Audit validation
 const runSEOAudit = validateRequest(Joi.object({
   url,
   keyword,
-  locationName: Joi.string().min(1).max(100).optional().default('United States'),
-  languageName: Joi.string().min(1).max(100).optional().default('English'),
-  device: Joi.string().valid('desktop', 'mobile', 'tablet').optional().default('desktop'),
 }));
 
 const auditIdParam = validateParams(Joi.object({
   auditId: mongoId,
 }));
+// SERP validations
+
 
 export const validate = {
   // Auth
@@ -106,7 +100,11 @@ export const validate = {
   resendVerification,
   updateProfile,
   changePassword,
+
   // SEO Audit
   runSEOAudit,
   auditIdParam,
+  // SERP
+  searchCompetitors,
+  bulkSearchCompetitors,
 }

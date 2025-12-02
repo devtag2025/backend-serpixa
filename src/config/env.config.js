@@ -25,6 +25,8 @@ const optionalEnvVars = [
   "COOKIE_SECRET",
   "RATE_LIMIT_WINDOW_MS",
   "RATE_LIMIT_MAX_REQUESTS",
+  // Claude API
+  "CLAUDE_API_KEY",
   // AWS optional vars
   "AWS_REGION",
   "AWS_S3_BUCKET"
@@ -83,10 +85,6 @@ export const env = {
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
 
-  // Stripe Configuration
-  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-
   // Email Configuration
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT,
@@ -105,4 +103,11 @@ export const env = {
 
   // Feature Flags
   ENABLE_API_DOCS: process.env.ENABLE_API_DOCS === "true" || process.env.NODE_ENV !== "production",
+
+  // Claude API Configuration
+  CLAUDE_API_KEY: process.env.CLAUDE_API_KEY,
+  // DataForSEO Configuration
+  DATAFORSEO_LOGIN: process.env.DATAFORSEO_LOGIN,
+  DATAFORSEO_PASSWORD: process.env.DATAFORSEO_PASSWORD,
+  DATAFORSEO_API_URL: process.env.DATAFORSEO_API_URL || "https://sandbox.dataforseo.com",
 };
