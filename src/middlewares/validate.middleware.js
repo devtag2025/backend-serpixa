@@ -104,7 +104,6 @@ export const validate = {
   // SEO Audit
   runSEOAudit,
   auditIdParam,
-  // SERP
-  searchCompetitors,
-  bulkSearchCompetitors,
+  
+
 }
