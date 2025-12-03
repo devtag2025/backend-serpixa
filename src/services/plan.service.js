@@ -3,8 +3,6 @@ import { paginate } from '../utils/index.js';
 
 class PlanService {
 
-  // ===== PLAN CRUD =====
-
   async getPlans(activeOnly = false) {
     const filter = activeOnly ? { is_active: true } : {};
     return Plan.find(filter).sort({ sort_order: 1, createdAt: -1 });

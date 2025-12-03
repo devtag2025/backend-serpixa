@@ -104,6 +104,29 @@ const gbpAuditIdParam = validateParams(Joi.object({
   auditId: mongoId,
 }));
 
+// Geo Audit validations
+const runGeoAudit = validateRequest(Joi.object({
+  keyword: Joi.string().min(1).max(200).required().messages({
+    'any.required': 'Keyword is required',
+    'string.empty': 'Keyword cannot be empty',
+  }),
+  location: Joi.string().min(1).max(200).required().messages({
+    'any.required': 'Location is required',
+    'string.empty': 'Location cannot be empty',
+  }),
+  businessName: Joi.string().min(1).max(200).optional(),
+  languageName: Joi.string().max(100).optional(),
+  device: Joi.string().valid('desktop', 'mobile', 'tablet').optional(),
+}));
+
+// Checkout validations
+const createCheckout = validateRequest(Joi.object({
+  price_id: Joi.string().optional(),
+  plan_id: Joi.string().regex(/^[a-fA-F0-9]{24}$/).optional(),
+}).or('price_id', 'plan_id').messages({
+  'object.missing': 'Either price_id or plan_id is required',
+}));
+
 export const validate = {
   // Auth
   registerUser,
@@ -122,4 +145,10 @@ export const validate = {
   // GBP Audit
   runGBPAudit,
   gbpAuditIdParam,
+
+  // Geo Audit
+  runGeoAudit,
+
+  // Checkout
+  createCheckout,
 }

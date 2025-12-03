@@ -375,6 +375,221 @@ class PDFService {
     return y;
   }
 
+  generateGeoAuditReport(audit, user) {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    // Header
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Geo Audit Report', pageWidth / 2, y, { align: 'center' });
+    y += 15;
+
+    // Branding
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text('Powered by Serpixa', pageWidth / 2, y, { align: 'center' });
+    y += 15;
+
+    // Audit Info
+    doc.setTextColor(0);
+    doc.setFontSize(11);
+    doc.text(`Business: ${audit.businessName}`, 20, y);
+    y += 8;
+    doc.text(`Keyword: ${audit.keyword}`, 20, y);
+    y += 8;
+    doc.text(`Location: ${audit.location}`, 20, y);
+    y += 8;
+    doc.text(`Date: ${new Date(audit.createdAt).toLocaleDateString()}`, 20, y);
+    y += 8;
+    doc.text(`Generated for: ${user.name || user.email}`, 20, y);
+    y += 15;
+
+    // Local Visibility Score Section
+    doc.setFillColor(240, 240, 240);
+    doc.rect(20, y, pageWidth - 40, 25, 'F');
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Local Visibility Score', 30, y + 10);
+    doc.setFontSize(24);
+    doc.setTextColor(...this.getScoreColor(audit.localVisibilityScore));
+    doc.text(`${audit.localVisibilityScore}/100`, pageWidth - 50, y + 15);
+    doc.setTextColor(0);
+    y += 35;
+
+    // Business Information
+    if (audit.businessInfo) {
+      y = this.addSection(doc, 'Business Information', y);
+      const info = audit.businessInfo;
+      if (info.name) y = this.addInfoLine(doc, 'Name', info.name, y);
+      if (info.address) y = this.addInfoLine(doc, 'Address', info.address, y);
+      if (info.phone) y = this.addInfoLine(doc, 'Phone', info.phone, y);
+      if (info.website) y = this.addInfoLine(doc, 'Website', info.website, y);
+      if (info.category) y = this.addInfoLine(doc, 'Category', info.category, y);
+      if (info.rating) y = this.addInfoLine(doc, 'Rating', `${info.rating}/5 (${info.reviews} reviews)`, y);
+      y += 5;
+    }
+
+    // Competitors Table
+    if (audit.competitors && audit.competitors.length > 0) {
+      y = this.checkPageBreak(doc, y, 100);
+      y = this.addSection(doc, 'Nearby Competitors', y);
+      y = this.addGeoCompetitorTable(doc, audit.competitors, y);
+      y += 10;
+    }
+
+    // NAP Issues
+    if (audit.napIssues) {
+      y = this.checkPageBreak(doc, y, 40);
+      y = this.addSection(doc, 'NAP Consistency', y);
+      const nap = audit.napIssues;
+      y = this.addLine(doc, `Name Consistency: ${nap.nameConsistency ? '✓' : '✗'}`, y);
+      y = this.addLine(doc, `Address Consistency: ${nap.addressConsistency ? '✓' : '✗'}`, y);
+      y = this.addLine(doc, `Phone Consistency: ${nap.phoneConsistency ? '✓' : '✗'}`, y);
+      if (nap.issues && nap.issues.length > 0) {
+        y += 3;
+        doc.setFontSize(9);
+        doc.setTextColor(220, 53, 69);
+        nap.issues.forEach(issue => {
+          y = this.checkPageBreak(doc, y, 8);
+          doc.text(`• ${issue}`, 25, y);
+          y += 6;
+        });
+        doc.setTextColor(0);
+      }
+      y += 5;
+    }
+
+    // Citation Issues
+    if (audit.citationIssues) {
+      y = this.checkPageBreak(doc, y, 40);
+      y = this.addSection(doc, 'Citation Analysis', y);
+      const citations = audit.citationIssues;
+      if (citations.missingCitations && citations.missingCitations.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Missing Citations:', 25, y);
+        y += 8;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(220, 53, 69);
+        citations.missingCitations.forEach(item => {
+          y = this.checkPageBreak(doc, y, 8);
+          doc.text(`• ${item}`, 30, y);
+          y += 6;
+        });
+        doc.setTextColor(0);
+        y += 3;
+      }
+      if (citations.inconsistentData && citations.inconsistentData.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Inconsistent Data:', 25, y);
+        y += 8;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(255, 193, 7);
+        citations.inconsistentData.forEach(item => {
+          y = this.checkPageBreak(doc, y, 8);
+          doc.text(`• ${item}`, 30, y);
+          y += 6;
+        });
+        doc.setTextColor(0);
+      }
+      y += 5;
+    }
+
+    // Recommendations
+    if (audit.recommendations?.length > 0) {
+      y = this.checkPageBreak(doc, y, 40);
+      y = this.addSection(doc, 'Recommendations', y);
+
+      for (const rec of audit.recommendations) {
+        y = this.checkPageBreak(doc, y, 20);
+        const priorityColor = rec.priority === 'high' ? [220, 53, 69] : rec.priority === 'medium' ? [255, 193, 7] : [40, 167, 69];
+        doc.setFillColor(...priorityColor);
+        doc.circle(25, y - 2, 2, 'F');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(rec.issue, 30, y);
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(80);
+        const actionLines = doc.splitTextToSize(rec.action, 155);
+        doc.text(actionLines, 30, y);
+        doc.setTextColor(0);
+        y += actionLines.length * 5 + 5;
+      }
+    }
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      doc.text('serpixa.ai', pageWidth - 20, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
+    }
+
+    return doc.output('arraybuffer');
+  }
+
+  addGeoCompetitorTable(doc, competitors, y) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const startX = 20;
+    const colWidths = [15, 50, 20, 20, 25, 60]; // Pos, Name, Rating, Reviews, Distance, Address
+    let currentY = y;
+
+    // Table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(startX, currentY, pageWidth - 40, 10, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Pos', startX + 2, currentY + 7);
+    doc.text('Name', startX + colWidths[0] + 2, currentY + 7);
+    doc.text('Rating', startX + colWidths[0] + colWidths[1] + 2, currentY + 7);
+    doc.text('Reviews', startX + colWidths[0] + colWidths[1] + colWidths[2] + 2, currentY + 7);
+    doc.text('Dist', startX + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2, currentY + 7);
+    doc.text('Address', startX + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2, currentY + 7);
+    currentY += 12;
+
+    // Table rows (top 10 only)
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const topCompetitors = competitors.slice(0, 10);
+    
+    for (const competitor of topCompetitors) {
+      currentY = this.checkPageBreak(doc, currentY, 15);
+      
+      // Position
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${competitor.position}`, startX + 2, currentY);
+      
+      // Name (truncated)
+      doc.setFont('helvetica', 'normal');
+      const name = competitor.name.length > 35 ? competitor.name.substring(0, 32) + '...' : competitor.name;
+      doc.text(name, startX + colWidths[0] + 2, currentY, { maxWidth: colWidths[1] - 4 });
+      
+      // Rating
+      doc.text(competitor.rating ? competitor.rating.toFixed(1) : 'N/A', startX + colWidths[0] + colWidths[1] + 2, currentY);
+      
+      // Reviews
+      doc.text(competitor.reviews ? competitor.reviews.toString() : '0', startX + colWidths[0] + colWidths[1] + colWidths[2] + 2, currentY);
+      
+      // Distance
+      doc.text(competitor.distance || 'N/A', startX + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2, currentY, { maxWidth: colWidths[4] - 4 });
+      
+      // Address (truncated)
+      const address = competitor.address ? (competitor.address.length > 40 ? competitor.address.substring(0, 37) + '...' : competitor.address) : 'N/A';
+      doc.text(address, startX + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2, currentY, { maxWidth: colWidths[5] - 4 });
+      
+      currentY += 10;
+    }
+
+    return currentY;
+  }
+
 }
 
 export const pdfService = new PDFService();

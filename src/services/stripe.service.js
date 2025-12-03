@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { User, Plan, Subscription } from '../models/index.js';
 import { env } from '../config/index.js';
+import { getPriceMetadata, isValidPriceId, isSubscriptionPrice, STRIPE_PRICE_IDS } from '../utils/stripe.constants.js';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -8,16 +9,65 @@ class StripeService {
 
   // ===== CORE BUSINESS LOGIC =====
 
-  async createCheckout(userId, planId) {
+  /**
+   * Create checkout session using Stripe price ID directly
+   * @param {string} userId - User ID
+   * @param {string} priceId - Stripe price ID
+   * @returns {Promise<{checkout_url: string}>}
+   */
+  async createCheckout(userId, priceId) {
+    // Validate price ID
+    if (!isValidPriceId(priceId)) {
+      throw new Error(`Invalid price ID: ${priceId}`);
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw new Error('User not found');
+
+    const customerId = await this._ensureCustomer(user);
+    const priceMetadata = getPriceMetadata(priceId);
+
+    // Determine checkout mode
+    const mode = priceMetadata.mode || (isSubscriptionPrice(priceId) ? 'subscription' : 'payment');
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: mode,
+      success_url: `${env.CLIENT_URL}/checkout/success?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.CLIENT_URL}/checkout/cancel?canceled=true`,
+      metadata: { 
+        user_id: userId.toString(),
+        price_id: priceId,
+        price_type: priceMetadata.type || 'unknown',
+        price_name: priceMetadata.name || 'Unknown'
+      }
+    });
+
+    return { checkout_url: session.url };
+  }
+
+  /**
+   * Legacy method - Create checkout using plan ID (for backward compatibility)
+   * @param {string} userId - User ID
+   * @param {string} planId - Plan ID from database
+   * @returns {Promise<{checkout_url: string}>}
+   */
+  async createCheckoutFromPlan(userId, planId) {
     const [user, plan] = await this._validateCheckout(userId, planId);
     const customerId = await this._ensureCustomer(user);
+
+    if (!plan.stripe_price_id) {
+      throw new Error('Plan does not have a Stripe price ID');
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
       mode: plan.billing_period === 'one_time' ? 'payment' : 'subscription',
-      success_url: `${env.CLIENT_URL}/checkout/success?success=true`,
+      success_url: `${env.CLIENT_URL}/checkout/success?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${env.CLIENT_URL}/checkout/cancel?canceled=true`,
       metadata: { user_id: userId.toString(), plan_id: planId.toString() }
     });
@@ -118,9 +168,82 @@ class StripeService {
   // ===== WEBHOOK HANDLERS =====
 
   async _handleCheckout(session) {
-    console.log("Handling checkout session:");
-    const { user_id, plan_id } = session.metadata;
-    if (!user_id || !plan_id) return;
+    console.log("Handling checkout session:", session.id);
+    const { user_id, price_id, plan_id, price_type, price_name } = session.metadata;
+    
+    if (!user_id) {
+      console.error('No user_id in checkout session metadata');
+      return;
+    }
+
+    // Handle addon purchases (one-time payments)
+    if (price_type === 'addon' || (!plan_id && price_id)) {
+      await this._handleAddonPurchase(user_id, session, price_id);
+      return;
+    }
+
+    // Handle subscription plans (legacy plan_id or subscription price_id)
+    if (plan_id) {
+      let stripeData = { customer: session.customer, payment_intent: session.payment_intent };
+
+      if (session.subscription) {
+        const sub = await stripe.subscriptions.retrieve(session.subscription);
+        stripeData = { ...stripeData, subscription: sub.id, ...sub };
+      }
+
+      await this._upsertSubscription(user_id, plan_id, stripeData);
+    } else if (price_id && isSubscriptionPrice(price_id)) {
+      // Handle subscription from price_id (need to find or create plan)
+      await this._handleSubscriptionFromPriceId(user_id, price_id, session);
+    }
+  }
+
+  async _handleAddonPurchase(userId, session, priceId) {
+    const priceMetadata = getPriceMetadata(priceId);
+    
+    if (!priceMetadata || !priceMetadata.credits) {
+      console.error('No credits metadata for addon purchase');
+      return;
+    }
+
+    // Update user credits
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error('User not found for addon purchase');
+      return;
+    }
+
+    // Initialize credits if not exists
+    if (!user.credits) {
+      user.credits = {
+        seo_audits: 0,
+        geo_audits: 0,
+        gbp_audits: 0,
+        ai_generations: 0,
+      };
+    }
+
+    // Add credits
+    Object.entries(priceMetadata.credits).forEach(([key, value]) => {
+      if (user.credits[key] !== undefined) {
+        user.credits[key] = (user.credits[key] || 0) + value;
+      }
+    });
+
+    await user.save();
+    console.log(`Added credits to user ${userId}:`, priceMetadata.credits);
+  }
+
+  async _handleSubscriptionFromPriceId(userId, priceId, session) {
+    // Try to find a plan with this price_id
+    let plan = await Plan.findOne({ stripe_price_id: priceId });
+    
+    // If no plan exists, you might want to create one or handle differently
+    if (!plan) {
+      console.warn(`No plan found for price_id ${priceId}, subscription may not be tracked properly`);
+      // You could create a plan here or handle it differently
+      return;
+    }
 
     let stripeData = { customer: session.customer, payment_intent: session.payment_intent };
 
@@ -129,7 +252,7 @@ class StripeService {
       stripeData = { ...stripeData, subscription: sub.id, ...sub };
     }
 
-    await this._upsertSubscription(user_id, plan_id, stripeData);
+    await this._upsertSubscription(userId, plan._id.toString(), stripeData);
   }
 
   async _handleSubscriptionUpdate(stripeSub) {
