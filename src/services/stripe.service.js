@@ -7,14 +7,6 @@ const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
 class StripeService {
 
-  // ===== CORE BUSINESS LOGIC =====
-
-  /**
-   * Create checkout session using Stripe price ID directly
-   * @param {string} userId - User ID
-   * @param {string} priceId - Stripe price ID
-   * @returns {Promise<{checkout_url: string}>}
-   */
   async createCheckout(userId, priceId) {
     // Validate price ID
     if (!isValidPriceId(priceId)) {
@@ -48,12 +40,6 @@ class StripeService {
     return { checkout_url: session.url };
   }
 
-  /**
-   * Legacy method - Create checkout using plan ID (for backward compatibility)
-   * @param {string} userId - User ID
-   * @param {string} planId - Plan ID from database
-   * @returns {Promise<{checkout_url: string}>}
-   */
   async createCheckoutFromPlan(userId, planId) {
     const [user, plan] = await this._validateCheckout(userId, planId);
     const customerId = await this._ensureCustomer(user);
