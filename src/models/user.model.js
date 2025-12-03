@@ -29,6 +29,17 @@ const UserSchema = new Schema(
     reset_password_token: { type: String },
     reset_password_expires: { type: Date },
     refresh_token_enc: { type: String },
+    
+    // Stripe
+    stripe_customer_id: { type: String, index: true },
+    
+    // Credits for addon purchases
+    credits: {
+      seo_audits: { type: Number, default: 0 },
+      geo_audits: { type: Number, default: 0 },
+      gbp_audits: { type: Number, default: 0 },
+      ai_generations: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true, 

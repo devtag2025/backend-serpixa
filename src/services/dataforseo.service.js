@@ -389,4 +389,4 @@ class DataForSEOService {
     }
 }
 
-export const dataForSEOService = new DataForSEOService();
+export const dataForSEOService = new DataForSEOService();   

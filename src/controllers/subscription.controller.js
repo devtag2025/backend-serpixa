@@ -3,11 +3,22 @@ import { ApiResponse } from '../utils/index.js';
 
 export const createCheckout = async (req, res, next) => {
   try {
-    const { plan_id } = req.body;
+    const { price_id, plan_id } = req.body; // Support both price_id (new) and plan_id (legacy)
     const userId = req.user._id;
 
-    const result = await stripeService.createCheckout(userId, plan_id);
-    res.json(new ApiResponse(200, result, "Checkout session created"));
+    // Use price_id if provided, otherwise fall back to plan_id (legacy)
+    if (price_id) {
+      const result = await stripeService.createCheckout(userId, price_id);
+      res.json(new ApiResponse(200, result, "Checkout session created"));
+    } else if (plan_id) {
+      // Legacy support - create checkout from plan
+      const result = await stripeService.createCheckoutFromPlan(userId, plan_id);
+      res.json(new ApiResponse(200, result, "Checkout session created"));
+    } else {
+      return res.status(400).json(
+        new ApiResponse(400, null, "Either price_id or plan_id is required")
+      );
+    }
   } catch (error) {
     next(error);
   }

@@ -3,6 +3,7 @@ import express from 'express';
 import authRoutes from './auth.route.js';
 import claudeRoutes from './claude.route.js';
 import seoAuditRoutes from './seoAudit.route.js';
+import geoAuditRoutes from './geoAudit.route.js';
 import gbpAuditRoutes from './gbpAudit.route.js';
 import subscriptionRoutes from './subscription.route.js';
 import planRoutes from './plan.route.js';
@@ -15,6 +16,7 @@ router.post('/webhooks/stripe', express.raw({ type: "application/json" }), handl
 router.use('/auth', authRoutes);
 router.use('/claude', claudeRoutes);
 router.use('/seo-audits', seoAuditRoutes);
+router.use('/geo-audits', geoAuditRoutes);
 router.use('/gbp-audits', gbpAuditRoutes);
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/plans', planRoutes);
