@@ -4,12 +4,19 @@ import { auth, validate } from '../middlewares/index.js';
 
 const router = Router();
 
+// Public route - get available plans (subscriptions and addons)
+router.get('/plans', subscriptionController.getAvailablePlans);
+
+// Protected routes
 router.use(auth);
 
 // Get current user's subscription
 router.get('/current', subscriptionController.getCurrentSubscription);
 
-// Create checkout session for plan or price
+// Get user's credit balance
+router.get('/credits', subscriptionController.getCredits);
+
+// Create checkout session
 router.post('/checkout', validate.createCheckout, subscriptionController.createCheckout);
 
 // Create customer portal session

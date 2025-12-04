@@ -1,26 +1,26 @@
 import Stripe from 'stripe';
 import { User, Plan, Subscription } from '../models/index.js';
 import { env } from '../config/index.js';
-import { getPriceMetadata, isValidPriceId, isSubscriptionPrice, STRIPE_PRICE_IDS } from '../utils/stripe.constants.js';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
 class StripeService {
 
   async createCheckout(userId, priceId) {
-    // Validate price ID
-    if (!isValidPriceId(priceId)) {
-      throw new Error(`Invalid price ID: ${priceId}`);
+    // Find plan by stripe_price_id
+    const plan = await Plan.findOne({ stripe_price_id: priceId, is_active: true });
+    
+    if (!plan) {
+      throw new Error(`Plan not found for price ID: ${priceId}. Please run the seed script to populate plans.`);
     }
 
     const user = await User.findById(userId);
     if (!user) throw new Error('User not found');
 
     const customerId = await this._ensureCustomer(user);
-    const priceMetadata = getPriceMetadata(priceId);
 
-    // Determine checkout mode
-    const mode = priceMetadata.mode || (isSubscriptionPrice(priceId) ? 'subscription' : 'payment');
+    // Determine checkout mode based on plan type
+    const mode = plan.plan_type === 'subscription' ? 'subscription' : 'payment';
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -31,35 +31,16 @@ class StripeService {
       cancel_url: `${env.CLIENT_URL}/checkout/cancel?canceled=true`,
       metadata: { 
         user_id: userId.toString(),
+        plan_id: plan._id.toString(),
         price_id: priceId,
-        price_type: priceMetadata.type || 'unknown',
-        price_name: priceMetadata.name || 'Unknown'
+        plan_type: plan.plan_type,
+        plan_name: plan.name
       }
     });
 
     return { checkout_url: session.url };
   }
 
-  async createCheckoutFromPlan(userId, planId) {
-    const [user, plan] = await this._validateCheckout(userId, planId);
-    const customerId = await this._ensureCustomer(user);
-
-    if (!plan.stripe_price_id) {
-      throw new Error('Plan does not have a Stripe price ID');
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [{ price: plan.stripe_price_id, quantity: 1 }],
-      mode: plan.billing_period === 'one_time' ? 'payment' : 'subscription',
-      success_url: `${env.CLIENT_URL}/checkout/success?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${env.CLIENT_URL}/checkout/cancel?canceled=true`,
-      metadata: { user_id: userId.toString(), plan_id: planId.toString() }
-    });
-
-    return { checkout_url: session.url };
-  }
 
   async createPortal(userId) {
     const user = await User.findById(userId);
@@ -94,16 +75,6 @@ class StripeService {
   }
 
   // ===== PRIVATE HELPERS =====
-
-  async _validateCheckout(userId, planId) {
-    const user = await User.findById(userId);
-    if (!user) throw new Error('User not found');
-
-    const plan = await Plan.findOne({ _id: planId, is_active: true });
-    if (!plan) throw new Error('Plan not found');
-
-    return [user, plan];
-  }
 
   async _ensureCustomer(user) {
     if (user.stripe_customer_id) return user.stripe_customer_id;
@@ -155,21 +126,34 @@ class StripeService {
 
   async _handleCheckout(session) {
     console.log("Handling checkout session:", session.id);
-    const { user_id, price_id, plan_id, price_type, price_name } = session.metadata;
+    const { user_id, plan_id, price_id, plan_type } = session.metadata;
     
     if (!user_id) {
       console.error('No user_id in checkout session metadata');
       return;
     }
 
-    // Handle addon purchases (one-time payments)
-    if (price_type === 'addon' || (!plan_id && price_id)) {
-      await this._handleAddonPurchase(user_id, session, price_id);
+    // Find plan by plan_id or price_id
+    let plan = null;
+    if (plan_id) {
+      plan = await Plan.findById(plan_id);
+    } else if (price_id) {
+      plan = await Plan.findOne({ stripe_price_id: price_id });
+    }
+
+    if (!plan) {
+      console.error('Plan not found in checkout session metadata');
       return;
     }
 
-    // Handle subscription plans (legacy plan_id or subscription price_id)
-    if (plan_id) {
+    // Handle addon purchases (one-time payments)
+    if (plan.plan_type === 'addon' || plan.billing_period === 'one_time') {
+      await this._handleAddonPurchase(user_id, plan);
+      return;
+    }
+
+    // Handle subscription plans
+    if (plan.plan_type === 'subscription') {
       let stripeData = { customer: session.customer, payment_intent: session.payment_intent };
 
       if (session.subscription) {
@@ -177,18 +161,13 @@ class StripeService {
         stripeData = { ...stripeData, subscription: sub.id, ...sub };
       }
 
-      await this._upsertSubscription(user_id, plan_id, stripeData);
-    } else if (price_id && isSubscriptionPrice(price_id)) {
-      // Handle subscription from price_id (need to find or create plan)
-      await this._handleSubscriptionFromPriceId(user_id, price_id, session);
+      await this._upsertSubscription(user_id, plan._id.toString(), stripeData);
     }
   }
 
-  async _handleAddonPurchase(userId, session, priceId) {
-    const priceMetadata = getPriceMetadata(priceId);
-    
-    if (!priceMetadata || !priceMetadata.credits) {
-      console.error('No credits metadata for addon purchase');
+  async _handleAddonPurchase(userId, plan) {
+    if (!plan.credits) {
+      console.error('No credits defined for addon plan');
       return;
     }
 
@@ -209,36 +188,22 @@ class StripeService {
       };
     }
 
-    // Add credits
-    Object.entries(priceMetadata.credits).forEach(([key, value]) => {
-      if (user.credits[key] !== undefined) {
-        user.credits[key] = (user.credits[key] || 0) + value;
-      }
-    });
+    // Add credits from plan
+    if (plan.credits.seo_audits) {
+      user.credits.seo_audits = (user.credits.seo_audits || 0) + plan.credits.seo_audits;
+    }
+    if (plan.credits.geo_audits) {
+      user.credits.geo_audits = (user.credits.geo_audits || 0) + plan.credits.geo_audits;
+    }
+    if (plan.credits.gbp_audits) {
+      user.credits.gbp_audits = (user.credits.gbp_audits || 0) + plan.credits.gbp_audits;
+    }
+    if (plan.credits.ai_generations) {
+      user.credits.ai_generations = (user.credits.ai_generations || 0) + plan.credits.ai_generations;
+    }
 
     await user.save();
-    console.log(`Added credits to user ${userId}:`, priceMetadata.credits);
-  }
-
-  async _handleSubscriptionFromPriceId(userId, priceId, session) {
-    // Try to find a plan with this price_id
-    let plan = await Plan.findOne({ stripe_price_id: priceId });
-    
-    // If no plan exists, you might want to create one or handle differently
-    if (!plan) {
-      console.warn(`No plan found for price_id ${priceId}, subscription may not be tracked properly`);
-      // You could create a plan here or handle it differently
-      return;
-    }
-
-    let stripeData = { customer: session.customer, payment_intent: session.payment_intent };
-
-    if (session.subscription) {
-      const sub = await stripe.subscriptions.retrieve(session.subscription);
-      stripeData = { ...stripeData, subscription: sub.id, ...sub };
-    }
-
-    await this._upsertSubscription(userId, plan._id.toString(), stripeData);
+    console.log(`Added credits to user ${userId} from plan ${plan.name}:`, plan.credits);
   }
 
   async _handleSubscriptionUpdate(stripeSub) {
