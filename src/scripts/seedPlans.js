@@ -132,41 +132,9 @@ const seedPlans = async () => {
     await mongoose.connect(env.MONGO_URI);
     Logger.log('Connected to database');
 
-    // Clean up existing plans with null or missing stripe_price_id (they cause unique index issues)
-    const deletedNullPlans = await Plan.deleteMany({ 
-      $or: [
-        { stripe_price_id: null },
-        { stripe_price_id: { $exists: false } }
-      ]
-    });
-    if (deletedNullPlans.deletedCount > 0) {
-      Logger.log(`Cleaned up ${deletedNullPlans.deletedCount} plans with null/missing stripe_price_id`);
-    }
-
-    // Drop old indexes if they exist (from previous schema versions)
-    try {
-      const indexes = await Plan.collection.indexes();
-      const indexNamesToDrop = ['planId_1', 'stripePriceId_1', 'stripe_price_id_1'];
-      
-      for (const index of indexes) {
-        const indexName = index.name;
-        // Drop old indexes that might conflict (but keep the current one)
-        if (indexNamesToDrop.includes(indexName)) {
-          try {
-            await Plan.collection.dropIndex(indexName);
-            Logger.log(`Dropped old index: ${indexName}`);
-          } catch (dropErr) {
-            // Index might not exist or already dropped
-            if (dropErr.code !== 27) {
-              Logger.log(`Note: Could not drop index ${indexName}: ${dropErr.message}`);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      // Error getting indexes - continue anyway
-      Logger.log(`Note: Could not list indexes: ${err.message}`);
-    }
+    // Clear existing plans (optional - comment out if you want to keep existing)
+    // await Plan.deleteMany({});
+    // console.log('Cleared existing plans');
 
     // Upsert plans (update if exists, create if not)
     for (const planData of plansData) {
