@@ -31,6 +31,10 @@ const GBPAuditSchema = new Schema(
       type: String,
       default: null,
     },
+    locale: {
+      type: String,
+      default: 'en',
+    },
     placeId: {
       type: String,
       default: null,

@@ -24,6 +24,10 @@ const SEOAuditSchema = new Schema(
       type: String,
       required: true,
     },
+    locale: {
+      type: String,
+      default: 'en',
+    },
     score: {
       type: Number,
       default: 0,

@@ -91,6 +91,8 @@ const changePassword = validateRequest(Joi.object({
 const runSEOAudit = validateRequest(Joi.object({
   url,
   keyword,
+  locale: Joi.string().max(10).optional(),
+  device: Joi.string().valid('desktop', 'mobile', 'tablet').optional(),
 }));
 
 const auditIdParam = validateParams(Joi.object({
@@ -103,8 +105,7 @@ const auditIdParam = validateParams(Joi.object({
 const runGBPAudit = validateRequest(Joi.object({
   businessName: Joi.string().min(2).max(200).optional(),
   gbpLink: Joi.string().uri().optional(),
-  location: Joi.string().max(100).optional(),
-  languageCode: Joi.string().length(2).optional(),
+  locale: Joi.string().max(10).optional(),
 }).or('businessName', 'gbpLink').messages({
   'object.missing': 'Either businessName or gbpLink is required',
 }));
@@ -124,7 +125,7 @@ const runGeoAudit = validateRequest(Joi.object({
     'string.empty': 'Location cannot be empty',
   }),
   businessName: Joi.string().min(1).max(200).optional(),
-  languageName: Joi.string().max(100).optional(),
+  locale: Joi.string().max(10).optional(),
   device: Joi.string().valid('desktop', 'mobile', 'tablet').optional(),
 }));
 

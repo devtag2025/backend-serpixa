@@ -6,6 +6,7 @@ import geoAuditRoutes from './geoAudit.route.js';
 import gbpAuditRoutes from './gbpAudit.route.js';
 import subscriptionRoutes from './subscription.route.js';
 import planRoutes from './plan.route.js';
+import dashboardRoutes from './dashboard.route.js';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use('/geo-audits', geoAuditRoutes);
 router.use('/gbp-audits', gbpAuditRoutes);
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/plans', planRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

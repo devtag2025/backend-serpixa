@@ -1,0 +1,379 @@
+{
+  "seo": {
+    "checks": {
+      "title": "Title Tag",
+      "description": "Meta Description",
+      "h1": "H1 Tag",
+      "h2": "H2 Tags",
+      "canonical": "Canonical URL",
+      "images": "Images",
+      "links": "Links",
+      "loadTime": "Load Time",
+      "wordCount": "Word Count"
+    },
+    "labels": {
+      "exists": "Exists",
+      "value": "Value",
+      "length": "Length",
+      "optimal": "Optimal",
+      "count": "Count",
+      "total": "Total",
+      "withoutAlt": "Without Alt",
+      "internal": "Internal",
+      "external": "External",
+      "broken": "Broken",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "keywordAnalysis": {
+      "title": "Keyword Analysis",
+      "inTitle": "In Title",
+      "inDescription": "In Description",
+      "inH1": "In H1",
+      "inH2": "In H2",
+      "inContent": "In Content",
+      "occurrences": "Occurrences",
+      "density": "Keyword Density",
+      "densityOptimal": "Density Optimal"
+    },
+    "recommendations": {
+      "competitorAnalysis": {
+        "issue": "Found {count} competitor results for \"{keyword}\"",
+        "action": "Review top-ranking competitors to identify optimization opportunities and content gaps"
+      },
+      "missingTitle": {
+        "issue": "Missing title tag",
+        "action": "Add a descriptive title tag (30-60 characters)"
+      },
+      "titleNotOptimal": {
+        "issue": "Title length not optimal",
+        "action": "Adjust title to 30-60 characters"
+      },
+      "missingDescription": {
+        "issue": "Missing meta description",
+        "action": "Add a meta description (120-160 characters)"
+      },
+      "descriptionNotOptimal": {
+        "issue": "Meta description length not optimal",
+        "action": "Adjust to 120-160 characters"
+      },
+      "missingH1": {
+        "issue": "Missing H1 tag",
+        "action": "Add exactly one H1 tag"
+      },
+      "multipleH1": {
+        "issue": "Multiple H1 tags",
+        "action": "Use only one H1 tag per page"
+      },
+      "imagesNoAlt": {
+        "issue": "{count} images missing alt text",
+        "action": "Add descriptive alt text to all images"
+      },
+      "brokenLinks": {
+        "issue": "{count} broken links found",
+        "action": "Fix or remove broken links"
+      },
+      "missingCanonical": {
+        "issue": "Missing canonical tag",
+        "action": "Add canonical URL to prevent duplicate content issues"
+      },
+      "lowWordCount": {
+        "issue": "Low word count",
+        "action": "Add more quality content (aim for 300+ words)"
+      },
+      "keywordNotInTitle": {
+        "issue": "Target keyword not in title",
+        "action": "Include \"{keyword}\" in your title tag"
+      },
+      "keywordNotInDescription": {
+        "issue": "Target keyword not in meta description",
+        "action": "Include \"{keyword}\" in your meta description"
+      },
+      "keywordNotInH1": {
+        "issue": "Target keyword not in H1",
+        "action": "Include \"{keyword}\" in your H1 heading"
+      },
+      "keywordNotInContent": {
+        "issue": "Target keyword not found in content",
+        "action": "Add \"{keyword}\" naturally throughout your content"
+      },
+      "keywordDensityLow": {
+        "issue": "Keyword density too low",
+        "action": "Increase usage of \"{keyword}\" (aim for 1-3% density)"
+      },
+      "keywordDensityHigh": {
+        "issue": "Keyword density too high",
+        "action": "Reduce usage of \"{keyword}\" to avoid keyword stuffing"
+      }
+    }
+  },
+  "geo": {
+    "labels": {
+      "localVisibilityScore": "Local Visibility Score",
+      "businessInfo": "Business Information",
+      "competitors": "Competitors",
+      "napConsistency": "NAP Consistency",
+      "citations": "Citations",
+      "position": "Position",
+      "name": "Name",
+      "rating": "Rating",
+      "reviews": "Reviews",
+      "distance": "Distance",
+      "address": "Address",
+      "phone": "Phone",
+      "website": "Website",
+      "category": "Category"
+    },
+    "nap": {
+      "nameConsistency": "Name Consistency",
+      "addressConsistency": "Address Consistency",
+      "phoneConsistency": "Phone Consistency",
+      "consistent": "Consistent",
+      "inconsistent": "Inconsistent",
+      "nameMissing": "Business name is missing",
+      "addressMissing": "Business address is missing",
+      "phoneMissing": "Business phone number is missing",
+      "notFoundInLocalPack": "Business information not found in local pack"
+    },
+    "citations": {
+      "missingCitations": "Missing Citations",
+      "inconsistentData": "Inconsistent Data",
+      "websiteNotListed": "Website URL not listed",
+      "categoryNotSpecified": "Business category not specified",
+      "notFoundInLocalPack": "Business not found in local pack",
+      "competitorsHaveWebsite": "Most competitors have websites listed, but yours is missing",
+      "competitorsHaveCategory": "Most competitors have categories listed, but yours is missing"
+    },
+    "recommendations": {
+      "lowVisibility": {
+        "issue": "Low local visibility score ({score}%)",
+        "action": "Optimize your Google Business Profile and build local citations"
+      },
+      "notInLocalPack": {
+        "issue": "Business not found in local pack results",
+        "action": "Improve local SEO by optimizing your Google Business Profile, getting more reviews, and ensuring NAP consistency"
+      },
+      "lowPosition": {
+        "issue": "Business is ranked at position {position} in local pack",
+        "action": "Work on improving your ranking by getting more positive reviews, optimizing your GBP profile, and improving local relevance"
+      },
+      "noReviews": {
+        "issue": "No reviews found",
+        "action": "Encourage customers to leave reviews on Google"
+      },
+      "fewReviews": {
+        "issue": "Only {count} reviews",
+        "action": "Build your review base - aim for at least 20 reviews"
+      },
+      "lowRating": {
+        "issue": "Rating is {rating}/5",
+        "action": "Address negative reviews and improve service quality"
+      },
+      "missingWebsite": {
+        "issue": "No website linked",
+        "action": "Add your website to your business profile"
+      },
+      "missingPhone": {
+        "issue": "No phone number listed",
+        "action": "Add a local phone number to your profile"
+      },
+      "napInconsistency": {
+        "issue": "NAP (Name, Address, Phone) inconsistency detected",
+        "action": "Ensure your business information is consistent across all platforms"
+      },
+      "competitorsBetterRating": {
+        "issue": "Competitors have better ratings",
+        "action": "Focus on customer satisfaction to improve your rating"
+      },
+      "competitorsMoreReviews": {
+        "issue": "Competitors have more reviews",
+        "action": "Implement a review generation strategy"
+      }
+    }
+  },
+  "gbp": {
+    "labels": {
+      "completenessScore": "Completeness Score",
+      "businessInfo": "Business Information",
+      "profileChecklist": "Profile Checklist",
+      "complete": "Complete",
+      "incomplete": "Incomplete",
+      "name": "Name",
+      "address": "Address",
+      "phone": "Phone",
+      "website": "Website",
+      "category": "Category",
+      "rating": "Rating",
+      "reviews": "Reviews"
+    },
+    "checklist": {
+      "name": "Business Name",
+      "address": "Business Address",
+      "phone": "Phone Number",
+      "website": "Website URL",
+      "category": "Primary Category",
+      "additionalCategories": "Additional Categories",
+      "description": "Business Description",
+      "hours": "Business Hours",
+      "photos": "Photos",
+      "rating": "Google Rating",
+      "reviewCount": "Customer Reviews",
+      "attributes": "Business Attributes"
+    },
+    "recommendations": {
+      "name": {
+        "issue": "Missing business name",
+        "action": "Add your official business name to your profile."
+      },
+      "address": {
+        "issue": "Missing business address",
+        "action": "Add your complete business address for local search visibility."
+      },
+      "phone": {
+        "issue": "Missing phone number",
+        "action": "Add a local phone number to enable customer calls."
+      },
+      "website": {
+        "issue": "Missing website URL",
+        "action": "Link your website to drive traffic from your GBP listing."
+      },
+      "category": {
+        "issue": "Missing primary category",
+        "action": "Select the most accurate primary category for your business."
+      },
+      "additionalCategories": {
+        "issue": "No additional categories",
+        "action": "Add 2-5 relevant secondary categories to improve visibility."
+      },
+      "description": {
+        "issue": "Missing business description",
+        "action": "Add a compelling description (750 chars max) with relevant keywords."
+      },
+      "hours": {
+        "issue": "Missing business hours",
+        "action": "Set your operating hours to help customers know when to visit."
+      },
+      "photos": {
+        "issue": "No photos uploaded",
+        "action": "Add high-quality photos of your business, products, and team."
+      },
+      "rating": {
+        "issue": "No Google rating yet",
+        "action": "Encourage customers to rate your business on Google."
+      },
+      "reviewCount": {
+        "issue": "Less than 5 reviews",
+        "action": "Build your review base by asking satisfied customers for feedback."
+      },
+      "attributes": {
+        "issue": "No business attributes set",
+        "action": "Add relevant attributes (WiFi, accessibility, payment methods, etc.)."
+      },
+      "lowReviews": {
+        "issue": "Only {count} reviews",
+        "action": "Encourage satisfied customers to leave reviews. Respond to all existing reviews promptly."
+      },
+      "lowRating": {
+        "issue": "Rating is {rating}/5",
+        "action": "Address negative reviews professionally. Improve service quality to boost ratings."
+      },
+      "shortDescription": {
+        "issue": "Business description is short",
+        "action": "Expand your description to 750+ characters with keywords and services offered."
+      },
+      "notFound": {
+        "issue": "Business not found",
+        "action": "Verify the business name or create a Google Business Profile."
+      }
+    }
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "set": "Set",
+    "notSet": "Not Set",
+    "chars": "characters",
+    "notAvailable": "N/A"
+  },
+  "pdf": {
+    "seo": {
+      "title": "SEO Audit Report",
+      "poweredBy": "Powered by Serpixa",
+      "url": "URL",
+      "targetKeyword": "Target Keyword",
+      "date": "Date",
+      "generatedFor": "Generated for",
+      "score": "SEO Score",
+      "onPageAnalysis": "On-Page Analysis",
+      "keywordAnalysis": "Keyword Analysis",
+      "keywordDensity": "Keyword Density",
+      "occurrences": "Occurrences",
+      "competitorRankings": "Competitor Rankings",
+      "recommendations": "Recommendations",
+      "pos": "Pos",
+      "titleCol": "Title",
+      "urlCol": "URL",
+      "domain": "Domain",
+      "count": "Count",
+      "total": "Total",
+      "withoutAlt": "Without Alt",
+      "internal": "Internal",
+      "external": "External",
+      "broken": "Broken",
+      "page": "Page",
+      "of": "of"
+    },
+    "gbp": {
+      "title": "GBP Audit Report",
+      "poweredBy": "Powered by Serpixa",
+      "business": "Business",
+      "date": "Date",
+      "generatedFor": "Generated for",
+      "completenessScore": "Completeness Score",
+      "businessInfo": "Business Information",
+      "profileChecklist": "Profile Checklist",
+      "recommendations": "Recommendations",
+      "name": "Name",
+      "address": "Address",
+      "phone": "Phone",
+      "website": "Website",
+      "category": "Category",
+      "rating": "Rating",
+      "reviews": "reviews",
+      "page": "Page",
+      "of": "of"
+    },
+    "geo": {
+      "title": "Geo Audit Report",
+      "poweredBy": "Powered by Serpixa",
+      "business": "Business",
+      "keyword": "Keyword",
+      "location": "Location",
+      "date": "Date",
+      "generatedFor": "Generated for",
+      "localVisibilityScore": "Local Visibility Score",
+      "businessInfo": "Business Information",
+      "nearbyCompetitors": "Nearby Competitors",
+      "napConsistency": "NAP Consistency",
+      "nameConsistency": "Name Consistency",
+      "addressConsistency": "Address Consistency",
+      "phoneConsistency": "Phone Consistency",
+      "citationAnalysis": "Citation Analysis",
+      "missingCitations": "Missing Citations",
+      "inconsistentData": "Inconsistent Data",
+      "recommendations": "Recommendations",
+      "pos": "Pos",
+      "name": "Name",
+      "rating": "Rating",
+      "reviewsCol": "Reviews",
+      "dist": "Dist",
+      "address": "Address",
+      "phone": "Phone",
+      "website": "Website",
+      "category": "Category",
+      "reviews": "reviews",
+      "page": "Page",
+      "of": "of"
+    }
+  }
+}
