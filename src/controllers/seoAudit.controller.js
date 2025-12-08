@@ -1,12 +1,13 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
 import { SEOAudit, User } from '../models/index.js';
-import {  dataForSEOService, pdfService  } from '../services/index.js';
+import { dataForSEOService, pdfService } from '../services/index.js';
+import { getLocaleConfig, DEFAULT_LOCALE } from '../config/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
-    const { url, keyword, locationName, languageName, device } = req.body;
+    const { url, keyword, locale, device } = req.body;
     const userId = req.user._id;
-    const { creditInfo } = req; // From credit middleware
+    const { creditInfo } = req;
 
     if (!keyword) {
       return res.status(400).json(
@@ -14,20 +15,24 @@ export const runAudit = async (req, res, next) => {
       );
     }
 
+    // Get locale config for API parameters
+    const localeConfig = getLocaleConfig(locale || DEFAULT_LOCALE);
+
     const auditResult = await dataForSEOService.runOnPageAudit(
       url,
       keyword,
-      locationName,
-      languageName,
-      device
+      locale || DEFAULT_LOCALE,
+      device || 'desktop'
     );
 
     const audit = await SEOAudit.create({
       user: userId,
       url,
       keyword,
+      locale: locale || DEFAULT_LOCALE,
       score: auditResult.score,
       checks: auditResult.checks,
+      keywordAnalysis: auditResult.keywordAnalysis,
       recommendations: auditResult.recommendations,
       competitors: auditResult.competitors || [],
       serpInfo: auditResult.serpInfo || null,
@@ -38,13 +43,10 @@ export const runAudit = async (req, res, next) => {
     // Decrement credits after successful audit
     if (creditInfo) {
       const { subscription, userCredits } = creditInfo;
-      
-      // Try to use subscription credits first, then addon credits
+
       if (subscription && subscription.usage?.seo_audits_used < (subscription.plan_id?.limits?.seo_audits || 0)) {
-        // Use subscription credit
         await subscription.incrementUsage('seo_audits', 1);
       } else if (userCredits > 0) {
-        // Use addon credit
         const user = await User.findById(userId);
         if (user && user.credits?.seo_audits > 0) {
           user.credits.seo_audits = Math.max(0, user.credits.seo_audits - 1);
@@ -148,7 +150,7 @@ export const downloadAuditPDF = async (req, res, next) => {
   try {
     const { auditId } = req.params;
     const userId = req.user._id;
-    const { view } = req.query; // Optional: ?view=true to open in browser instead of download
+    const { view } = req.query;
 
     const audit = await SEOAudit.findOne({ _id: auditId, user: userId }).lean();
 
@@ -158,32 +160,27 @@ export const downloadAuditPDF = async (req, res, next) => {
 
     const pdfBuffer = pdfService.generateSEOAuditReport(audit, req.user);
 
-    // Create a descriptive filename
     let urlDomain = 'website';
     try {
       if (audit.url) {
         urlDomain = new URL(audit.url).hostname.replace('www.', '').replace(/[^a-z0-9.-]/gi, '-');
       }
     } catch (e) {
-      // If URL parsing fails, use a safe default
       urlDomain = 'website';
     }
-    
-    const keywordSlug = audit.keyword 
-      ? audit.keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30) 
+
+    const keywordSlug = audit.keyword
+      ? audit.keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30)
       : 'audit';
     const dateStr = new Date(audit.createdAt).toISOString().split('T')[0];
     const filename = `seo-audit-${urlDomain}-${keywordSlug}-${dateStr}.pdf`;
 
-    // Set headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', pdfBuffer.byteLength);
-    
-    // Use 'inline' to view in browser, 'attachment' to force download
+
     const disposition = view === 'true' ? 'inline' : 'attachment';
     res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
-    
-    // Cache control for sharing
+
     res.setHeader('Cache-Control', 'private, max-age=3600');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
@@ -193,12 +190,11 @@ export const downloadAuditPDF = async (req, res, next) => {
   }
 };
 
-
-  export const seoAuditController = {
-    runAudit,
-    getAuditById,
-    getUserAudits,
-    getAuditWithRawData,
-    deleteAudit,
-    downloadAuditPDF,
-  };
+export const seoAuditController = {
+  runAudit,
+  getAuditById,
+  getUserAudits,
+  getAuditWithRawData,
+  deleteAudit,
+  downloadAuditPDF,
+};

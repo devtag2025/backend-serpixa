@@ -1,0 +1,379 @@
+{
+  "seo": {
+    "checks": {
+      "title": "Balise Titre",
+      "description": "Meta Description",
+      "h1": "Balise H1",
+      "h2": "Balises H2",
+      "canonical": "URL Canonique",
+      "images": "Images",
+      "links": "Liens",
+      "loadTime": "Temps de Chargement",
+      "wordCount": "Nombre de Mots"
+    },
+    "labels": {
+      "exists": "Existe",
+      "value": "Valeur",
+      "length": "Longueur",
+      "optimal": "Optimal",
+      "count": "Nombre",
+      "total": "Total",
+      "withoutAlt": "Sans Alt",
+      "internal": "Interne",
+      "external": "Externe",
+      "broken": "Cassé",
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "keywordAnalysis": {
+      "title": "Analyse du Mot-clé",
+      "inTitle": "Dans le Titre",
+      "inDescription": "Dans la Description",
+      "inH1": "Dans H1",
+      "inH2": "Dans H2",
+      "inContent": "Dans le Contenu",
+      "occurrences": "Occurrences",
+      "density": "Densité du Mot-clé",
+      "densityOptimal": "Densité Optimale"
+    },
+    "recommendations": {
+      "competitorAnalysis": {
+        "issue": "{count} résultats de concurrents trouvés pour \"{keyword}\"",
+        "action": "Analysez les concurrents les mieux classés pour identifier les opportunités d'optimisation"
+      },
+      "missingTitle": {
+        "issue": "Balise titre manquante",
+        "action": "Ajoutez une balise titre descriptive (30-60 caractères)"
+      },
+      "titleNotOptimal": {
+        "issue": "Longueur du titre non optimale",
+        "action": "Ajustez le titre à 30-60 caractères"
+      },
+      "missingDescription": {
+        "issue": "Meta description manquante",
+        "action": "Ajoutez une meta description (120-160 caractères)"
+      },
+      "descriptionNotOptimal": {
+        "issue": "Longueur de la meta description non optimale",
+        "action": "Ajustez à 120-160 caractères"
+      },
+      "missingH1": {
+        "issue": "Balise H1 manquante",
+        "action": "Ajoutez exactement une balise H1"
+      },
+      "multipleH1": {
+        "issue": "Plusieurs balises H1",
+        "action": "Utilisez une seule balise H1 par page"
+      },
+      "imagesNoAlt": {
+        "issue": "{count} images sans texte alt",
+        "action": "Ajoutez un texte alt descriptif à toutes les images"
+      },
+      "brokenLinks": {
+        "issue": "{count} liens cassés trouvés",
+        "action": "Corrigez ou supprimez les liens cassés"
+      },
+      "missingCanonical": {
+        "issue": "Balise canonique manquante",
+        "action": "Ajoutez l'URL canonique pour éviter le contenu dupliqué"
+      },
+      "lowWordCount": {
+        "issue": "Nombre de mots insuffisant",
+        "action": "Ajoutez plus de contenu de qualité (visez 300+ mots)"
+      },
+      "keywordNotInTitle": {
+        "issue": "Mot-clé cible absent du titre",
+        "action": "Incluez \"{keyword}\" dans votre balise titre"
+      },
+      "keywordNotInDescription": {
+        "issue": "Mot-clé cible absent de la meta description",
+        "action": "Incluez \"{keyword}\" dans votre meta description"
+      },
+      "keywordNotInH1": {
+        "issue": "Mot-clé cible absent du H1",
+        "action": "Incluez \"{keyword}\" dans votre titre H1"
+      },
+      "keywordNotInContent": {
+        "issue": "Mot-clé cible absent du contenu",
+        "action": "Ajoutez \"{keyword}\" naturellement dans votre contenu"
+      },
+      "keywordDensityLow": {
+        "issue": "Densité du mot-clé trop faible",
+        "action": "Augmentez l'utilisation de \"{keyword}\" (visez 1-3% de densité)"
+      },
+      "keywordDensityHigh": {
+        "issue": "Densité du mot-clé trop élevée",
+        "action": "Réduisez l'utilisation de \"{keyword}\" pour éviter le bourrage de mots-clés"
+      }
+    }
+  },
+  "geo": {
+    "labels": {
+      "localVisibilityScore": "Score de Visibilité Locale",
+      "businessInfo": "Informations sur l'Entreprise",
+      "competitors": "Concurrents",
+      "napConsistency": "Cohérence NAP",
+      "citations": "Citations",
+      "position": "Position",
+      "name": "Nom",
+      "rating": "Note",
+      "reviews": "Avis",
+      "distance": "Distance",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "website": "Site Web",
+      "category": "Catégorie"
+    },
+    "nap": {
+      "nameConsistency": "Cohérence du Nom",
+      "addressConsistency": "Cohérence de l'Adresse",
+      "phoneConsistency": "Cohérence du Téléphone",
+      "consistent": "Cohérent",
+      "inconsistent": "Incohérent",
+      "nameMissing": "Le nom de l'entreprise est manquant",
+      "addressMissing": "L'adresse de l'entreprise est manquante",
+      "phoneMissing": "Le numéro de téléphone est manquant",
+      "notFoundInLocalPack": "Informations de l'entreprise non trouvées dans le pack local"
+    },
+    "citations": {
+      "missingCitations": "Citations Manquantes",
+      "inconsistentData": "Données Incohérentes",
+      "websiteNotListed": "URL du site web non listée",
+      "categoryNotSpecified": "Catégorie de l'entreprise non spécifiée",
+      "notFoundInLocalPack": "Entreprise non trouvée dans le pack local",
+      "competitorsHaveWebsite": "La plupart des concurrents ont un site web listé, mais pas le vôtre",
+      "competitorsHaveCategory": "La plupart des concurrents ont une catégorie listée, mais pas la vôtre"
+    },
+    "recommendations": {
+      "lowVisibility": {
+        "issue": "Score de visibilité locale faible ({score}%)",
+        "action": "Optimisez votre fiche Google Business et créez des citations locales"
+      },
+      "notInLocalPack": {
+        "issue": "Entreprise non trouvée dans les résultats du pack local",
+        "action": "Améliorez le SEO local en optimisant votre fiche Google Business et en obtenant plus d'avis"
+      },
+      "lowPosition": {
+        "issue": "Entreprise classée en position {position} dans le pack local",
+        "action": "Travaillez sur l'amélioration de votre classement en obtenant plus d'avis positifs"
+      },
+      "noReviews": {
+        "issue": "Aucun avis trouvé",
+        "action": "Encouragez les clients à laisser des avis sur Google"
+      },
+      "fewReviews": {
+        "issue": "Seulement {count} avis",
+        "action": "Développez votre base d'avis - visez au moins 20 avis"
+      },
+      "lowRating": {
+        "issue": "Note de {rating}/5",
+        "action": "Répondez aux avis négatifs et améliorez la qualité du service"
+      },
+      "missingWebsite": {
+        "issue": "Aucun site web lié",
+        "action": "Ajoutez votre site web à votre fiche d'entreprise"
+      },
+      "missingPhone": {
+        "issue": "Aucun numéro de téléphone listé",
+        "action": "Ajoutez un numéro de téléphone local à votre profil"
+      },
+      "napInconsistency": {
+        "issue": "Incohérence NAP (Nom, Adresse, Téléphone) détectée",
+        "action": "Assurez-vous que vos informations sont cohérentes sur toutes les plateformes"
+      },
+      "competitorsBetterRating": {
+        "issue": "Les concurrents ont de meilleures notes",
+        "action": "Concentrez-vous sur la satisfaction client pour améliorer votre note"
+      },
+      "competitorsMoreReviews": {
+        "issue": "Les concurrents ont plus d'avis",
+        "action": "Mettez en place une stratégie de génération d'avis"
+      }
+    }
+  },
+  "gbp": {
+    "labels": {
+      "completenessScore": "Score de Complétude",
+      "businessInfo": "Informations sur l'Entreprise",
+      "profileChecklist": "Liste de Vérification du Profil",
+      "complete": "Complet",
+      "incomplete": "Incomplet",
+      "name": "Nom",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "website": "Site Web",
+      "category": "Catégorie",
+      "rating": "Note",
+      "reviews": "Avis"
+    },
+    "checklist": {
+      "name": "Nom de l'Entreprise",
+      "address": "Adresse de l'Entreprise",
+      "phone": "Numéro de Téléphone",
+      "website": "URL du Site Web",
+      "category": "Catégorie Principale",
+      "additionalCategories": "Catégories Supplémentaires",
+      "description": "Description de l'Entreprise",
+      "hours": "Horaires d'Ouverture",
+      "photos": "Photos",
+      "rating": "Note Google",
+      "reviewCount": "Avis Clients",
+      "attributes": "Attributs de l'Entreprise"
+    },
+    "recommendations": {
+      "name": {
+        "issue": "Nom de l'entreprise manquant",
+        "action": "Ajoutez le nom officiel de votre entreprise à votre profil."
+      },
+      "address": {
+        "issue": "Adresse de l'entreprise manquante",
+        "action": "Ajoutez l'adresse complète pour la visibilité locale."
+      },
+      "phone": {
+        "issue": "Numéro de téléphone manquant",
+        "action": "Ajoutez un numéro local pour permettre les appels clients."
+      },
+      "website": {
+        "issue": "URL du site web manquante",
+        "action": "Liez votre site web pour générer du trafic depuis votre fiche GBP."
+      },
+      "category": {
+        "issue": "Catégorie principale manquante",
+        "action": "Sélectionnez la catégorie principale la plus appropriée."
+      },
+      "additionalCategories": {
+        "issue": "Pas de catégories supplémentaires",
+        "action": "Ajoutez 2-5 catégories secondaires pertinentes."
+      },
+      "description": {
+        "issue": "Description de l'entreprise manquante",
+        "action": "Ajoutez une description convaincante (750 caractères max) avec des mots-clés."
+      },
+      "hours": {
+        "issue": "Horaires d'ouverture manquants",
+        "action": "Définissez vos horaires pour informer les clients."
+      },
+      "photos": {
+        "issue": "Aucune photo téléchargée",
+        "action": "Ajoutez des photos de qualité de votre entreprise et produits."
+      },
+      "rating": {
+        "issue": "Pas encore de note Google",
+        "action": "Encouragez les clients à noter votre entreprise sur Google."
+      },
+      "reviewCount": {
+        "issue": "Moins de 5 avis",
+        "action": "Développez votre base d'avis en demandant aux clients satisfaits."
+      },
+      "attributes": {
+        "issue": "Aucun attribut d'entreprise défini",
+        "action": "Ajoutez les attributs pertinents (WiFi, accessibilité, paiements, etc.)."
+      },
+      "lowReviews": {
+        "issue": "Seulement {count} avis",
+        "action": "Encouragez les clients satisfaits à laisser des avis. Répondez rapidement à tous les avis."
+      },
+      "lowRating": {
+        "issue": "Note de {rating}/5",
+        "action": "Répondez aux avis négatifs de manière professionnelle. Améliorez la qualité du service."
+      },
+      "shortDescription": {
+        "issue": "Description de l'entreprise trop courte",
+        "action": "Développez votre description à 750+ caractères avec mots-clés et services."
+      },
+      "notFound": {
+        "issue": "Entreprise non trouvée",
+        "action": "Vérifiez le nom de l'entreprise ou créez une fiche Google Business."
+      }
+    }
+  },
+  "common": {
+    "yes": "Oui",
+    "no": "Non",
+    "set": "Défini",
+    "notSet": "Non Défini",
+    "chars": "caractères",
+    "notAvailable": "N/D"
+  },
+  "pdf": {
+    "seo": {
+      "title": "Rapport d'Audit SEO",
+      "poweredBy": "Propulsé par Serpixa",
+      "url": "URL",
+      "targetKeyword": "Mot-clé Cible",
+      "date": "Date",
+      "generatedFor": "Généré pour",
+      "score": "Score SEO",
+      "onPageAnalysis": "Analyse On-Page",
+      "keywordAnalysis": "Analyse du Mot-clé",
+      "keywordDensity": "Densité du Mot-clé",
+      "occurrences": "Occurrences",
+      "competitorRankings": "Classement des Concurrents",
+      "recommendations": "Recommandations",
+      "pos": "Pos",
+      "titleCol": "Titre",
+      "urlCol": "URL",
+      "domain": "Domaine",
+      "count": "Nombre",
+      "total": "Total",
+      "withoutAlt": "Sans Alt",
+      "internal": "Interne",
+      "external": "Externe",
+      "broken": "Cassé",
+      "page": "Page",
+      "of": "de"
+    },
+    "gbp": {
+      "title": "Rapport d'Audit GBP",
+      "poweredBy": "Propulsé par Serpixa",
+      "business": "Entreprise",
+      "date": "Date",
+      "generatedFor": "Généré pour",
+      "completenessScore": "Score de Complétude",
+      "businessInfo": "Informations sur l'Entreprise",
+      "profileChecklist": "Liste de Vérification du Profil",
+      "recommendations": "Recommandations",
+      "name": "Nom",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "website": "Site Web",
+      "category": "Catégorie",
+      "rating": "Note",
+      "reviews": "avis",
+      "page": "Page",
+      "of": "de"
+    },
+    "geo": {
+      "title": "Rapport d'Audit Géographique",
+      "poweredBy": "Propulsé par Serpixa",
+      "business": "Entreprise",
+      "keyword": "Mot-clé",
+      "location": "Localisation",
+      "date": "Date",
+      "generatedFor": "Généré pour",
+      "localVisibilityScore": "Score de Visibilité Locale",
+      "businessInfo": "Informations sur l'Entreprise",
+      "nearbyCompetitors": "Concurrents à Proximité",
+      "napConsistency": "Cohérence NAP",
+      "nameConsistency": "Cohérence du Nom",
+      "addressConsistency": "Cohérence de l'Adresse",
+      "phoneConsistency": "Cohérence du Téléphone",
+      "citationAnalysis": "Analyse des Citations",
+      "missingCitations": "Citations Manquantes",
+      "inconsistentData": "Données Incohérentes",
+      "recommendations": "Recommandations",
+      "pos": "Pos",
+      "name": "Nom",
+      "rating": "Note",
+      "reviewsCol": "Avis",
+      "dist": "Dist",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "website": "Site Web",
+      "category": "Catégorie",
+      "reviews": "avis",
+      "page": "Page",
+      "of": "de"
+    }
+  }
+}

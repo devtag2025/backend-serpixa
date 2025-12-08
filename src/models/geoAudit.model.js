@@ -41,6 +41,10 @@ const GeoAuditSchema = new Schema(
       type: String,
       required: true,
     },
+    locale: {
+      type: String,
+      default: 'en',
+    },
     localVisibilityScore: {
       type: Number,
       default: 0,

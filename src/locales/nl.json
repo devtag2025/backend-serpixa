@@ -1,0 +1,379 @@
+{
+  "seo": {
+    "checks": {
+      "title": "Title Tag",
+      "description": "Meta Beschrijving",
+      "h1": "H1 Tag",
+      "h2": "H2 Tags",
+      "canonical": "Canonieke URL",
+      "images": "Afbeeldingen",
+      "links": "Links",
+      "loadTime": "Laadtijd",
+      "wordCount": "Aantal Woorden"
+    },
+    "labels": {
+      "exists": "Bestaat",
+      "value": "Waarde",
+      "length": "Lengte",
+      "optimal": "Optimaal",
+      "count": "Aantal",
+      "total": "Totaal",
+      "withoutAlt": "Zonder Alt",
+      "internal": "Intern",
+      "external": "Extern",
+      "broken": "Gebroken",
+      "yes": "Ja",
+      "no": "Nee"
+    },
+    "keywordAnalysis": {
+      "title": "Zoekwoord Analyse",
+      "inTitle": "In Titel",
+      "inDescription": "In Beschrijving",
+      "inH1": "In H1",
+      "inH2": "In H2",
+      "inContent": "In Inhoud",
+      "occurrences": "Voorkomens",
+      "density": "Zoekwoord Dichtheid",
+      "densityOptimal": "Dichtheid Optimaal"
+    },
+    "recommendations": {
+      "competitorAnalysis": {
+        "issue": "{count} concurrent resultaten gevonden voor \"{keyword}\"",
+        "action": "Analyseer top-concurrenten om optimalisatiekansen te identificeren"
+      },
+      "missingTitle": {
+        "issue": "Title tag ontbreekt",
+        "action": "Voeg een beschrijvende title tag toe (30-60 tekens)"
+      },
+      "titleNotOptimal": {
+        "issue": "Titel lengte niet optimaal",
+        "action": "Pas titel aan naar 30-60 tekens"
+      },
+      "missingDescription": {
+        "issue": "Meta beschrijving ontbreekt",
+        "action": "Voeg een meta beschrijving toe (120-160 tekens)"
+      },
+      "descriptionNotOptimal": {
+        "issue": "Meta beschrijving lengte niet optimaal",
+        "action": "Pas aan naar 120-160 tekens"
+      },
+      "missingH1": {
+        "issue": "H1 tag ontbreekt",
+        "action": "Voeg precies één H1 tag toe"
+      },
+      "multipleH1": {
+        "issue": "Meerdere H1 tags",
+        "action": "Gebruik slechts één H1 tag per pagina"
+      },
+      "imagesNoAlt": {
+        "issue": "{count} afbeeldingen zonder alt tekst",
+        "action": "Voeg beschrijvende alt tekst toe aan alle afbeeldingen"
+      },
+      "brokenLinks": {
+        "issue": "{count} gebroken links gevonden",
+        "action": "Herstel of verwijder gebroken links"
+      },
+      "missingCanonical": {
+        "issue": "Canonieke tag ontbreekt",
+        "action": "Voeg canonieke URL toe om dubbele inhoud te voorkomen"
+      },
+      "lowWordCount": {
+        "issue": "Laag aantal woorden",
+        "action": "Voeg meer kwaliteitsinhoud toe (mik op 300+ woorden)"
+      },
+      "keywordNotInTitle": {
+        "issue": "Doel zoekwoord niet in titel",
+        "action": "Voeg \"{keyword}\" toe aan uw title tag"
+      },
+      "keywordNotInDescription": {
+        "issue": "Doel zoekwoord niet in meta beschrijving",
+        "action": "Voeg \"{keyword}\" toe aan uw meta beschrijving"
+      },
+      "keywordNotInH1": {
+        "issue": "Doel zoekwoord niet in H1",
+        "action": "Voeg \"{keyword}\" toe aan uw H1 kop"
+      },
+      "keywordNotInContent": {
+        "issue": "Doel zoekwoord niet gevonden in inhoud",
+        "action": "Voeg \"{keyword}\" natuurlijk toe aan uw inhoud"
+      },
+      "keywordDensityLow": {
+        "issue": "Zoekwoord dichtheid te laag",
+        "action": "Verhoog gebruik van \"{keyword}\" (mik op 1-3% dichtheid)"
+      },
+      "keywordDensityHigh": {
+        "issue": "Zoekwoord dichtheid te hoog",
+        "action": "Verminder gebruik van \"{keyword}\" om keyword stuffing te voorkomen"
+      }
+    }
+  },
+  "geo": {
+    "labels": {
+      "localVisibilityScore": "Lokale Zichtbaarheid Score",
+      "businessInfo": "Bedrijfsinformatie",
+      "competitors": "Concurrenten",
+      "napConsistency": "NAP Consistentie",
+      "citations": "Citaties",
+      "position": "Positie",
+      "name": "Naam",
+      "rating": "Beoordeling",
+      "reviews": "Reviews",
+      "distance": "Afstand",
+      "address": "Adres",
+      "phone": "Telefoon",
+      "website": "Website",
+      "category": "Categorie"
+    },
+    "nap": {
+      "nameConsistency": "Naam Consistentie",
+      "addressConsistency": "Adres Consistentie",
+      "phoneConsistency": "Telefoon Consistentie",
+      "consistent": "Consistent",
+      "inconsistent": "Inconsistent",
+      "nameMissing": "Bedrijfsnaam ontbreekt",
+      "addressMissing": "Bedrijfsadres ontbreekt",
+      "phoneMissing": "Telefoonnummer ontbreekt",
+      "notFoundInLocalPack": "Bedrijfsinformatie niet gevonden in local pack"
+    },
+    "citations": {
+      "missingCitations": "Ontbrekende Citaties",
+      "inconsistentData": "Inconsistente Gegevens",
+      "websiteNotListed": "Website URL niet vermeld",
+      "categoryNotSpecified": "Bedrijfscategorie niet gespecificeerd",
+      "notFoundInLocalPack": "Bedrijf niet gevonden in local pack",
+      "competitorsHaveWebsite": "De meeste concurrenten hebben een website vermeld, maar de uwe niet",
+      "competitorsHaveCategory": "De meeste concurrenten hebben een categorie vermeld, maar de uwe niet"
+    },
+    "recommendations": {
+      "lowVisibility": {
+        "issue": "Lage lokale zichtbaarheid score ({score}%)",
+        "action": "Optimaliseer uw Google Bedrijfsprofiel en bouw lokale citaties"
+      },
+      "notInLocalPack": {
+        "issue": "Bedrijf niet gevonden in local pack resultaten",
+        "action": "Verbeter lokale SEO door uw Google Bedrijfsprofiel te optimaliseren en meer reviews te krijgen"
+      },
+      "lowPosition": {
+        "issue": "Bedrijf staat op positie {position} in local pack",
+        "action": "Werk aan verbetering van uw ranking door meer positieve reviews te krijgen"
+      },
+      "noReviews": {
+        "issue": "Geen reviews gevonden",
+        "action": "Moedig klanten aan om reviews achter te laten op Google"
+      },
+      "fewReviews": {
+        "issue": "Slechts {count} reviews",
+        "action": "Bouw uw review basis op - mik op minimaal 20 reviews"
+      },
+      "lowRating": {
+        "issue": "Beoordeling is {rating}/5",
+        "action": "Reageer op negatieve reviews en verbeter de servicekwaliteit"
+      },
+      "missingWebsite": {
+        "issue": "Geen website gekoppeld",
+        "action": "Voeg uw website toe aan uw bedrijfsprofiel"
+      },
+      "missingPhone": {
+        "issue": "Geen telefoonnummer vermeld",
+        "action": "Voeg een lokaal telefoonnummer toe aan uw profiel"
+      },
+      "napInconsistency": {
+        "issue": "NAP (Naam, Adres, Telefoon) inconsistentie gedetecteerd",
+        "action": "Zorg ervoor dat uw bedrijfsinformatie consistent is op alle platforms"
+      },
+      "competitorsBetterRating": {
+        "issue": "Concurrenten hebben betere beoordelingen",
+        "action": "Focus op klanttevredenheid om uw beoordeling te verbeteren"
+      },
+      "competitorsMoreReviews": {
+        "issue": "Concurrenten hebben meer reviews",
+        "action": "Implementeer een review generatie strategie"
+      }
+    }
+  },
+  "gbp": {
+    "labels": {
+      "completenessScore": "Volledigheid Score",
+      "businessInfo": "Bedrijfsinformatie",
+      "profileChecklist": "Profiel Checklist",
+      "complete": "Compleet",
+      "incomplete": "Incompleet",
+      "name": "Naam",
+      "address": "Adres",
+      "phone": "Telefoon",
+      "website": "Website",
+      "category": "Categorie",
+      "rating": "Beoordeling",
+      "reviews": "Reviews"
+    },
+    "checklist": {
+      "name": "Bedrijfsnaam",
+      "address": "Bedrijfsadres",
+      "phone": "Telefoonnummer",
+      "website": "Website URL",
+      "category": "Primaire Categorie",
+      "additionalCategories": "Extra Categorieën",
+      "description": "Bedrijfsomschrijving",
+      "hours": "Openingstijden",
+      "photos": "Foto's",
+      "rating": "Google Beoordeling",
+      "reviewCount": "Klantreviews",
+      "attributes": "Bedrijfsattributen"
+    },
+    "recommendations": {
+      "name": {
+        "issue": "Bedrijfsnaam ontbreekt",
+        "action": "Voeg uw officiële bedrijfsnaam toe aan uw profiel."
+      },
+      "address": {
+        "issue": "Bedrijfsadres ontbreekt",
+        "action": "Voeg uw volledige adres toe voor lokale zoekzichtbaarheid."
+      },
+      "phone": {
+        "issue": "Telefoonnummer ontbreekt",
+        "action": "Voeg een lokaal telefoonnummer toe voor klantoproepen."
+      },
+      "website": {
+        "issue": "Website URL ontbreekt",
+        "action": "Koppel uw website om verkeer te genereren vanuit uw GBP vermelding."
+      },
+      "category": {
+        "issue": "Primaire categorie ontbreekt",
+        "action": "Selecteer de meest accurate primaire categorie voor uw bedrijf."
+      },
+      "additionalCategories": {
+        "issue": "Geen extra categorieën",
+        "action": "Voeg 2-5 relevante secundaire categorieën toe."
+      },
+      "description": {
+        "issue": "Bedrijfsomschrijving ontbreekt",
+        "action": "Voeg een overtuigende omschrijving toe (max 750 tekens) met relevante zoekwoorden."
+      },
+      "hours": {
+        "issue": "Openingstijden ontbreken",
+        "action": "Stel uw openingstijden in zodat klanten weten wanneer ze kunnen langskomen."
+      },
+      "photos": {
+        "issue": "Geen foto's geüpload",
+        "action": "Voeg kwalitatieve foto's toe van uw bedrijf, producten en team."
+      },
+      "rating": {
+        "issue": "Nog geen Google beoordeling",
+        "action": "Moedig klanten aan om uw bedrijf te beoordelen op Google."
+      },
+      "reviewCount": {
+        "issue": "Minder dan 5 reviews",
+        "action": "Bouw uw review basis op door tevreden klanten te vragen."
+      },
+      "attributes": {
+        "issue": "Geen bedrijfsattributen ingesteld",
+        "action": "Voeg relevante attributen toe (WiFi, toegankelijkheid, betaalmethoden, etc.)."
+      },
+      "lowReviews": {
+        "issue": "Slechts {count} reviews",
+        "action": "Moedig tevreden klanten aan om reviews achter te laten. Reageer snel op alle reviews."
+      },
+      "lowRating": {
+        "issue": "Beoordeling is {rating}/5",
+        "action": "Reageer professioneel op negatieve reviews. Verbeter de servicekwaliteit."
+      },
+      "shortDescription": {
+        "issue": "Bedrijfsomschrijving is kort",
+        "action": "Breid uw omschrijving uit naar 750+ tekens met zoekwoorden en diensten."
+      },
+      "notFound": {
+        "issue": "Bedrijf niet gevonden",
+        "action": "Controleer de bedrijfsnaam of maak een Google Bedrijfsprofiel aan."
+      }
+    }
+  },
+  "common": {
+    "yes": "Ja",
+    "no": "Nee",
+    "set": "Ingesteld",
+    "notSet": "Niet Ingesteld",
+    "chars": "tekens",
+    "notAvailable": "N.v.t."
+  },
+  "pdf": {
+    "seo": {
+      "title": "SEO Audit Rapport",
+      "poweredBy": "Mogelijk gemaakt door Serpixa",
+      "url": "URL",
+      "targetKeyword": "Doel Zoekwoord",
+      "date": "Datum",
+      "generatedFor": "Gegenereerd voor",
+      "score": "SEO Score",
+      "onPageAnalysis": "On-Page Analyse",
+      "keywordAnalysis": "Zoekwoord Analyse",
+      "keywordDensity": "Zoekwoord Dichtheid",
+      "occurrences": "Voorkomens",
+      "competitorRankings": "Concurrent Rankings",
+      "recommendations": "Aanbevelingen",
+      "pos": "Pos",
+      "titleCol": "Titel",
+      "urlCol": "URL",
+      "domain": "Domein",
+      "count": "Aantal",
+      "total": "Totaal",
+      "withoutAlt": "Zonder Alt",
+      "internal": "Intern",
+      "external": "Extern",
+      "broken": "Gebroken",
+      "page": "Pagina",
+      "of": "van"
+    },
+    "gbp": {
+      "title": "GBP Audit Rapport",
+      "poweredBy": "Mogelijk gemaakt door Serpixa",
+      "business": "Bedrijf",
+      "date": "Datum",
+      "generatedFor": "Gegenereerd voor",
+      "completenessScore": "Volledigheid Score",
+      "businessInfo": "Bedrijfsinformatie",
+      "profileChecklist": "Profiel Checklist",
+      "recommendations": "Aanbevelingen",
+      "name": "Naam",
+      "address": "Adres",
+      "phone": "Telefoon",
+      "website": "Website",
+      "category": "Categorie",
+      "rating": "Beoordeling",
+      "reviews": "reviews",
+      "page": "Pagina",
+      "of": "van"
+    },
+    "geo": {
+      "title": "Geo Audit Rapport",
+      "poweredBy": "Mogelijk gemaakt door Serpixa",
+      "business": "Bedrijf",
+      "keyword": "Zoekwoord",
+      "location": "Locatie",
+      "date": "Datum",
+      "generatedFor": "Gegenereerd voor",
+      "localVisibilityScore": "Lokale Zichtbaarheid Score",
+      "businessInfo": "Bedrijfsinformatie",
+      "nearbyCompetitors": "Nabije Concurrenten",
+      "napConsistency": "NAP Consistentie",
+      "nameConsistency": "Naam Consistentie",
+      "addressConsistency": "Adres Consistentie",
+      "phoneConsistency": "Telefoon Consistentie",
+      "citationAnalysis": "Citatie Analyse",
+      "missingCitations": "Ontbrekende Citaties",
+      "inconsistentData": "Inconsistente Gegevens",
+      "recommendations": "Aanbevelingen",
+      "pos": "Pos",
+      "name": "Naam",
+      "rating": "Beoordeling",
+      "reviewsCol": "Reviews",
+      "dist": "Afst",
+      "address": "Adres",
+      "phone": "Telefoon",
+      "website": "Website",
+      "category": "Categorie",
+      "reviews": "reviews",
+      "page": "Pagina",
+      "of": "van"
+    }
+  }
+}
