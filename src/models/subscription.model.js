@@ -43,6 +43,10 @@ const SubscriptionSchema = new Schema({
   usage: {
     searches_performed: { type: Number, default: 0 },
     api_calls_made: { type: Number, default: 0 },
+    seo_audits_used: { type: Number, default: 0 },
+    geo_audits_used: { type: Number, default: 0 },
+    gbp_audits_used: { type: Number, default: 0 },
+    ai_generations_used: { type: Number, default: 0 },
     last_reset: { type: Date, default: Date.now }
   }
 }, { 
@@ -79,17 +83,39 @@ SubscriptionSchema.methods.canPerformSearch = function(planLimits) {
   return true;
 };
 
-SubscriptionSchema.methods.incrementUsage = async function(type = 'search') {
-  if (type === 'search') {
-    this.usage.searches_performed += 1;
-  } else if (type === 'api_call') {
-    this.usage.api_calls_made += 1;
+SubscriptionSchema.methods.incrementUsage = async function(creditType, amount = 1) {
+  const usageKey = `${creditType}_used`;
+  if (this.usage[usageKey] !== undefined) {
+    this.usage[usageKey] = (this.usage[usageKey] || 0) + amount;
+  } else if (creditType === 'search') {
+    this.usage.searches_performed += amount;
+  } else if (creditType === 'api_call') {
+    this.usage.api_calls_made += amount;
   }
   return this.save();
+};
+
+SubscriptionSchema.methods.resetMonthlyUsage = async function() {
+  const now = new Date();
+  const lastReset = this.usage.last_reset;
+
+  if (now.getMonth() !== lastReset.getMonth() || now.getFullYear() !== lastReset.getFullYear()) {
+    this.usage.seo_audits_used = 0;
+    this.usage.geo_audits_used = 0;
+    this.usage.gbp_audits_used = 0;
+    this.usage.ai_generations_used = 0;
+    this.usage.searches_performed = 0;
+    this.usage.api_calls_made = 0;
+    this.usage.last_reset = now;
+    await this.save();
+    return true;
+  }
+  return false;
 };
 
 // Compound indexes
 SubscriptionSchema.index({ user_id: 1, status: 1 });
 
 export const Subscription = model('Subscription', SubscriptionSchema);
+
 

@@ -109,4 +109,3 @@ GeoAuditSchema.index({ location: 1 });
 
 export const GeoAudit = model('GeoAudit', GeoAuditSchema);
 
-

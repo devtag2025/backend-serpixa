@@ -2,6 +2,15 @@ import Joi from "joi";
 
 // Helper function to validate request body
 const validateRequest = (schema) => (req, res, next) => {
+  // Check if req.body exists
+  if (!req.body) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      error: "Request body is required",
+    });
+  }
+
   const { error } = schema.validate(req.body);
   if (error) {
     return res.status(400).json({
@@ -121,10 +130,10 @@ const runGeoAudit = validateRequest(Joi.object({
 
 // Checkout validations
 const createCheckout = validateRequest(Joi.object({
-  price_id: Joi.string().optional(),
-  plan_id: Joi.string().regex(/^[a-fA-F0-9]{24}$/).optional(),
-}).or('price_id', 'plan_id').messages({
-  'object.missing': 'Either price_id or plan_id is required',
+  price_id: Joi.string().required().messages({
+    'any.required': 'price_id is required',
+    'string.empty': 'price_id cannot be empty',
+  }),
 }));
 
 export const validate = {
