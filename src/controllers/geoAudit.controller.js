@@ -1,11 +1,19 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
-import { GeoAudit } from '../models/index.js';
+import { GeoAudit, User } from '../models/index.js';
 import { geoAuditService, pdfService } from '../services/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
+    // Safety check for req.body
+    if (!req.body) {
+      return res.status(400).json(
+        new ApiResponse(400, null, 'Request body is required')
+      );
+    }
+
     const { keyword, location, businessName, languageName, device } = req.body;
     const userId = req.user._id;
+    const { creditInfo } = req; // From credit middleware
 
     if (!keyword) {
       return res.status(400).json(
@@ -49,6 +57,24 @@ export const runAudit = async (req, res, next) => {
       raw_data: auditResult.raw,
       status: 'completed',
     });
+
+    // Decrement credits after successful audit
+    if (creditInfo) {
+      const { subscription, userCredits } = creditInfo;
+      
+      // Try to use subscription credits first, then addon credits
+      if (subscription && subscription.usage?.geo_audits_used < (subscription.plan_id?.limits?.geo_audits || 0)) {
+        // Use subscription credit
+        await subscription.incrementUsage('geo_audits', 1);
+      } else if (userCredits > 0) {
+        // Use addon credit
+        const user = await User.findById(userId);
+        if (user && user.credits?.geo_audits > 0) {
+          user.credits.geo_audits = Math.max(0, user.credits.geo_audits - 1);
+          await user.save();
+        }
+      }
+    }
 
     res.status(201).json(
       new ApiResponse(201, { audit }, 'Geo audit completed successfully')

@@ -2,6 +2,15 @@ import Joi from "joi";
 
 // Helper function to validate request body
 const validateRequest = (schema) => (req, res, next) => {
+  // Check if req.body exists
+  if (!req.body) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      error: "Request body is required",
+    });
+  }
+
   const { error } = schema.validate(req.body);
   if (error) {
     return res.status(400).json({

@@ -1,11 +1,12 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
-import { SEOAudit } from '../models/index.js';
+import { SEOAudit, User } from '../models/index.js';
 import {  dataForSEOService, pdfService  } from '../services/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
     const { url, keyword, locationName, languageName, device } = req.body;
     const userId = req.user._id;
+    const { creditInfo } = req; // From credit middleware
 
     if (!keyword) {
       return res.status(400).json(
@@ -33,6 +34,24 @@ export const runAudit = async (req, res, next) => {
       raw_data: auditResult.raw,
       status: 'completed',
     });
+
+    // Decrement credits after successful audit
+    if (creditInfo) {
+      const { subscription, userCredits } = creditInfo;
+      
+      // Try to use subscription credits first, then addon credits
+      if (subscription && subscription.usage?.seo_audits_used < (subscription.plan_id?.limits?.seo_audits || 0)) {
+        // Use subscription credit
+        await subscription.incrementUsage('seo_audits', 1);
+      } else if (userCredits > 0) {
+        // Use addon credit
+        const user = await User.findById(userId);
+        if (user && user.credits?.seo_audits > 0) {
+          user.credits.seo_audits = Math.max(0, user.credits.seo_audits - 1);
+          await user.save();
+        }
+      }
+    }
 
     res.status(201).json(
       new ApiResponse(201, { audit }, 'SEO audit completed successfully')

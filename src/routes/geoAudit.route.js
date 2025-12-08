@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { auth, validate } from '../middlewares/index.js';
+import { auth, validate, checkCredit } from '../middlewares/index.js';
 import { geoAuditController } from '../controllers/geoAudit.controller.js';
 
 const router = Router();
 
 router.use(auth);
 
-router.post('/', validate.runGeoAudit, geoAuditController.runAudit);
+router.post('/', validate.runGeoAudit, checkCredit('geo_audits'), geoAuditController.runAudit);
 router.get('/', geoAuditController.getUserAudits);
 router.get('/:auditId', validate.auditIdParam, geoAuditController.getAuditById);
 router.get('/:auditId/raw', validate.auditIdParam, geoAuditController.getAuditWithRawData);

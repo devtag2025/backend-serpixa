@@ -91,14 +91,28 @@ class StripeService {
   }
 
   async _upsertSubscription(userId, planId, stripeData) {
-    // Cancel existing
+    // Validate user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error(`User not found: ${userId}`);
+      throw new Error('User not found');
+    }
+
+    // Get plan to access limits
+    const plan = await Plan.findById(planId);
+    if (!plan) {
+      console.error(`Plan not found: ${planId}`);
+      throw new Error('Plan not found');
+    }
+
+    // Cancel existing active subscriptions
     await Subscription.updateMany(
       { user_id: userId, status: { $in: ['active', 'trial'] } },
       { status: 'canceled', canceled_at: new Date() }
     );
 
-    // Create new
-    return Subscription.create({
+    // Create new subscription
+    const subscription = await Subscription.create({
       user_id: userId,
       plan_id: planId,
       stripe_customer_id: stripeData.customer,
@@ -109,6 +123,30 @@ class StripeService {
       current_period_end: stripeData.current_period_end ? new Date(stripeData.current_period_end * 1000) : undefined,
       trial_end: stripeData.trial_end ? new Date(stripeData.trial_end * 1000) : undefined
     });
+
+    // Add monthly credits to user based on plan limits (only for subscription plans)
+    if (plan.plan_type === 'subscription' && plan.limits) {
+      // Initialize credits if not exists
+      if (!user.credits) {
+        user.credits = {
+          seo_audits: 0,
+          geo_audits: 0,
+          gbp_audits: 0,
+          ai_generations: 0,
+        };
+      }
+
+      // Add monthly credits from plan limits
+      // Note: These are monthly credits that reset each billing cycle
+      // The subscription usage tracking handles the monthly limits
+      // User credits are for addon purchases (one-time credits)
+      // We don't add subscription limits as user credits, they're tracked in subscription.usage
+      
+      await user.save();
+      console.log(`Subscription created for user ${userId}, plan: ${plan.name}`);
+    }
+
+    return subscription;
   }
 
   _determineStatus(stripeData) {
@@ -246,4 +284,5 @@ class StripeService {
 }
 
 export const stripeService = new StripeService();
+
 

@@ -1,11 +1,12 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
-import { GBPAudit } from '../models/index.js';
+import { GBPAudit, User } from '../models/index.js';
 import { gbpService, pdfService } from '../services/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
     const { businessName, gbpLink, location, languageCode } = req.body;
     const userId = req.user._id;
+    const { creditInfo } = req; // From credit middleware
 
     const searchTerm = businessName || gbpLink;
     if (!searchTerm) {
@@ -32,6 +33,24 @@ export const runAudit = async (req, res, next) => {
       raw_data: auditResult.raw,
       status: auditResult.found ? 'completed' : 'not_found',
     });
+
+    // Decrement credits after successful audit (only if audit was found)
+    if (auditResult.found && creditInfo) {
+      const { subscription, userCredits } = creditInfo;
+      
+      // Try to use subscription credits first, then addon credits
+      if (subscription && subscription.usage?.gbp_audits_used < (subscription.plan_id?.limits?.gbp_audits || 0)) {
+        // Use subscription credit
+        await subscription.incrementUsage('gbp_audits', 1);
+      } else if (userCredits > 0) {
+        // Use addon credit
+        const user = await User.findById(userId);
+        if (user && user.credits?.gbp_audits > 0) {
+          user.credits.gbp_audits = Math.max(0, user.credits.gbp_audits - 1);
+          await user.save();
+        }
+      }
+    }
 
     res.status(201).json(
       new ApiResponse(201, { audit }, auditResult.found 
