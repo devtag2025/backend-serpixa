@@ -5,11 +5,17 @@
       "description": "Meta Description",
       "h1": "H1 Tag",
       "h2": "H2 Tags",
+      "h3": "H3 Tags",
       "canonical": "Canonical URL",
       "images": "Images",
       "links": "Links",
       "loadTime": "Load Time",
-      "wordCount": "Word Count"
+      "wordCount": "Word Count",
+      "schema": "Schema Markup",
+      "mobile": "Mobile Friendly",
+      "https": "HTTPS Security",
+      "openGraph": "Open Graph Tags",
+      "robots": "Robots Meta"
     },
     "labels": {
       "exists": "Exists",
@@ -23,7 +29,14 @@
       "external": "External",
       "broken": "Broken",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "good": "Good",
+      "needsImprovement": "Needs Improvement",
+      "poor": "Poor",
+      "detected": "Detected",
+      "notDetected": "Not Detected",
+      "secure": "Secure",
+      "notSecure": "Not Secure"
     },
     "keywordAnalysis": {
       "title": "Keyword Analysis",
@@ -32,9 +45,13 @@
       "inH1": "In H1",
       "inH2": "In H2",
       "inContent": "In Content",
+      "inUrl": "In URL",
+      "inFirst100Words": "In First 100 Words",
       "occurrences": "Occurrences",
       "density": "Keyword Density",
-      "densityOptimal": "Density Optimal"
+      "densityOptimal": "Density Optimal",
+      "recommendedOccurrences": "Recommended Occurrences",
+      "competitorAvgWordCount": "Competitor Avg Word Count"
     },
     "recommendations": {
       "competitorAnalysis": {
@@ -42,68 +59,164 @@
         "action": "Review top-ranking competitors to identify optimization opportunities and content gaps"
       },
       "missingTitle": {
-        "issue": "Missing title tag",
-        "action": "Add a descriptive title tag (30-60 characters)"
+        "issue": "Missing title tag - Critical SEO element",
+        "action": "Add a compelling title tag (50-60 characters) that includes your target keyword near the beginning. Example: \"{keyword} - Your Unique Value Proposition | Brand\""
       },
       "titleNotOptimal": {
-        "issue": "Title length not optimal",
-        "action": "Adjust title to 30-60 characters"
+        "issue": "Title length is {length} characters (optimal: 50-60)",
+        "action": "Adjust your title to 50-60 characters. Current title may be truncated in search results, reducing click-through rate. Keep your main keyword within the first 60 characters."
+      },
+      "titleTooShort": {
+        "issue": "Title is too short ({length} characters)",
+        "action": "Expand your title to 50-60 characters. Include your primary keyword, a benefit, and your brand name. Short titles miss ranking opportunities."
       },
       "missingDescription": {
-        "issue": "Missing meta description",
-        "action": "Add a meta description (120-160 characters)"
+        "issue": "Missing meta description - Major SEO gap",
+        "action": "Add a compelling meta description (150-160 characters) with your target keyword, a clear value proposition, and a call-to-action. This directly impacts click-through rates."
       },
       "descriptionNotOptimal": {
-        "issue": "Meta description length not optimal",
-        "action": "Adjust to 120-160 characters"
+        "issue": "Meta description is {length} characters (optimal: 150-160)",
+        "action": "Adjust to 150-160 characters. Include your primary keyword naturally, highlight unique benefits, and end with a compelling CTA like 'Learn more' or 'Get started today'."
       },
       "missingH1": {
-        "issue": "Missing H1 tag",
-        "action": "Add exactly one H1 tag"
+        "issue": "Missing H1 tag - Major structural issue",
+        "action": "Add exactly one H1 tag that clearly describes the page content and includes your target keyword. The H1 should be unique and different from your title tag."
       },
       "multipleH1": {
-        "issue": "Multiple H1 tags",
-        "action": "Use only one H1 tag per page"
+        "issue": "Multiple H1 tags detected ({count} found)",
+        "action": "Use only one H1 tag per page. Convert extra H1s to H2s. Multiple H1s confuse search engines about your page's main topic and dilute keyword relevance."
+      },
+      "missingH2": {
+        "issue": "No H2 subheadings found",
+        "action": "Add 3-6 H2 subheadings to structure your content. Include keyword variations and related terms in H2s. This improves readability and helps search engines understand content hierarchy."
+      },
+      "fewH2": {
+        "issue": "Only {count} H2 subheading(s) - Content structure weak",
+        "action": "Add more H2 subheadings (aim for 1 per 300 words). Use them to break content into scannable sections. Include LSI keywords and questions users might ask."
       },
       "imagesNoAlt": {
         "issue": "{count} images missing alt text",
-        "action": "Add descriptive alt text to all images"
+        "action": "Add descriptive alt text to all images. Include your keyword naturally where relevant. Good alt text: 'Professional plumber fixing kitchen sink in Boston home' instead of 'plumber' or 'image1'."
+      },
+      "tooManyImages": {
+        "issue": "{count} images may slow page load",
+        "action": "Optimize images: compress using WebP format, implement lazy loading, specify width/height attributes, and use responsive images. Aim for total image size under 1MB."
       },
       "brokenLinks": {
-        "issue": "{count} broken links found",
-        "action": "Fix or remove broken links"
+        "issue": "{count} broken links detected - Hurts user experience and SEO",
+        "action": "Fix or remove all broken links immediately. Broken links signal poor maintenance to search engines and frustrate users. Use 301 redirects where appropriate."
+      },
+      "fewInternalLinks": {
+        "issue": "Only {count} internal links - Poor site structure",
+        "action": "Add 3-5 relevant internal links to important pages. Use descriptive anchor text with keywords. Internal linking distributes page authority and helps users navigate."
+      },
+      "noExternalLinks": {
+        "issue": "No external links to authoritative sources",
+        "action": "Add 2-3 links to authoritative, relevant external sources. This builds trust and provides value to readers. Ensure links open in new tabs and use rel='noopener'."
       },
       "missingCanonical": {
-        "issue": "Missing canonical tag",
-        "action": "Add canonical URL to prevent duplicate content issues"
+        "issue": "Missing canonical tag - Risk of duplicate content issues",
+        "action": "Add a self-referencing canonical tag to prevent duplicate content issues. Format: <link rel='canonical' href='https://yoursite.com/this-page' />"
       },
       "lowWordCount": {
-        "issue": "Low word count",
-        "action": "Add more quality content (aim for 300+ words)"
+        "issue": "Content is only {count} words - Below competitive average",
+        "action": "Expand content to at least {recommended} words. Top-ranking pages average {competitorAvg} words. Add: detailed explanations, FAQs, examples, case studies, and related subtopics."
+      },
+      "veryLowWordCount": {
+        "issue": "Thin content detected ({count} words)",
+        "action": "Pages under 300 words rarely rank well. Create comprehensive content covering: what, why, how, FAQs, examples, and expert tips. Aim for 1,500+ words for competitive keywords."
       },
       "keywordNotInTitle": {
-        "issue": "Target keyword not in title",
-        "action": "Include \"{keyword}\" in your title tag"
+        "issue": "Target keyword \"{keyword}\" not in title tag",
+        "action": "Include your primary keyword near the beginning of your title. Example: \"{keyword}: [Your Unique Angle] | Brand Name\". This is crucial for ranking."
       },
       "keywordNotInDescription": {
-        "issue": "Target keyword not in meta description",
-        "action": "Include \"{keyword}\" in your meta description"
+        "issue": "Target keyword \"{keyword}\" not in meta description",
+        "action": "Include \"{keyword}\" naturally in your meta description. Google often bolds matching keywords, increasing visibility and click-through rates."
       },
       "keywordNotInH1": {
-        "issue": "Target keyword not in H1",
-        "action": "Include \"{keyword}\" in your H1 heading"
+        "issue": "Target keyword \"{keyword}\" not in H1 heading",
+        "action": "Include \"{keyword}\" in your H1 tag. This confirms the page's topic to search engines. Make it natural and compelling for readers."
       },
       "keywordNotInContent": {
-        "issue": "Target keyword not found in content",
-        "action": "Add \"{keyword}\" naturally throughout your content"
+        "issue": "Target keyword \"{keyword}\" not found in body content",
+        "action": "Add \"{keyword}\" naturally throughout your content. Include it in: first paragraph, at least one subheading, and conclusion. Avoid forced placement."
+      },
+      "keywordNotInFirst100Words": {
+        "issue": "Keyword \"{keyword}\" not in first 100 words",
+        "action": "Include your target keyword in the first 100 words (ideally first paragraph). This signals relevance to search engines and immediately shows users they're in the right place."
+      },
+      "keywordNotInUrl": {
+        "issue": "Target keyword \"{keyword}\" not in URL",
+        "action": "If possible, include your keyword in the URL slug. Example: /your-keyword-guide instead of /page123. Keep URLs short, readable, and keyword-relevant."
       },
       "keywordDensityLow": {
-        "issue": "Keyword density too low",
-        "action": "Increase usage of \"{keyword}\" (aim for 1-3% density)"
+        "issue": "Keyword density is {density}% (below optimal 1-2%)",
+        "action": "Current: {occurrences} occurrences in {wordCount} words. Add {recommended} more natural mentions of \"{keyword}\". Use variations and synonyms to avoid repetition."
       },
       "keywordDensityHigh": {
-        "issue": "Keyword density too high",
-        "action": "Reduce usage of \"{keyword}\" to avoid keyword stuffing"
+        "issue": "Keyword density is {density}% - Risk of over-optimization",
+        "action": "Reduce usage of \"{keyword}\" from {occurrences} to approximately {recommended} times. Replace some instances with synonyms, related terms, or pronouns."
+      },
+      "keywordDensityOptimal": {
+        "issue": "Keyword density is optimal at {density}%",
+        "action": "Maintain current keyword usage. Focus on adding LSI (related) keywords and synonyms to strengthen topical relevance without over-optimization."
+      },
+      "missingSchema": {
+        "issue": "No structured data (Schema markup) detected",
+        "action": "Add JSON-LD schema markup to qualify for rich snippets. Recommended types: Article, LocalBusiness, Product, FAQ, HowTo, or BreadcrumbList based on your page type."
+      },
+      "missingOpenGraph": {
+        "issue": "Missing Open Graph tags for social sharing",
+        "action": "Add og:title, og:description, og:image, and og:url tags. This controls how your page appears when shared on Facebook, LinkedIn, and other platforms."
+      },
+      "missingTwitterCards": {
+        "issue": "Missing Twitter Card meta tags",
+        "action": "Add twitter:card, twitter:title, twitter:description, and twitter:image for optimized Twitter sharing. Use 'summary_large_image' for better visibility."
+      },
+      "slowLoadTime": {
+        "issue": "Page load time is {time}s (should be under 3s)",
+        "action": "Improve page speed: compress images, enable browser caching, minify CSS/JS, use a CDN, defer non-critical JavaScript, and consider lazy loading."
+      },
+      "noHttps": {
+        "issue": "Page not served over HTTPS",
+        "action": "HTTPS is a ranking factor. Install an SSL certificate and redirect all HTTP traffic to HTTPS. This also builds user trust and is required for modern browser features."
+      },
+      "missingViewport": {
+        "issue": "Missing viewport meta tag - Mobile issues likely",
+        "action": "Add <meta name='viewport' content='width=device-width, initial-scale=1'> for proper mobile rendering. Google uses mobile-first indexing."
+      },
+      "noRobotsMeta": {
+        "issue": "No robots meta tag specified",
+        "action": "Add <meta name='robots' content='index, follow'> to explicitly tell search engines to index this page and follow its links."
+      },
+      "contentBelowCompetitors": {
+        "issue": "Content is {percent}% shorter than top competitors",
+        "action": "Top 10 results average {avgWords} words. Expand your content to match or exceed this. Add sections covering: common questions, detailed how-tos, case studies, and expert insights."
+      },
+      "noLsiKeywords": {
+        "issue": "Limited use of related keywords and synonyms",
+        "action": "Add LSI keywords and semantic variations. For \"{keyword}\", consider adding: {suggestions}. This signals comprehensive topical coverage to search engines."
+      },
+      "duplicateTitle": {
+        "issue": "Title may be duplicated across your site",
+        "action": "Ensure each page has a unique title tag. Duplicate titles confuse search engines and dilute ranking potential. Include page-specific information in each title."
+      },
+      "duplicateDescription": {
+        "issue": "Meta description may be duplicated",
+        "action": "Write unique meta descriptions for each page. Duplicate descriptions are a missed opportunity to target page-specific keywords and attract relevant clicks."
+      },
+      "strongBoldUsage": {
+        "issue": "No <strong> or <b> tags used for emphasis",
+        "action": "Use <strong> tags to emphasize 2-3 important phrases including your keyword. This provides visual hierarchy and may help search engines identify key concepts."
+      },
+      "missingBreadcrumbs": {
+        "issue": "No breadcrumb navigation detected",
+        "action": "Add breadcrumb navigation and BreadcrumbList schema. This improves user navigation, internal linking, and can show in search results for better CTR."
+      },
+      "excellentOptimization": {
+        "issue": "Page is well-optimized for \"{keyword}\"",
+        "action": "Maintain your strong optimization. Focus on: building quality backlinks, updating content regularly, improving Core Web Vitals, and monitoring competitor changes."
       }
     }
   },
@@ -122,7 +235,10 @@
       "address": "Address",
       "phone": "Phone",
       "website": "Website",
-      "category": "Category"
+      "category": "Category",
+      "localPackPosition": "Local Pack Position",
+      "competitorStrength": "Competitor Strength",
+      "marketOpportunity": "Market Opportunity"
     },
     "nap": {
       "nameConsistency": "Name Consistency",
@@ -141,53 +257,105 @@
       "websiteNotListed": "Website URL not listed",
       "categoryNotSpecified": "Business category not specified",
       "notFoundInLocalPack": "Business not found in local pack",
-      "competitorsHaveWebsite": "Most competitors have websites listed, but yours is missing",
-      "competitorsHaveCategory": "Most competitors have categories listed, but yours is missing"
+      "competitorsHaveWebsite": "Competitors have websites listed, but yours is missing",
+      "competitorsHaveCategory": "Competitors have categories listed, but yours is missing"
     },
     "recommendations": {
       "lowVisibility": {
-        "issue": "Low local visibility score ({score}%)",
-        "action": "Optimize your Google Business Profile and build local citations"
+        "issue": "Local visibility score is {score}% - Below competitive threshold",
+        "action": "Comprehensive local SEO required: optimize Google Business Profile, build 50+ citations on directories (Yelp, Yellow Pages, industry-specific sites), generate 20+ reviews, and create locally-targeted content."
       },
       "notInLocalPack": {
-        "issue": "Business not found in local pack results",
-        "action": "Improve local SEO by optimizing your Google Business Profile, getting more reviews, and ensuring NAP consistency"
+        "issue": "Business not appearing in local pack - Missing significant local traffic",
+        "action": "Priority actions: 1) Verify Google Business Profile ownership, 2) Ensure NAP consistency across all platforms, 3) Build citations on 30+ local directories, 4) Generate 10+ reviews in next 30 days, 5) Add locally-relevant content to your website."
       },
       "lowPosition": {
-        "issue": "Business is ranked at position {position} in local pack",
-        "action": "Work on improving your ranking by getting more positive reviews, optimizing your GBP profile, and improving local relevance"
+        "issue": "Ranked #{position} in local pack - Top 3 get 70% of clicks",
+        "action": "To reach top 3: Increase review count (aim for 50+), respond to all reviews within 24 hours, add posts weekly, upload new photos monthly, and build more local backlinks."
+      },
+      "position1": {
+        "issue": "Currently ranked #1 in local pack - Maintain this position",
+        "action": "Protect your ranking: Continue generating fresh reviews, post updates weekly, monitor and respond to all reviews, keep business info updated, and track competitor changes."
+      },
+      "position2or3": {
+        "issue": "Ranked #{position} - Close to #1 position",
+        "action": "To reach #1: Increase review velocity (aim for 5+ new reviews monthly), improve response time to reviews, add weekly GBP posts, and build 10+ new local citations."
       },
       "noReviews": {
-        "issue": "No reviews found",
-        "action": "Encourage customers to leave reviews on Google"
+        "issue": "Zero reviews - Critical for local ranking",
+        "action": "Launch review campaign immediately: Email past customers, add review links to receipts/invoices, create QR codes for in-store requests, and follow up 3-5 days after service completion."
       },
       "fewReviews": {
-        "issue": "Only {count} reviews",
-        "action": "Build your review base - aim for at least 20 reviews"
+        "issue": "Only {count} reviews vs competitor average of {avg}",
+        "action": "Build review base: Set goal of {target} reviews in 60 days. Implement: automated review requests, staff training on asking for reviews, and incentive program for staff (not customers)."
       },
       "lowRating": {
-        "issue": "Rating is {rating}/5",
-        "action": "Address negative reviews and improve service quality"
+        "issue": "Rating is {rating}/5 - Below the 4.0 threshold for trust",
+        "action": "Rating recovery plan: 1) Respond professionally to all negative reviews, 2) Identify and fix service issues, 3) Proactively ask happy customers to review, 4) Consider offering service recovery to unhappy customers."
       },
-      "missingWebsite": {
-        "issue": "No website linked",
-        "action": "Add your website to your business profile"
+      "goodRating": {
+        "issue": "Rating is {rating}/5 - Good, but room for improvement",
+        "action": "Push toward 4.8+: Thank all positive reviewers, address any recurring concerns mentioned in reviews, and continue delivering excellent service. Higher ratings = higher rankings."
       },
-      "missingPhone": {
-        "issue": "No phone number listed",
-        "action": "Add a local phone number to your profile"
-      },
-      "napInconsistency": {
-        "issue": "NAP (Name, Address, Phone) inconsistency detected",
-        "action": "Ensure your business information is consistent across all platforms"
+      "excellentRating": {
+        "issue": "Excellent rating of {rating}/5 - Maintain this standard",
+        "action": "Maintain excellence: Continue your great service, respond to all reviews, and use positive feedback in marketing. Consider featuring testimonials on your website."
       },
       "competitorsBetterRating": {
-        "issue": "Competitors have better ratings",
-        "action": "Focus on customer satisfaction to improve your rating"
+        "issue": "Competitors average {avg} rating vs your {rating}",
+        "action": "Close the rating gap: Analyze competitor reviews for service insights, identify your weaknesses, train staff on customer experience, and implement a proactive review request system."
       },
       "competitorsMoreReviews": {
-        "issue": "Competitors have more reviews",
-        "action": "Implement a review generation strategy"
+        "issue": "Competitors average {avgReviews} reviews vs your {reviews}",
+        "action": "Review generation strategy: Aim for {target} new reviews in 90 days. Use automated follow-ups, SMS review requests, and in-person asks. Top local businesses get 10+ new reviews monthly."
+      },
+      "missingPhone": {
+        "issue": "No phone number displayed - Lost call conversions",
+        "action": "Add a local phone number (same area code as your address). Local numbers build trust and improve rankings. Use a tracking number if needed but ensure it's a local format."
+      },
+      "missingWebsite": {
+        "issue": "No website linked - Missing conversion opportunities",
+        "action": "Add your website URL. This drives traffic, builds authority, and provides a conversion path. Ensure your website has consistent NAP info and location pages."
+      },
+      "napInconsistency": {
+        "issue": "NAP inconsistencies detected across directories",
+        "action": "Audit all business listings and standardize: Use exact same business name, complete address format, and phone number everywhere. Even small variations (St vs Street) can hurt rankings."
+      },
+      "missingCategories": {
+        "issue": "Only primary category set - Missing visibility opportunities",
+        "action": "Add 5-9 relevant secondary categories to your Google Business Profile. This helps you appear for more local searches. Choose categories that accurately describe your services."
+      },
+      "noGbpPosts": {
+        "issue": "No recent Google Business posts",
+        "action": "Post weekly updates on Google Business: promotions, events, tips, or news. Posts improve engagement, show activity, and can include calls-to-action. They expire after 7 days."
+      },
+      "noPhotos": {
+        "issue": "Limited photos on Google Business Profile",
+        "action": "Add 10+ high-quality photos: exterior, interior, team, products/services, and work examples. Businesses with 100+ photos get 520% more calls. Upload new photos monthly."
+      },
+      "distanceFromSearcher": {
+        "issue": "Distance may be affecting local rankings",
+        "action": "For distance-based ranking improvements: Create location-specific pages, build local backlinks, generate reviews mentioning your location, and ensure service area is properly set."
+      },
+      "strongCompetition": {
+        "issue": "Facing {count} well-established competitors",
+        "action": "Competitive differentiation needed: Focus on a niche service, target underserved neighborhoods, build partnerships with local businesses, and create unique local content."
+      },
+      "citationOpportunity": {
+        "issue": "Citation count below competitor average",
+        "action": "Build citations on: industry directories, local business directories, chamber of commerce, BBB, and niche sites. Aim for 50+ citations with perfectly consistent NAP."
+      },
+      "localContentMissing": {
+        "issue": "No locally-focused content on website",
+        "action": "Create local landing pages for each service area, write location-specific blog posts, add local landmarks and references, and embed Google Map on contact page."
+      },
+      "reviewResponseNeeded": {
+        "issue": "Reviews not being responded to",
+        "action": "Respond to ALL reviews within 24-48 hours. Thank positive reviewers specifically, address negative feedback professionally, and show you're engaged. Response rate affects rankings."
+      },
+      "serviceAreaOptimization": {
+        "issue": "Service area may not be properly configured",
+        "action": "In GBP settings, clearly define your service areas. For service-area businesses, hide your address but specify service regions. This helps you appear in nearby location searches."
       }
     }
   },
@@ -204,7 +372,10 @@
       "website": "Website",
       "category": "Category",
       "rating": "Rating",
-      "reviews": "Reviews"
+      "reviews": "Reviews",
+      "profileStrength": "Profile Strength",
+      "engagementLevel": "Engagement Level",
+      "competitivePosition": "Competitive Position"
     },
     "checklist": {
       "name": "Business Name",
@@ -218,72 +389,129 @@
       "photos": "Photos",
       "rating": "Google Rating",
       "reviewCount": "Customer Reviews",
-      "attributes": "Business Attributes"
+      "attributes": "Business Attributes",
+      "services": "Services/Products",
+      "posts": "Google Posts",
+      "qAndA": "Q&A Section",
+      "messaging": "Messaging Enabled",
+      "booking": "Booking Link"
     },
     "recommendations": {
       "name": {
-        "issue": "Missing business name",
-        "action": "Add your official business name to your profile."
+        "issue": "Business name missing or incomplete",
+        "action": "Add your exact legal business name. Don't add keywords or locations (unless part of legal name) - this violates guidelines and risks suspension. Example: 'Smith Plumbing' not 'Best Plumber in Boston - Smith Plumbing'."
       },
       "address": {
-        "issue": "Missing business address",
-        "action": "Add your complete business address for local search visibility."
+        "issue": "Business address not set - Critical for local visibility",
+        "action": "Add your complete street address. Use the exact format: street number, street name, suite/unit, city, state, ZIP. This is required for Google Maps placement and local pack ranking."
       },
       "phone": {
-        "issue": "Missing phone number",
-        "action": "Add a local phone number to enable customer calls."
+        "issue": "Phone number missing - 60% of local searches result in calls",
+        "action": "Add a local phone number (matching your service area code). Avoid 800 numbers for local businesses. If using a tracking number, ensure it forwards to your main line."
       },
       "website": {
-        "issue": "Missing website URL",
-        "action": "Link your website to drive traffic from your GBP listing."
+        "issue": "No website linked - Missing major conversion opportunity",
+        "action": "Add your website URL. If you don't have one, Google offers a free basic site through GBP. Your website should have consistent NAP info and location-specific content."
       },
       "category": {
-        "issue": "Missing primary category",
-        "action": "Select the most accurate primary category for your business."
+        "issue": "Primary category not set - Critical ranking factor",
+        "action": "Choose the most specific primary category that describes your main service. This is the most important ranking factor. Be specific: 'Italian Restaurant' beats 'Restaurant'."
       },
       "additionalCategories": {
-        "issue": "No additional categories",
-        "action": "Add 2-5 relevant secondary categories to improve visibility."
+        "issue": "No secondary categories - Missing search visibility",
+        "action": "Add 5-9 relevant additional categories for all services you offer. Example for a plumber: Plumber (primary), Water Heater Repair, Drain Cleaning, Emergency Plumber, Bathroom Remodeler."
       },
       "description": {
-        "issue": "Missing business description",
-        "action": "Add a compelling description (750 chars max) with relevant keywords."
+        "issue": "Business description missing - Tell your story",
+        "action": "Write a 750-character description covering: what you do, who you serve, what makes you unique, your service area, and key services. Include keywords naturally but write for humans first."
+      },
+      "descriptionTooShort": {
+        "issue": "Description is only {length} characters - Underutilized",
+        "action": "Expand to 500-750 characters. Include: years in business, unique selling points, service area, main services, and any specializations. Don't waste this prime keyword real estate."
       },
       "hours": {
-        "issue": "Missing business hours",
-        "action": "Set your operating hours to help customers know when to visit."
+        "issue": "Business hours not set - Customers won't know when to visit",
+        "action": "Add accurate hours for every day. Include special hours for holidays. Consider adding 'More hours' for different services if applicable. Inaccurate hours lead to negative reviews."
       },
       "photos": {
-        "issue": "No photos uploaded",
-        "action": "Add high-quality photos of your business, products, and team."
+        "issue": "No photos uploaded - Listings with photos get 42% more direction requests",
+        "action": "Upload 25+ high-quality photos: logo, cover, exterior (day/night), interior, team, products/services, and work examples. Update monthly. Use proper categories when uploading."
+      },
+      "fewPhotos": {
+        "issue": "Only {count} photos - Below recommended minimum",
+        "action": "Upload at least 25 photos across categories. Businesses with 100+ photos get 520% more calls. Include: exterior (3+), interior (3+), team (3+), products/services (10+)."
       },
       "rating": {
-        "issue": "No Google rating yet",
-        "action": "Encourage customers to rate your business on Google."
+        "issue": "No Google rating yet - Reviews are crucial for ranking",
+        "action": "Start generating reviews immediately. Create a review link (Settings > Get more reviews), send to recent customers, and implement systematic follow-up after each transaction."
       },
       "reviewCount": {
-        "issue": "Less than 5 reviews",
-        "action": "Build your review base by asking satisfied customers for feedback."
+        "issue": "Less than 5 reviews - Below trust threshold",
+        "action": "Businesses with 10+ reviews get 50% more conversions. Launch review campaign: email past customers, add review link to receipts, and ask satisfied customers directly."
+      },
+      "lowReviewCount": {
+        "issue": "Only {count} reviews - Need 50+ to compete effectively",
+        "action": "Accelerate review generation: automate review requests 2-3 days post-service, train staff to request reviews, create QR codes for physical locations, and respond to every review."
       },
       "attributes": {
-        "issue": "No business attributes set",
-        "action": "Add relevant attributes (WiFi, accessibility, payment methods, etc.)."
+        "issue": "No business attributes selected - Missing valuable information",
+        "action": "Add all relevant attributes: accessibility features, payment methods, amenities (WiFi, parking), health & safety, LGBTQ+ friendly, women-owned, etc. This helps you appear in filtered searches."
       },
       "lowReviews": {
-        "issue": "Only {count} reviews",
-        "action": "Encourage satisfied customers to leave reviews. Respond to all existing reviews promptly."
+        "issue": "Only {count} reviews - Competitors likely have more",
+        "action": "Goal: Generate {target}+ reviews in next 90 days. Strategy: automated follow-ups, in-person requests, SMS review links, and review generation campaigns. Track weekly progress."
       },
       "lowRating": {
-        "issue": "Rating is {rating}/5",
-        "action": "Address negative reviews professionally. Improve service quality to boost ratings."
+        "issue": "Rating is {rating}/5 - Below the critical 4.0 threshold",
+        "action": "Recovery needed: 1) Respond to ALL negative reviews professionally, 2) Identify service issues from feedback, 3) Actively request reviews from satisfied customers, 4) Train staff on customer experience."
       },
       "shortDescription": {
-        "issue": "Business description is short",
-        "action": "Expand your description to 750+ characters with keywords and services offered."
+        "issue": "Description is {length} characters - Use the full 750 allowed",
+        "action": "Expand your description to include: business history, services offered, service area, unique qualifications, and customer benefits. Use natural keyword placement."
       },
       "notFound": {
-        "issue": "Business not found",
-        "action": "Verify the business name or create a Google Business Profile."
+        "issue": "Business profile not found in search",
+        "action": "Claim or create your Google Business Profile: 1) Search for your business on Google, 2) Click 'Claim this business' or create new listing at business.google.com, 3) Complete verification."
+      },
+      "missingServices": {
+        "issue": "No services or products listed",
+        "action": "Add all your services with descriptions and prices (if applicable). This helps customers understand offerings and improves visibility for specific service searches."
+      },
+      "noPosts": {
+        "issue": "No Google Posts in last 30 days - Profile appears inactive",
+        "action": "Post weekly: offers, events, updates, tips, or news. Posts appear in your listing and search results. Include a photo, 100-300 words, and a call-to-action button."
+      },
+      "noQA": {
+        "issue": "Q&A section is empty - Missing engagement opportunity",
+        "action": "Seed your Q&A with 5-10 common questions customers ask. This provides helpful info, shows you're active, and can include keywords naturally. Monitor and answer all customer questions quickly."
+      },
+      "messagingDisabled": {
+        "issue": "Messaging is turned off - Missing customer inquiries",
+        "action": "Enable messaging in GBP settings. This allows customers to message you directly from your listing. Set up auto-responses and ensure someone monitors daily."
+      },
+      "noBookingLink": {
+        "issue": "No booking/appointment link configured",
+        "action": "Add a booking link through GBP (Settings > Booking). This allows customers to schedule directly from your profile. Use your own booking system or partner integrations."
+      },
+      "verificationNeeded": {
+        "issue": "Profile may not be verified",
+        "action": "Complete verification ASAP - unverified profiles don't rank. Request postcard verification or phone/email if available. Verification usually takes 5-14 days by mail."
+      },
+      "irregularHours": {
+        "issue": "Hours appear inconsistent or incomplete",
+        "action": "Review and update hours for accuracy. Add special hours for holidays, temporary closures, and different service hours. Inaccurate hours lead to frustrated customers and negative reviews."
+      },
+      "noMenuOrCatalog": {
+        "issue": "No menu/products catalog added",
+        "action": "For restaurants: add full menu with prices. For retail/services: add product catalog. This appears in your listing and helps customers make decisions."
+      },
+      "profileIncomplete": {
+        "issue": "Profile completeness is {score}% - Incomplete profiles rank lower",
+        "action": "Complete profiles rank higher and convert better. Priority: address, phone, hours, categories, description, photos, services, attributes. Aim for 100% completion."
+      },
+      "excellentProfile": {
+        "issue": "Profile is well-optimized at {score}% completion",
+        "action": "Maintain profile excellence: post weekly, upload new photos monthly, respond to all reviews, answer Q&A promptly, and keep information current. Monitor competitors' profiles."
       }
     }
   },
@@ -293,7 +521,19 @@
     "set": "Set",
     "notSet": "Not Set",
     "chars": "characters",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "recommendation": "Recommendation",
+    "action": "Action Required",
+    "priority": "Priority",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "critical": "Critical",
+    "impact": "Impact",
+    "effort": "Effort",
+    "easy": "Easy",
+    "moderate": "Moderate",
+    "difficult": "Difficult"
   },
   "pdf": {
     "seo": {
@@ -309,7 +549,9 @@
       "keywordDensity": "Keyword Density",
       "occurrences": "Occurrences",
       "competitorRankings": "Competitor Rankings",
-      "recommendations": "Recommendations",
+      "recommendations": "Actionable Recommendations",
+      "priorityActions": "Priority Actions",
+      "quickWins": "Quick Wins",
       "pos": "Pos",
       "titleCol": "Title",
       "urlCol": "URL",
@@ -321,18 +563,22 @@
       "external": "External",
       "broken": "Broken",
       "page": "Page",
-      "of": "of"
+      "of": "of",
+      "summary": "Executive Summary",
+      "technicalSeo": "Technical SEO",
+      "contentAnalysis": "Content Analysis",
+      "competitorInsights": "Competitor Insights"
     },
     "gbp": {
-      "title": "GBP Audit Report",
+      "title": "Google Business Profile Audit Report",
       "poweredBy": "Powered by Serpixa",
       "business": "Business",
       "date": "Date",
       "generatedFor": "Generated for",
-      "completenessScore": "Completeness Score",
+      "completenessScore": "Profile Completeness Score",
       "businessInfo": "Business Information",
-      "profileChecklist": "Profile Checklist",
-      "recommendations": "Recommendations",
+      "profileChecklist": "Profile Completion Checklist",
+      "recommendations": "Optimization Recommendations",
       "name": "Name",
       "address": "Address",
       "phone": "Phone",
@@ -341,10 +587,13 @@
       "rating": "Rating",
       "reviews": "reviews",
       "page": "Page",
-      "of": "of"
+      "of": "of",
+      "summary": "Executive Summary",
+      "profileStrength": "Profile Strength Analysis",
+      "competitiveAnalysis": "Competitive Positioning"
     },
     "geo": {
-      "title": "Geo Audit Report",
+      "title": "Local SEO Audit Report",
       "poweredBy": "Powered by Serpixa",
       "business": "Business",
       "keyword": "Keyword",
@@ -354,14 +603,14 @@
       "localVisibilityScore": "Local Visibility Score",
       "businessInfo": "Business Information",
       "nearbyCompetitors": "Nearby Competitors",
-      "napConsistency": "NAP Consistency",
+      "napConsistency": "NAP Consistency Analysis",
       "nameConsistency": "Name Consistency",
       "addressConsistency": "Address Consistency",
       "phoneConsistency": "Phone Consistency",
       "citationAnalysis": "Citation Analysis",
       "missingCitations": "Missing Citations",
       "inconsistentData": "Inconsistent Data",
-      "recommendations": "Recommendations",
+      "recommendations": "Local SEO Recommendations",
       "pos": "Pos",
       "name": "Name",
       "rating": "Rating",
@@ -373,7 +622,10 @@
       "category": "Category",
       "reviews": "reviews",
       "page": "Page",
-      "of": "of"
+      "of": "of",
+      "summary": "Executive Summary",
+      "marketAnalysis": "Local Market Analysis",
+      "rankingFactors": "Key Ranking Factors"
     }
   }
 }
