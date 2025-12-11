@@ -5,11 +5,17 @@
       "description": "Meta Beschrijving",
       "h1": "H1 Tag",
       "h2": "H2 Tags",
+      "h3": "H3 Tags",
       "canonical": "Canonieke URL",
       "images": "Afbeeldingen",
       "links": "Links",
       "loadTime": "Laadtijd",
-      "wordCount": "Aantal Woorden"
+      "wordCount": "Aantal Woorden",
+      "schema": "Schema Markup",
+      "mobile": "Mobielvriendelijk",
+      "https": "HTTPS Beveiliging",
+      "openGraph": "Open Graph Tags",
+      "robots": "Robots Meta"
     },
     "labels": {
       "exists": "Bestaat",
@@ -23,7 +29,14 @@
       "external": "Extern",
       "broken": "Gebroken",
       "yes": "Ja",
-      "no": "Nee"
+      "no": "Nee",
+      "good": "Goed",
+      "needsImprovement": "Verbetering Nodig",
+      "poor": "Slecht",
+      "detected": "Gedetecteerd",
+      "notDetected": "Niet Gedetecteerd",
+      "secure": "Beveiligd",
+      "notSecure": "Niet Beveiligd"
     },
     "keywordAnalysis": {
       "title": "Zoekwoord Analyse",
@@ -32,78 +45,178 @@
       "inH1": "In H1",
       "inH2": "In H2",
       "inContent": "In Inhoud",
+      "inUrl": "In URL",
+      "inFirst100Words": "In Eerste 100 Woorden",
       "occurrences": "Voorkomens",
       "density": "Zoekwoord Dichtheid",
-      "densityOptimal": "Dichtheid Optimaal"
+      "densityOptimal": "Dichtheid Optimaal",
+      "recommendedOccurrences": "Aanbevolen Voorkomens",
+      "competitorAvgWordCount": "Gem. Woorden Concurrenten"
     },
     "recommendations": {
       "competitorAnalysis": {
         "issue": "{count} concurrent resultaten gevonden voor \"{keyword}\"",
-        "action": "Analyseer top-concurrenten om optimalisatiekansen te identificeren"
+        "action": "Analyseer top-concurrenten om optimalisatiekansen en contentgaten te identificeren"
       },
       "missingTitle": {
-        "issue": "Title tag ontbreekt",
-        "action": "Voeg een beschrijvende title tag toe (30-60 tekens)"
+        "issue": "Title tag ontbreekt - Kritiek SEO element",
+        "action": "Voeg een overtuigende title tag toe (50-60 tekens) met uw doelzoekwoord aan het begin. Voorbeeld: \"{keyword} - Uw Unieke Waardepropositie | Merk\""
       },
       "titleNotOptimal": {
-        "issue": "Titel lengte niet optimaal",
-        "action": "Pas titel aan naar 30-60 tekens"
+        "issue": "Titel lengte is {length} tekens (optimaal: 50-60)",
+        "action": "Pas uw titel aan naar 50-60 tekens. De huidige titel kan worden afgekapt in zoekresultaten, wat de doorklikratio verlaagt. Houd uw hoofdzoekwoord binnen de eerste 60 tekens."
+      },
+      "titleTooShort": {
+        "issue": "Titel is te kort ({length} tekens)",
+        "action": "Breid uw titel uit naar 50-60 tekens. Voeg uw primaire zoekwoord, een voordeel en uw merknaam toe. Korte titels missen rankingkansen."
       },
       "missingDescription": {
-        "issue": "Meta beschrijving ontbreekt",
-        "action": "Voeg een meta beschrijving toe (120-160 tekens)"
+        "issue": "Meta beschrijving ontbreekt - Grote SEO leemte",
+        "action": "Voeg een overtuigende meta beschrijving toe (150-160 tekens) met uw doelzoekwoord, duidelijke waardepropositie en call-to-action. Dit beïnvloedt direct de doorklikratio."
       },
       "descriptionNotOptimal": {
-        "issue": "Meta beschrijving lengte niet optimaal",
-        "action": "Pas aan naar 120-160 tekens"
+        "issue": "Meta beschrijving is {length} tekens (optimaal: 150-160)",
+        "action": "Pas aan naar 150-160 tekens. Voeg uw primaire zoekwoord natuurlijk toe, benadruk unieke voordelen en eindig met een overtuigende CTA zoals 'Meer info' of 'Begin vandaag'."
       },
       "missingH1": {
-        "issue": "H1 tag ontbreekt",
-        "action": "Voeg precies één H1 tag toe"
+        "issue": "H1 tag ontbreekt - Groot structureel probleem",
+        "action": "Voeg precies één H1 tag toe die de pagina-inhoud duidelijk beschrijft en uw doelzoekwoord bevat. De H1 moet uniek en anders zijn dan uw title tag."
       },
       "multipleH1": {
-        "issue": "Meerdere H1 tags",
-        "action": "Gebruik slechts één H1 tag per pagina"
+        "issue": "Meerdere H1 tags gedetecteerd ({count} gevonden)",
+        "action": "Gebruik slechts één H1 tag per pagina. Converteer extra H1's naar H2's. Meerdere H1's verwarren zoekmachines over het hoofdonderwerp van uw pagina."
+      },
+      "missingH2": {
+        "issue": "Geen H2 subkoppen gevonden",
+        "action": "Voeg 3-6 H2 subkoppen toe om uw content te structureren. Voeg zoekwoordvariaties en gerelateerde termen toe in H2's. Dit verbetert leesbaarheid en helpt zoekmachines de contenthiërarchie te begrijpen."
+      },
+      "fewH2": {
+        "issue": "Slechts {count} H2 subkop(pen) - Zwakke contentstructuur",
+        "action": "Voeg meer H2 subkoppen toe (mik op 1 per 300 woorden). Gebruik ze om content in scanbare secties te verdelen. Voeg LSI zoekwoorden en vragen toe die gebruikers mogelijk stellen."
       },
       "imagesNoAlt": {
         "issue": "{count} afbeeldingen zonder alt tekst",
-        "action": "Voeg beschrijvende alt tekst toe aan alle afbeeldingen"
+        "action": "Voeg beschrijvende alt tekst toe aan alle afbeeldingen. Voeg uw zoekwoord natuurlijk toe waar relevant. Goede alt tekst: 'Professionele loodgieter repareert keukenkraan in Amsterdams huis' in plaats van 'loodgieter' of 'afbeelding1'."
+      },
+      "tooManyImages": {
+        "issue": "{count} afbeeldingen kunnen paginalading vertragen",
+        "action": "Optimaliseer afbeeldingen: comprimeer met WebP formaat, implementeer lazy loading, specificeer width/height attributen, en gebruik responsieve afbeeldingen. Mik op totale afbeeldingsgrootte onder 1MB."
       },
       "brokenLinks": {
-        "issue": "{count} gebroken links gevonden",
-        "action": "Herstel of verwijder gebroken links"
+        "issue": "{count} gebroken links gedetecteerd - Schaadt gebruikerservaring en SEO",
+        "action": "Herstel of verwijder alle gebroken links onmiddellijk. Gebroken links signaleren slecht onderhoud aan zoekmachines en frustreren gebruikers. Gebruik 301 redirects waar nodig."
+      },
+      "fewInternalLinks": {
+        "issue": "Slechts {count} interne links - Slechte sitestructuur",
+        "action": "Voeg 3-5 relevante interne links toe naar belangrijke pagina's. Gebruik beschrijvende ankertekst met zoekwoorden. Interne linking verdeelt pagina-autoriteit en helpt gebruikers navigeren."
+      },
+      "noExternalLinks": {
+        "issue": "Geen externe links naar gezaghebbende bronnen",
+        "action": "Voeg 2-3 links toe naar relevante, gezaghebbende externe bronnen. Dit bouwt vertrouwen en biedt waarde aan lezers. Zorg dat links in nieuwe tabbladen openen met rel='noopener'."
       },
       "missingCanonical": {
-        "issue": "Canonieke tag ontbreekt",
-        "action": "Voeg canonieke URL toe om dubbele inhoud te voorkomen"
+        "issue": "Canonieke tag ontbreekt - Risico op duplicate content problemen",
+        "action": "Voeg een zelfrefererende canonieke tag toe om duplicate content problemen te voorkomen. Formaat: <link rel='canonical' href='https://uwsite.nl/deze-pagina' />"
       },
       "lowWordCount": {
-        "issue": "Laag aantal woorden",
-        "action": "Voeg meer kwaliteitsinhoud toe (mik op 300+ woorden)"
+        "issue": "Content is slechts {count} woorden - Onder concurrentieel gemiddelde",
+        "action": "Breid content uit naar minimaal {recommended} woorden. Topranking pagina's hebben gemiddeld {competitorAvg} woorden. Voeg toe: gedetailleerde uitleg, FAQ's, voorbeelden, case studies, en gerelateerde onderwerpen."
+      },
+      "veryLowWordCount": {
+        "issue": "Dunne content gedetecteerd ({count} woorden)",
+        "action": "Pagina's onder 300 woorden ranken zelden goed. Creëer uitgebreide content over: wat, waarom, hoe, FAQ's, voorbeelden en experttips. Mik op 1.500+ woorden voor competitieve zoekwoorden."
       },
       "keywordNotInTitle": {
-        "issue": "Doel zoekwoord niet in titel",
-        "action": "Voeg \"{keyword}\" toe aan uw title tag"
+        "issue": "Doelzoekwoord \"{keyword}\" niet in title tag",
+        "action": "Voeg uw primaire zoekwoord toe aan het begin van uw titel. Voorbeeld: \"{keyword}: [Uw Unieke Invalshoek] | Merknaam\". Dit is cruciaal voor ranking."
       },
       "keywordNotInDescription": {
-        "issue": "Doel zoekwoord niet in meta beschrijving",
-        "action": "Voeg \"{keyword}\" toe aan uw meta beschrijving"
+        "issue": "Doelzoekwoord \"{keyword}\" niet in meta beschrijving",
+        "action": "Voeg \"{keyword}\" natuurlijk toe aan uw meta beschrijving. Google maakt vaak overeenkomende zoekwoorden vetgedrukt, wat zichtbaarheid en doorklikratio verhoogt."
       },
       "keywordNotInH1": {
-        "issue": "Doel zoekwoord niet in H1",
-        "action": "Voeg \"{keyword}\" toe aan uw H1 kop"
+        "issue": "Doelzoekwoord \"{keyword}\" niet in H1 kop",
+        "action": "Voeg \"{keyword}\" toe aan uw H1 tag. Dit bevestigt het onderwerp van de pagina aan zoekmachines. Maak het natuurlijk en aantrekkelijk voor lezers."
       },
       "keywordNotInContent": {
-        "issue": "Doel zoekwoord niet gevonden in inhoud",
-        "action": "Voeg \"{keyword}\" natuurlijk toe aan uw inhoud"
+        "issue": "Doelzoekwoord \"{keyword}\" niet gevonden in body content",
+        "action": "Voeg \"{keyword}\" natuurlijk toe door uw content. Voeg het toe in: eerste alinea, minimaal één subkop en conclusie. Vermijd geforceerde plaatsing."
+      },
+      "keywordNotInFirst100Words": {
+        "issue": "Zoekwoord \"{keyword}\" niet in eerste 100 woorden",
+        "action": "Voeg uw doelzoekwoord toe in de eerste 100 woorden (idealiter eerste alinea). Dit signaleert relevantie aan zoekmachines en toont gebruikers direct dat ze op de juiste plek zijn."
+      },
+      "keywordNotInUrl": {
+        "issue": "Doelzoekwoord \"{keyword}\" niet in URL",
+        "action": "Indien mogelijk, voeg uw zoekwoord toe aan de URL slug. Voorbeeld: /uw-zoekwoord-gids in plaats van /pagina123. Houd URLs kort, leesbaar en zoekwoord-relevant."
       },
       "keywordDensityLow": {
-        "issue": "Zoekwoord dichtheid te laag",
-        "action": "Verhoog gebruik van \"{keyword}\" (mik op 1-3% dichtheid)"
+        "issue": "Zoekwoord dichtheid is {density}% (onder optimale 1-2%)",
+        "action": "Huidig: {occurrences} voorkomens in {wordCount} woorden. Voeg {recommended} meer natuurlijke vermeldingen toe van \"{keyword}\". Gebruik variaties en synoniemen om herhaling te voorkomen."
       },
       "keywordDensityHigh": {
-        "issue": "Zoekwoord dichtheid te hoog",
-        "action": "Verminder gebruik van \"{keyword}\" om keyword stuffing te voorkomen"
+        "issue": "Zoekwoord dichtheid is {density}% - Risico op over-optimalisatie",
+        "action": "Verminder gebruik van \"{keyword}\" van {occurrences} naar ongeveer {recommended} keer. Vervang sommige instances door synoniemen, gerelateerde termen of voornaamwoorden."
+      },
+      "keywordDensityOptimal": {
+        "issue": "Zoekwoord dichtheid is optimaal op {density}%",
+        "action": "Behoud huidig zoekwoordgebruik. Focus op toevoegen van LSI (gerelateerde) zoekwoorden en synoniemen om thematische relevantie te versterken zonder over-optimalisatie."
+      },
+      "missingSchema": {
+        "issue": "Geen gestructureerde data (Schema markup) gedetecteerd",
+        "action": "Voeg JSON-LD schema markup toe om in aanmerking te komen voor rich snippets. Aanbevolen types: Article, LocalBusiness, Product, FAQ, HowTo of BreadcrumbList gebaseerd op uw paginatype."
+      },
+      "missingOpenGraph": {
+        "issue": "Open Graph tags ontbreken voor social sharing",
+        "action": "Voeg og:title, og:description, og:image en og:url tags toe. Dit bepaalt hoe uw pagina verschijnt wanneer gedeeld op Facebook, LinkedIn en andere platforms."
+      },
+      "missingTwitterCards": {
+        "issue": "Twitter Card meta tags ontbreken",
+        "action": "Voeg twitter:card, twitter:title, twitter:description en twitter:image toe voor geoptimaliseerd Twitter delen. Gebruik 'summary_large_image' voor betere zichtbaarheid."
+      },
+      "slowLoadTime": {
+        "issue": "Pagina laadtijd is {time}s (zou onder 3s moeten zijn)",
+        "action": "Verbeter paginasnelheid: comprimeer afbeeldingen, schakel browsercaching in, minificeer CSS/JS, gebruik een CDN, stel niet-kritieke JavaScript uit, en overweeg lazy loading."
+      },
+      "noHttps": {
+        "issue": "Pagina wordt niet via HTTPS geserveerd",
+        "action": "HTTPS is een rankingfactor. Installeer een SSL certificaat en redirect al het HTTP verkeer naar HTTPS. Dit bouwt ook gebruikersvertrouwen en is vereist voor moderne browserfuncties."
+      },
+      "missingViewport": {
+        "issue": "Viewport meta tag ontbreekt - Mobiele problemen waarschijnlijk",
+        "action": "Voeg <meta name='viewport' content='width=device-width, initial-scale=1'> toe voor correcte mobiele weergave. Google gebruikt mobile-first indexering."
+      },
+      "noRobotsMeta": {
+        "issue": "Geen robots meta tag gespecificeerd",
+        "action": "Voeg <meta name='robots' content='index, follow'> toe om zoekmachines expliciet te vertellen deze pagina te indexeren en links te volgen."
+      },
+      "contentBelowCompetitors": {
+        "issue": "Content is {percent}% korter dan top concurrenten",
+        "action": "Top 10 resultaten hebben gemiddeld {avgWords} woorden. Breid uw content uit om dit te evenaren of overtreffen. Voeg secties toe: veelgestelde vragen, gedetailleerde how-to's, case studies en expert inzichten."
+      },
+      "noLsiKeywords": {
+        "issue": "Beperkt gebruik van gerelateerde zoekwoorden en synoniemen",
+        "action": "Voeg LSI zoekwoorden en semantische variaties toe. Voor \"{keyword}\", overweeg: {suggestions}. Dit signaleert uitgebreide thematische dekking aan zoekmachines."
+      },
+      "duplicateTitle": {
+        "issue": "Titel is mogelijk gedupliceerd op uw site",
+        "action": "Zorg dat elke pagina een unieke title tag heeft. Dubbele titels verwarren zoekmachines en verdunnen rankingpotentieel. Voeg pagina-specifieke informatie toe aan elke titel."
+      },
+      "duplicateDescription": {
+        "issue": "Meta beschrijving is mogelijk gedupliceerd",
+        "action": "Schrijf unieke meta beschrijvingen voor elke pagina. Dubbele beschrijvingen zijn een gemiste kans om pagina-specifieke zoekwoorden te targeten en relevante kliks aan te trekken."
+      },
+      "strongBoldUsage": {
+        "issue": "Geen <strong> of <b> tags gebruikt voor nadruk",
+        "action": "Gebruik <strong> tags om 2-3 belangrijke zinnen inclusief uw zoekwoord te benadrukken. Dit biedt visuele hiërarchie en kan zoekmachines helpen kernconcepten te identificeren."
+      },
+      "missingBreadcrumbs": {
+        "issue": "Geen breadcrumb navigatie gedetecteerd",
+        "action": "Voeg breadcrumb navigatie en BreadcrumbList schema toe. Dit verbetert gebruikersnavigatie, interne linking, en kan in zoekresultaten verschijnen voor betere CTR."
+      },
+      "excellentOptimization": {
+        "issue": "Pagina is goed geoptimaliseerd voor \"{keyword}\"",
+        "action": "Behoud uw sterke optimalisatie. Focus op: kwaliteitsbacklinks bouwen, content regelmatig updaten, Core Web Vitals verbeteren, en concurrentwijzigingen monitoren."
       }
     }
   },
@@ -122,7 +235,10 @@
       "address": "Adres",
       "phone": "Telefoon",
       "website": "Website",
-      "category": "Categorie"
+      "category": "Categorie",
+      "localPackPosition": "Local Pack Positie",
+      "competitorStrength": "Concurrent Sterkte",
+      "marketOpportunity": "Marktkans"
     },
     "nap": {
       "nameConsistency": "Naam Consistentie",
@@ -141,53 +257,105 @@
       "websiteNotListed": "Website URL niet vermeld",
       "categoryNotSpecified": "Bedrijfscategorie niet gespecificeerd",
       "notFoundInLocalPack": "Bedrijf niet gevonden in local pack",
-      "competitorsHaveWebsite": "De meeste concurrenten hebben een website vermeld, maar de uwe niet",
-      "competitorsHaveCategory": "De meeste concurrenten hebben een categorie vermeld, maar de uwe niet"
+      "competitorsHaveWebsite": "Concurrenten hebben websites vermeld, maar de uwe niet",
+      "competitorsHaveCategory": "Concurrenten hebben categorieën vermeld, maar de uwe niet"
     },
     "recommendations": {
       "lowVisibility": {
-        "issue": "Lage lokale zichtbaarheid score ({score}%)",
-        "action": "Optimaliseer uw Google Bedrijfsprofiel en bouw lokale citaties"
+        "issue": "Lokale zichtbaarheidsscore is {score}% - Onder competitieve drempel",
+        "action": "Uitgebreide lokale SEO vereist: optimaliseer Google Bedrijfsprofiel, bouw 50+ citaties op directories (Yelp, Gouden Gids, branche-specifieke sites), genereer 20+ reviews, en creëer lokaal gerichte content."
       },
       "notInLocalPack": {
-        "issue": "Bedrijf niet gevonden in local pack resultaten",
-        "action": "Verbeter lokale SEO door uw Google Bedrijfsprofiel te optimaliseren en meer reviews te krijgen"
+        "issue": "Bedrijf verschijnt niet in local pack - Significant lokaal verkeer gemist",
+        "action": "Prioriteitsacties: 1) Verifieer Google Bedrijfsprofiel eigendom, 2) Zorg voor NAP consistentie overal, 3) Bouw citaties op 30+ lokale directories, 4) Genereer 10+ reviews in 30 dagen, 5) Voeg lokaal relevante content toe aan website."
       },
       "lowPosition": {
-        "issue": "Bedrijf staat op positie {position} in local pack",
-        "action": "Werk aan verbetering van uw ranking door meer positieve reviews te krijgen"
+        "issue": "Gerankt op #{position} in local pack - Top 3 krijgt 70% van kliks",
+        "action": "Om top 3 te bereiken: Verhoog review aantal (mik op 50+), reageer op alle reviews binnen 24 uur, plaats wekelijks posts, upload maandelijks nieuwe foto's, en bouw meer lokale backlinks."
+      },
+      "position1": {
+        "issue": "Momenteel gerankt op #1 in local pack - Behoud deze positie",
+        "action": "Bescherm uw ranking: Blijf nieuwe reviews genereren, post wekelijks updates, monitor en reageer op alle reviews, houd bedrijfsinfo bijgewerkt, en volg concurrentwijzigingen."
+      },
+      "position2or3": {
+        "issue": "Gerankt op #{position} - Dicht bij #1 positie",
+        "action": "Om #1 te bereiken: Verhoog review velocity (mik op 5+ nieuwe reviews maandelijks), verbeter reactietijd op reviews, plaats wekelijkse GBP posts, en bouw 10+ nieuwe lokale citaties."
       },
       "noReviews": {
-        "issue": "Geen reviews gevonden",
-        "action": "Moedig klanten aan om reviews achter te laten op Google"
+        "issue": "Nul reviews - Kritiek voor lokale ranking",
+        "action": "Start review campagne onmiddellijk: Email vorige klanten, voeg review links toe aan bonnen/facturen, maak QR codes voor in-store verzoeken, en volg 3-5 dagen na service op."
       },
       "fewReviews": {
-        "issue": "Slechts {count} reviews",
-        "action": "Bouw uw review basis op - mik op minimaal 20 reviews"
+        "issue": "Slechts {count} reviews vs concurrent gemiddelde van {avg}",
+        "action": "Bouw review basis: Stel doel van {target} reviews in 60 dagen. Implementeer: geautomatiseerde review verzoeken, personeelstraining voor het vragen om reviews, en stimuleringsprogramma voor personeel (niet klanten)."
       },
       "lowRating": {
-        "issue": "Beoordeling is {rating}/5",
-        "action": "Reageer op negatieve reviews en verbeter de servicekwaliteit"
+        "issue": "Beoordeling is {rating}/5 - Onder de 4.0 vertrouwensdrempel",
+        "action": "Beoordelingsherstelplan: 1) Reageer professioneel op alle negatieve reviews, 2) Identificeer en los serviceproblemen op, 3) Vraag proactief tevreden klanten om review, 4) Overweeg serviceherstel voor ontevreden klanten."
       },
-      "missingWebsite": {
-        "issue": "Geen website gekoppeld",
-        "action": "Voeg uw website toe aan uw bedrijfsprofiel"
+      "goodRating": {
+        "issue": "Beoordeling is {rating}/5 - Goed, maar ruimte voor verbetering",
+        "action": "Push naar 4.8+: Bedank alle positieve reviewers, pak terugkerende zorgen aan in reviews, en blijf uitstekende service leveren. Hogere beoordelingen = hogere rankings."
       },
-      "missingPhone": {
-        "issue": "Geen telefoonnummer vermeld",
-        "action": "Voeg een lokaal telefoonnummer toe aan uw profiel"
-      },
-      "napInconsistency": {
-        "issue": "NAP (Naam, Adres, Telefoon) inconsistentie gedetecteerd",
-        "action": "Zorg ervoor dat uw bedrijfsinformatie consistent is op alle platforms"
+      "excellentRating": {
+        "issue": "Uitstekende beoordeling van {rating}/5 - Handhaaf deze standaard",
+        "action": "Behoud excellentie: Zet uw geweldige service voort, reageer op alle reviews, en gebruik positieve feedback in marketing. Overweeg testimonials op uw website te tonen."
       },
       "competitorsBetterRating": {
-        "issue": "Concurrenten hebben betere beoordelingen",
-        "action": "Focus op klanttevredenheid om uw beoordeling te verbeteren"
+        "issue": "Concurrenten hebben gemiddeld {avg} beoordeling vs uw {rating}",
+        "action": "Sluit de beoordelingskloof: Analyseer concurrent reviews voor service inzichten, identificeer uw zwaktes, train personeel op klantervaring, en implementeer proactief review verzoeksysteem."
       },
       "competitorsMoreReviews": {
-        "issue": "Concurrenten hebben meer reviews",
-        "action": "Implementeer een review generatie strategie"
+        "issue": "Concurrenten hebben gemiddeld {avgReviews} reviews vs uw {reviews}",
+        "action": "Review generatie strategie: Mik op {target} nieuwe reviews in 90 dagen. Gebruik geautomatiseerde follow-ups, SMS review verzoeken, en persoonlijke verzoeken. Top lokale bedrijven krijgen 10+ nieuwe reviews maandelijks."
+      },
+      "missingPhone": {
+        "issue": "Geen telefoonnummer getoond - Verloren belconversies",
+        "action": "Voeg een lokaal telefoonnummer toe (zelfde netnummer als uw adres). Lokale nummers bouwen vertrouwen en verbeteren rankings. Gebruik een trackingnummer indien nodig maar zorg voor lokaal formaat."
+      },
+      "missingWebsite": {
+        "issue": "Geen website gekoppeld - Conversiemogelijkheden gemist",
+        "action": "Voeg uw website URL toe. Dit genereert verkeer, bouwt autoriteit en biedt een conversiepad. Zorg dat uw website consistente NAP info en locatiepagina's heeft."
+      },
+      "napInconsistency": {
+        "issue": "NAP inconsistenties gedetecteerd over directories",
+        "action": "Audit alle bedrijfsvermeldingen en standaardiseer: Gebruik exact dezelfde bedrijfsnaam, volledig adresformaat en telefoonnummer overal. Zelfs kleine variaties (Str vs Straat) kunnen rankings schaden."
+      },
+      "missingCategories": {
+        "issue": "Alleen primaire categorie ingesteld - Zichtbaarheidskansen gemist",
+        "action": "Voeg 5-9 relevante secundaire categorieën toe aan uw Google Bedrijfsprofiel. Dit helpt u te verschijnen voor meer lokale zoekopdrachten. Kies categorieën die uw diensten accuraat beschrijven."
+      },
+      "noGbpPosts": {
+        "issue": "Geen recente Google Business posts",
+        "action": "Post wekelijkse updates: aanbiedingen, evenementen, tips of nieuws. Posts verbeteren engagement, tonen activiteit, en kunnen calls-to-action bevatten. Ze verlopen na 7 dagen."
+      },
+      "noPhotos": {
+        "issue": "Beperkte foto's op Google Bedrijfsprofiel",
+        "action": "Voeg 10+ hoogwaardige foto's toe: exterieur, interieur, team, producten/diensten, en werkvoorbeelden. Bedrijven met 100+ foto's krijgen 520% meer telefoontjes. Upload maandelijks nieuwe foto's."
+      },
+      "distanceFromSearcher": {
+        "issue": "Afstand beïnvloedt mogelijk lokale rankings",
+        "action": "Voor afstandsgebaseerde rankingverbeteringen: Creëer locatie-specifieke pagina's, bouw lokale backlinks, genereer reviews die uw locatie vermelden, en zorg dat servicegebied correct is ingesteld."
+      },
+      "strongCompetition": {
+        "issue": "Geconfronteerd met {count} gevestigde concurrenten",
+        "action": "Competitieve differentiatie nodig: Focus op een nicheservice, target onderbediende wijken, bouw partnerschappen met lokale bedrijven, en creëer unieke lokale content."
+      },
+      "citationOpportunity": {
+        "issue": "Citatie aantal onder concurrent gemiddelde",
+        "action": "Bouw citaties op: branchedirectories, lokale bedrijfsgidsen, kamer van koophandel, en nichesites. Mik op 50+ citaties met perfect consistente NAP."
+      },
+      "localContentMissing": {
+        "issue": "Geen lokaal gefocuste content op website",
+        "action": "Creëer lokale landingspagina's voor elk servicegebied, schrijf locatie-specifieke blogposts, voeg lokale bezienswaardigheden en referenties toe, en embed Google Map op contactpagina."
+      },
+      "reviewResponseNeeded": {
+        "issue": "Reviews worden niet beantwoord",
+        "action": "Reageer op ALLE reviews binnen 24-48 uur. Bedank positieve reviewers specifiek, pak negatieve feedback professioneel aan, en toon dat u betrokken bent. Responspercentage beïnvloedt rankings."
+      },
+      "serviceAreaOptimization": {
+        "issue": "Servicegebied is mogelijk niet correct geconfigureerd",
+        "action": "In GBP instellingen, definieer duidelijk uw servicegebieden. Voor servicegerichte bedrijven, verberg uw adres maar specificeer serviceregio's. Dit helpt u te verschijnen in nabije locatiezoekopdrachten."
       }
     }
   },
@@ -204,7 +372,10 @@
       "website": "Website",
       "category": "Categorie",
       "rating": "Beoordeling",
-      "reviews": "Reviews"
+      "reviews": "Reviews",
+      "profileStrength": "Profiel Sterkte",
+      "engagementLevel": "Engagement Niveau",
+      "competitivePosition": "Concurrentiepositie"
     },
     "checklist": {
       "name": "Bedrijfsnaam",
@@ -218,72 +389,129 @@
       "photos": "Foto's",
       "rating": "Google Beoordeling",
       "reviewCount": "Klantreviews",
-      "attributes": "Bedrijfsattributen"
+      "attributes": "Bedrijfsattributen",
+      "services": "Diensten/Producten",
+      "posts": "Google Posts",
+      "qAndA": "Vraag & Antwoord",
+      "messaging": "Berichten Ingeschakeld",
+      "booking": "Reserveringslink"
     },
     "recommendations": {
       "name": {
-        "issue": "Bedrijfsnaam ontbreekt",
-        "action": "Voeg uw officiële bedrijfsnaam toe aan uw profiel."
+        "issue": "Bedrijfsnaam ontbreekt of is incompleet",
+        "action": "Voeg uw exacte juridische bedrijfsnaam toe. Voeg geen zoekwoorden of locaties toe (tenzij onderdeel van juridische naam) - dit overtreedt richtlijnen en riskeert schorsing. Voorbeeld: 'Bakkerij De Ruiter' niet 'Beste Bakker Amsterdam - Bakkerij De Ruiter'."
       },
       "address": {
-        "issue": "Bedrijfsadres ontbreekt",
-        "action": "Voeg uw volledige adres toe voor lokale zoekzichtbaarheid."
+        "issue": "Bedrijfsadres niet ingesteld - Kritiek voor lokale zichtbaarheid",
+        "action": "Voeg uw volledige adres toe. Gebruik het exacte formaat: straatnaam + nummer, postcode, plaats. Dit is vereist voor Google Maps plaatsing en local pack ranking."
       },
       "phone": {
-        "issue": "Telefoonnummer ontbreekt",
-        "action": "Voeg een lokaal telefoonnummer toe voor klantoproepen."
+        "issue": "Telefoonnummer ontbreekt - 60% van lokale zoekopdrachten resulteert in telefoontjes",
+        "action": "Voeg een lokaal telefoonnummer toe (overeenkomend met uw servicegebied netnummer). Vermijd 0800 nummers voor lokale bedrijven. Bij gebruik van trackingnummer, zorg dat het doorschakelt naar uw hoofdlijn."
       },
       "website": {
-        "issue": "Website URL ontbreekt",
-        "action": "Koppel uw website om verkeer te genereren vanuit uw GBP vermelding."
+        "issue": "Geen website gekoppeld - Grote conversiemogelijkheid gemist",
+        "action": "Voeg uw website URL toe. Als u er geen heeft, biedt Google een gratis basissite via GBP. Uw website moet consistente NAP info en locatie-specifieke content hebben."
       },
       "category": {
-        "issue": "Primaire categorie ontbreekt",
-        "action": "Selecteer de meest accurate primaire categorie voor uw bedrijf."
+        "issue": "Primaire categorie niet ingesteld - Kritieke rankingfactor",
+        "action": "Kies de meest specifieke primaire categorie die uw hoofdservice beschrijft. Dit is de belangrijkste rankingfactor. Wees specifiek: 'Italiaans Restaurant' wint van 'Restaurant'."
       },
       "additionalCategories": {
-        "issue": "Geen extra categorieën",
-        "action": "Voeg 2-5 relevante secundaire categorieën toe."
+        "issue": "Geen secundaire categorieën - Gemiste zoekzichtbaarheid",
+        "action": "Voeg 5-9 relevante extra categorieën toe voor alle diensten die u aanbiedt. Voorbeeld voor loodgieter: Loodgieter (primair), Cv-ketel Reparatie, Ontstoppingsdienst, Noodloodgieter, Badkamerrenovatie."
       },
       "description": {
-        "issue": "Bedrijfsomschrijving ontbreekt",
-        "action": "Voeg een overtuigende omschrijving toe (max 750 tekens) met relevante zoekwoorden."
+        "issue": "Bedrijfsomschrijving ontbreekt - Vertel uw verhaal",
+        "action": "Schrijf een 750-tekens omschrijving over: wat u doet, wie u bedient, wat u uniek maakt, uw servicegebied en belangrijkste diensten. Voeg zoekwoorden natuurlijk toe maar schrijf voor mensen eerst."
+      },
+      "descriptionTooShort": {
+        "issue": "Omschrijving is slechts {length} tekens - Onderbenut",
+        "action": "Breid uit naar 500-750 tekens. Voeg toe: jaren in bedrijf, unique selling points, servicegebied, hoofddiensten en specialisaties. Verspil deze waardevolle zoekwoordruimte niet."
       },
       "hours": {
-        "issue": "Openingstijden ontbreken",
-        "action": "Stel uw openingstijden in zodat klanten weten wanneer ze kunnen langskomen."
+        "issue": "Openingstijden niet ingesteld - Klanten weten niet wanneer te bezoeken",
+        "action": "Voeg accurate tijden toe voor elke dag. Voeg speciale uren toe voor feestdagen. Overweeg 'Meer uren' toe te voegen voor verschillende diensten indien van toepassing. Onjuiste uren leiden tot negatieve reviews."
       },
       "photos": {
-        "issue": "Geen foto's geüpload",
-        "action": "Voeg kwalitatieve foto's toe van uw bedrijf, producten en team."
+        "issue": "Geen foto's geüpload - Vermeldingen met foto's krijgen 42% meer routeverzoeken",
+        "action": "Upload 25+ hoogwaardige foto's: logo, cover, exterieur (dag/nacht), interieur, team, producten/diensten, en werkvoorbeelden. Update maandelijks. Gebruik juiste categorieën bij uploaden."
+      },
+      "fewPhotos": {
+        "issue": "Slechts {count} foto's - Onder aanbevolen minimum",
+        "action": "Upload minimaal 25 foto's in categorieën. Bedrijven met 100+ foto's krijgen 520% meer telefoontjes. Voeg toe: exterieur (3+), interieur (3+), team (3+), producten/diensten (10+)."
       },
       "rating": {
-        "issue": "Nog geen Google beoordeling",
-        "action": "Moedig klanten aan om uw bedrijf te beoordelen op Google."
+        "issue": "Nog geen Google beoordeling - Reviews zijn cruciaal voor ranking",
+        "action": "Begin direct met reviews genereren. Maak een reviewlink (Instellingen > Meer reviews krijgen), stuur naar recente klanten, en implementeer systematische follow-up na elke transactie."
       },
       "reviewCount": {
-        "issue": "Minder dan 5 reviews",
-        "action": "Bouw uw review basis op door tevreden klanten te vragen."
+        "issue": "Minder dan 5 reviews - Onder vertrouwensdrempel",
+        "action": "Bedrijven met 10+ reviews krijgen 50% meer conversies. Start reviewcampagne: email vorige klanten, voeg reviewlink toe aan bonnen, en vraag tevreden klanten direct."
+      },
+      "lowReviewCount": {
+        "issue": "Slechts {count} reviews - 50+ nodig om effectief te concurreren",
+        "action": "Versnel reviewgeneratie: automatiseer reviewverzoeken 2-3 dagen na service, train personeel om reviews te vragen, maak QR codes voor fysieke locaties, en reageer op elke review."
       },
       "attributes": {
-        "issue": "Geen bedrijfsattributen ingesteld",
-        "action": "Voeg relevante attributen toe (WiFi, toegankelijkheid, betaalmethoden, etc.)."
+        "issue": "Geen bedrijfsattributen geselecteerd - Waardevolle informatie mist",
+        "action": "Voeg alle relevante attributen toe: toegankelijkheidskenmerken, betaalmethoden, faciliteiten (WiFi, parking), gezondheid & veiligheid, LGBTQ+ vriendelijk, vrouwelijk ondernemer, etc. Dit helpt verschijnen in gefilterde zoekopdrachten."
       },
       "lowReviews": {
-        "issue": "Slechts {count} reviews",
-        "action": "Moedig tevreden klanten aan om reviews achter te laten. Reageer snel op alle reviews."
+        "issue": "Slechts {count} reviews - Concurrenten hebben waarschijnlijk meer",
+        "action": "Doel: Genereer {target}+ reviews in komende 90 dagen. Strategie: geautomatiseerde follow-ups, persoonlijke verzoeken, SMS reviewlinks en reviewgeneratiecampagnes. Volg wekelijkse voortgang."
       },
       "lowRating": {
-        "issue": "Beoordeling is {rating}/5",
-        "action": "Reageer professioneel op negatieve reviews. Verbeter de servicekwaliteit."
+        "issue": "Beoordeling is {rating}/5 - Onder kritieke 4.0 drempel",
+        "action": "Herstel nodig: 1) Reageer professioneel op ALLE negatieve reviews, 2) Identificeer serviceproblemen via feedback, 3) Vraag actief tevreden klanten om reviews, 4) Train personeel op klantervaring."
       },
       "shortDescription": {
-        "issue": "Bedrijfsomschrijving is kort",
-        "action": "Breid uw omschrijving uit naar 750+ tekens met zoekwoorden en diensten."
+        "issue": "Omschrijving is {length} tekens - Gebruik de volledige 750 toegestaan",
+        "action": "Breid uw omschrijving uit met: bedrijfsgeschiedenis, aangeboden diensten, servicegebied, unieke kwalificaties en klantvoordelen. Gebruik natuurlijke zoekwoordplaatsing."
       },
       "notFound": {
-        "issue": "Bedrijf niet gevonden",
-        "action": "Controleer de bedrijfsnaam of maak een Google Bedrijfsprofiel aan."
+        "issue": "Bedrijfsprofiel niet gevonden in zoekopdracht",
+        "action": "Claim of maak uw Google Bedrijfsprofiel aan: 1) Zoek uw bedrijf op Google, 2) Klik 'Dit bedrijf claimen' of maak nieuwe vermelding aan op business.google.com, 3) Voltooi verificatie."
+      },
+      "missingServices": {
+        "issue": "Geen diensten of producten vermeld",
+        "action": "Voeg al uw diensten toe met beschrijvingen en prijzen (indien van toepassing). Dit helpt klanten aanbod te begrijpen en verbetert zichtbaarheid voor specifieke dienstzoekopdrachten."
+      },
+      "noPosts": {
+        "issue": "Geen Google Posts in afgelopen 30 dagen - Profiel lijkt inactief",
+        "action": "Post wekelijkse updates: aanbiedingen, evenementen, updates, tips of nieuws. Posts verschijnen in uw vermelding en zoekresultaten. Voeg foto, 100-300 woorden en een call-to-action knop toe."
+      },
+      "noQA": {
+        "issue": "Vraag & Antwoord sectie is leeg - Gemiste engagementkans",
+        "action": "Vul uw Q&A met 5-10 veelgestelde klantvragen. Dit biedt nuttige info, toont dat u actief bent en kan natuurlijk zoekwoorden bevatten. Monitor en beantwoord alle klantvragen snel."
+      },
+      "messagingDisabled": {
+        "issue": "Berichten is uitgeschakeld - Gemiste klantvragen",
+        "action": "Schakel berichten in via GBP instellingen. Dit stelt klanten in staat u direct te berichten vanuit uw vermelding. Stel auto-responses in en zorg voor dagelijkse monitoring."
+      },
+      "noBookingLink": {
+        "issue": "Geen reserverings/afspraaklink geconfigureerd",
+        "action": "Voeg een reserveringslink toe via GBP (Instellingen > Reservering). Dit stelt klanten in staat direct te plannen vanuit uw profiel. Gebruik uw eigen boekingssysteem of partnerintegraties."
+      },
+      "verificationNeeded": {
+        "issue": "Profiel is mogelijk niet geverifieerd",
+        "action": "Voltooi verificatie zo snel mogelijk - ongeverifieerde profielen ranken niet. Vraag ansichtkaartverificatie of telefoon/email indien beschikbaar. Verificatie duurt meestal 5-14 dagen per post."
+      },
+      "irregularHours": {
+        "issue": "Openingstijden lijken inconsistent of incompleet",
+        "action": "Controleer en update tijden voor nauwkeurigheid. Voeg speciale uren toe voor feestdagen, tijdelijke sluitingen en verschillende servicetijden. Onjuiste uren leiden tot gefrustreerde klanten en negatieve reviews."
+      },
+      "noMenuOrCatalog": {
+        "issue": "Geen menu/productcatalogus toegevoegd",
+        "action": "Voor restaurants: voeg volledig menu met prijzen toe. Voor retail/diensten: voeg productcatalogus toe. Dit verschijnt in uw vermelding en helpt klanten beslissen."
+      },
+      "profileIncomplete": {
+        "issue": "Profiel volledigheid is {score}% - Incomplete profielen ranken lager",
+        "action": "Complete profielen ranken hoger en converteren beter. Prioriteit: adres, telefoon, openingstijden, categorieën, omschrijving, foto's, diensten, attributen. Mik op 100% volledigheid."
+      },
+      "excellentProfile": {
+        "issue": "Profiel is goed geoptimaliseerd op {score}% volledigheid",
+        "action": "Behoud profiel excellentie: post wekelijks, upload maandelijks nieuwe foto's, reageer op alle reviews, beantwoord Q&A snel, en houd informatie actueel. Monitor concurrentprofielen."
       }
     }
   },
@@ -293,7 +521,19 @@
     "set": "Ingesteld",
     "notSet": "Niet Ingesteld",
     "chars": "tekens",
-    "notAvailable": "N.v.t."
+    "notAvailable": "N.v.t.",
+    "recommendation": "Aanbeveling",
+    "action": "Actie Vereist",
+    "priority": "Prioriteit",
+    "high": "Hoog",
+    "medium": "Medium",
+    "low": "Laag",
+    "critical": "Kritiek",
+    "impact": "Impact",
+    "effort": "Inspanning",
+    "easy": "Makkelijk",
+    "moderate": "Matig",
+    "difficult": "Moeilijk"
   },
   "pdf": {
     "seo": {
@@ -309,7 +549,9 @@
       "keywordDensity": "Zoekwoord Dichtheid",
       "occurrences": "Voorkomens",
       "competitorRankings": "Concurrent Rankings",
-      "recommendations": "Aanbevelingen",
+      "recommendations": "Actiegerichte Aanbevelingen",
+      "priorityActions": "Prioriteitsacties",
+      "quickWins": "Quick Wins",
       "pos": "Pos",
       "titleCol": "Titel",
       "urlCol": "URL",
@@ -321,18 +563,22 @@
       "external": "Extern",
       "broken": "Gebroken",
       "page": "Pagina",
-      "of": "van"
+      "of": "van",
+      "summary": "Samenvatting",
+      "technicalSeo": "Technische SEO",
+      "contentAnalysis": "Content Analyse",
+      "competitorInsights": "Concurrent Inzichten"
     },
     "gbp": {
-      "title": "GBP Audit Rapport",
+      "title": "Google Bedrijfsprofiel Audit Rapport",
       "poweredBy": "Mogelijk gemaakt door Serpixa",
       "business": "Bedrijf",
       "date": "Datum",
       "generatedFor": "Gegenereerd voor",
-      "completenessScore": "Volledigheid Score",
+      "completenessScore": "Profiel Volledigheid Score",
       "businessInfo": "Bedrijfsinformatie",
-      "profileChecklist": "Profiel Checklist",
-      "recommendations": "Aanbevelingen",
+      "profileChecklist": "Profiel Voltooiing Checklist",
+      "recommendations": "Optimalisatie Aanbevelingen",
       "name": "Naam",
       "address": "Adres",
       "phone": "Telefoon",
@@ -341,10 +587,13 @@
       "rating": "Beoordeling",
       "reviews": "reviews",
       "page": "Pagina",
-      "of": "van"
+      "of": "van",
+      "summary": "Samenvatting",
+      "profileStrength": "Profiel Sterkte Analyse",
+      "competitiveAnalysis": "Concurrentiepositie"
     },
     "geo": {
-      "title": "Geo Audit Rapport",
+      "title": "Lokale SEO Audit Rapport",
       "poweredBy": "Mogelijk gemaakt door Serpixa",
       "business": "Bedrijf",
       "keyword": "Zoekwoord",
@@ -354,14 +603,14 @@
       "localVisibilityScore": "Lokale Zichtbaarheid Score",
       "businessInfo": "Bedrijfsinformatie",
       "nearbyCompetitors": "Nabije Concurrenten",
-      "napConsistency": "NAP Consistentie",
+      "napConsistency": "NAP Consistentie Analyse",
       "nameConsistency": "Naam Consistentie",
       "addressConsistency": "Adres Consistentie",
       "phoneConsistency": "Telefoon Consistentie",
       "citationAnalysis": "Citatie Analyse",
       "missingCitations": "Ontbrekende Citaties",
       "inconsistentData": "Inconsistente Gegevens",
-      "recommendations": "Aanbevelingen",
+      "recommendations": "Lokale SEO Aanbevelingen",
       "pos": "Pos",
       "name": "Naam",
       "rating": "Beoordeling",
@@ -373,7 +622,10 @@
       "category": "Categorie",
       "reviews": "reviews",
       "page": "Pagina",
-      "of": "van"
+      "of": "van",
+      "summary": "Samenvatting",
+      "marketAnalysis": "Lokale Markt Analyse",
+      "rankingFactors": "Belangrijke Rankingfactoren"
     }
   }
 }

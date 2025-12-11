@@ -306,39 +306,7 @@ class GeoAuditService {
 
   transformLocalPackResult(data, keyword, location, businessName = null, lang = 'en') {
     if (!data) {
-      return {
-        keyword,
-        location,
-        businessName,
-        localVisibilityScore: 0,
-        localVisibilityScoreLabel: t(lang, 'geo.labels.localVisibilityScore'),
-        businessInfo: null,
-        businessInfoLabel: t(lang, 'geo.labels.businessInfo'),
-        competitors: [],
-        competitorsLabel: t(lang, 'geo.labels.competitors'),
-        recommendations: [],
-        napIssues: {
-          nameConsistency: true,
-          nameConsistencyLabel: t(lang, 'geo.nap.nameConsistency'),
-          nameConsistencyValue: t(lang, 'geo.nap.consistent'),
-          addressConsistency: true,
-          addressConsistencyLabel: t(lang, 'geo.nap.addressConsistency'),
-          addressConsistencyValue: t(lang, 'geo.nap.consistent'),
-          phoneConsistency: true,
-          phoneConsistencyLabel: t(lang, 'geo.nap.phoneConsistency'),
-          phoneConsistencyValue: t(lang, 'geo.nap.consistent'),
-          issues: [],
-        },
-        napIssuesLabel: t(lang, 'geo.labels.napConsistency'),
-        citationIssues: {
-          missingCitationsLabel: t(lang, 'geo.citations.missingCitations'),
-          missingCitations: [],
-          inconsistentDataLabel: t(lang, 'geo.citations.inconsistentData'),
-          inconsistentData: [],
-        },
-        citationIssuesLabel: t(lang, 'geo.labels.citations'),
-        raw: null,
-      };
+      return this.buildEmptyResult(keyword, location, businessName, lang);
     }
 
     let localPackItems = data.local_pack_items || [];
@@ -361,53 +329,96 @@ class GeoAuditService {
       }
     }
 
-    let businessInfo = null;
-    let businessIndex = -1;
-
     // Build competitors list
-    const competitors = [];
+    const competitors = this.buildCompetitorsList(localPackItems, lang);
 
-    if (localPackItems.length === 0) {
-      return {
-        keyword,
-        location,
-        businessName: businessName || keyword,
-        localVisibilityScore: 0,
-        localVisibilityScoreLabel: t(lang, 'geo.labels.localVisibilityScore'),
-        businessInfo: null,
-        businessInfoLabel: t(lang, 'geo.labels.businessInfo'),
-        competitors: [],
-        competitorsLabel: t(lang, 'geo.labels.competitors'),
-        recommendations: [{
-          priority: 'high',
-          issue: t(lang, 'geo.recommendations.notInLocalPack.issue'),
-          action: t(lang, 'geo.recommendations.notInLocalPack.action'),
-        }],
-        napIssues: {
-          nameConsistency: true,
-          nameConsistencyLabel: t(lang, 'geo.nap.nameConsistency'),
-          nameConsistencyValue: t(lang, 'geo.nap.consistent'),
-          addressConsistency: true,
-          addressConsistencyLabel: t(lang, 'geo.nap.addressConsistency'),
-          addressConsistencyValue: t(lang, 'geo.nap.consistent'),
-          phoneConsistency: true,
-          phoneConsistencyLabel: t(lang, 'geo.nap.phoneConsistency'),
-          phoneConsistencyValue: t(lang, 'geo.nap.consistent'),
-          issues: [t(lang, 'geo.nap.notFoundInLocalPack')],
-        },
-        napIssuesLabel: t(lang, 'geo.labels.napConsistency'),
-        citationIssues: {
-          missingCitationsLabel: t(lang, 'geo.citations.missingCitations'),
-          missingCitations: [],
-          inconsistentDataLabel: t(lang, 'geo.citations.inconsistentData'),
-          inconsistentData: [],
-        },
-        citationIssuesLabel: t(lang, 'geo.labels.citations'),
-        raw: data,
-      };
+    if (competitors.length === 0) {
+      return this.buildEmptyResult(keyword, location, businessName, lang, data);
     }
 
-    // Competitor field labels (translated once)
+    // Find business in competitors
+    const { businessInfo, businessIndex } = this.findBusiness(businessName, competitors, lang);
+
+    // Calculate metrics
+    const competitorStats = this.calculateCompetitorStats(competitors);
+    const localVisibilityScore = this.calculateLocalVisibilityScore(businessIndex, competitors, businessInfo, competitorStats);
+    const recommendations = this.generateEnhancedRecommendations(businessInfo, competitors, businessIndex, competitorStats, lang);
+    const napIssues = this.analyzeNAPConsistency(businessInfo, competitors, lang);
+    const citationIssues = this.analyzeCitationIssues(businessInfo, competitors, lang);
+
+    return {
+      keyword,
+      location,
+      businessName: businessName || (businessInfo?.name || keyword),
+      localVisibilityScore,
+      localVisibilityScoreLabel: t(lang, 'geo.labels.localVisibilityScore'),
+      marketPosition: this.getMarketPosition(businessIndex, localVisibilityScore),
+      marketPositionLabel: t(lang, 'geo.labels.competitorStrength'),
+      businessInfo,
+      businessInfoLabel: t(lang, 'geo.labels.businessInfo'),
+      competitors,
+      competitorsLabel: t(lang, 'geo.labels.competitors'),
+      competitorStats,
+      recommendations,
+      napIssues,
+      napIssuesLabel: t(lang, 'geo.labels.napConsistency'),
+      citationIssues,
+      citationIssuesLabel: t(lang, 'geo.labels.citations'),
+      raw: {
+        ...data,
+        original_items: data.items,
+      },
+    };
+  }
+
+  buildEmptyResult(keyword, location, businessName, lang, data = null) {
+    return {
+      keyword,
+      location,
+      businessName: businessName || keyword,
+      localVisibilityScore: 0,
+      localVisibilityScoreLabel: t(lang, 'geo.labels.localVisibilityScore'),
+      marketPosition: 'notFound',
+      marketPositionLabel: t(lang, 'geo.labels.competitorStrength'),
+      businessInfo: null,
+      businessInfoLabel: t(lang, 'geo.labels.businessInfo'),
+      competitors: [],
+      competitorsLabel: t(lang, 'geo.labels.competitors'),
+      competitorStats: { avgRating: 0, avgReviews: 0, totalCompetitors: 0 },
+      recommendations: [{
+        priority: 'critical',
+        category: 'visibility',
+        issue: t(lang, 'geo.recommendations.notInLocalPack.issue'),
+        action: t(lang, 'geo.recommendations.notInLocalPack.action'),
+        impact: 'high',
+        effort: 'moderate',
+      }],
+      napIssues: {
+        nameConsistency: false,
+        nameConsistencyLabel: t(lang, 'geo.nap.nameConsistency'),
+        nameConsistencyValue: t(lang, 'geo.nap.inconsistent'),
+        addressConsistency: false,
+        addressConsistencyLabel: t(lang, 'geo.nap.addressConsistency'),
+        addressConsistencyValue: t(lang, 'geo.nap.inconsistent'),
+        phoneConsistency: false,
+        phoneConsistencyLabel: t(lang, 'geo.nap.phoneConsistency'),
+        phoneConsistencyValue: t(lang, 'geo.nap.inconsistent'),
+        issues: [t(lang, 'geo.nap.notFoundInLocalPack')],
+      },
+      napIssuesLabel: t(lang, 'geo.labels.napConsistency'),
+      citationIssues: {
+        missingCitationsLabel: t(lang, 'geo.citations.missingCitations'),
+        missingCitations: [t(lang, 'geo.citations.notFoundInLocalPack')],
+        inconsistentDataLabel: t(lang, 'geo.citations.inconsistentData'),
+        inconsistentData: [],
+      },
+      citationIssuesLabel: t(lang, 'geo.labels.citations'),
+      raw: data,
+    };
+  }
+
+  buildCompetitorsList(localPackItems, lang) {
+    const competitors = [];
     const competitorLabels = {
       positionLabel: t(lang, 'geo.labels.position'),
       nameLabel: t(lang, 'geo.labels.name'),
@@ -423,38 +434,36 @@ class GeoAuditService {
     for (const item of localPackItems) {
       if (item.items && Array.isArray(item.items)) {
         item.items.forEach((localItem) => {
-          competitors.push({
-            position: competitors.length + 1,
-            ...competitorLabels,
-            name: localItem.title || localItem.name || '',
-            rating: localItem.rating?.value || localItem.rating || null,
-            reviews: localItem.reviews_count || localItem.reviews || 0,
-            distance: localItem.distance || null,
-            address: localItem.address || localItem.address_lines?.join(', ') || '',
-            phone: localItem.phone || null,
-            website: localItem.website || null,
-            category: localItem.category || localItem.type || null,
-            placeId: localItem.place_id || null,
-          });
+          competitors.push(this.buildCompetitorObject(localItem, competitors.length + 1, competitorLabels));
         });
       } else {
-        competitors.push({
-          position: competitors.length + 1,
-          ...competitorLabels,
-          name: item.title || item.name || '',
-          rating: item.rating?.value || item.rating || null,
-          reviews: item.reviews_count || item.reviews || 0,
-          distance: item.distance || null,
-          address: item.address || item.address_lines?.join(', ') || '',
-          phone: item.phone || null,
-          website: item.website || null,
-          category: item.category || item.type || null,
-          placeId: item.place_id || null,
-        });
+        competitors.push(this.buildCompetitorObject(item, competitors.length + 1, competitorLabels));
       }
     }
 
-    // Find business in competitors
+    return competitors;
+  }
+
+  buildCompetitorObject(item, position, labels) {
+    return {
+      position,
+      ...labels,
+      name: item.title || item.name || '',
+      rating: item.rating?.value || item.rating || null,
+      reviews: item.reviews_count || item.reviews || 0,
+      distance: item.distance || null,
+      address: item.address || item.address_lines?.join(', ') || '',
+      phone: item.phone || null,
+      website: item.website || null,
+      category: item.category || item.type || null,
+      placeId: item.place_id || null,
+    };
+  }
+
+  findBusiness(businessName, competitors, lang) {
+    let businessInfo = null;
+    let businessIndex = -1;
+
     if (businessName) {
       const businessNameLower = businessName.toLowerCase();
       businessIndex = competitors.findIndex((comp) => {
@@ -463,56 +472,61 @@ class GeoAuditService {
       });
 
       if (businessIndex >= 0) {
+        const found = competitors[businessIndex];
         businessInfo = {
-          name: competitors[businessIndex].name,
+          name: found.name,
           nameLabel: t(lang, 'geo.labels.name'),
-          address: competitors[businessIndex].address,
+          address: found.address,
           addressLabel: t(lang, 'geo.labels.address'),
-          phone: competitors[businessIndex].phone,
+          phone: found.phone,
           phoneLabel: t(lang, 'geo.labels.phone'),
-          website: competitors[businessIndex].website,
+          website: found.website,
           websiteLabel: t(lang, 'geo.labels.website'),
-          rating: competitors[businessIndex].rating,
+          rating: found.rating,
           ratingLabel: t(lang, 'geo.labels.rating'),
-          reviews: competitors[businessIndex].reviews,
+          reviews: found.reviews,
           reviewsLabel: t(lang, 'geo.labels.reviews'),
-          category: competitors[businessIndex].category,
+          category: found.category,
           categoryLabel: t(lang, 'geo.labels.category'),
-          placeId: competitors[businessIndex].placeId,
+          placeId: found.placeId,
+          position: businessIndex + 1,
+          positionLabel: t(lang, 'geo.labels.position'),
         };
       }
     }
 
-    const localVisibilityScore = this.calculateLocalVisibilityScore(businessIndex, competitors, businessInfo);
-    const recommendations = this.generateRecommendations(businessInfo, competitors, businessIndex, lang);
-    const napIssues = this.analyzeNAPConsistency(businessInfo, competitors, lang);
-    const citationIssues = this.analyzeCitationIssues(businessInfo, competitors, lang);
-    
+    return { businessInfo, businessIndex };
+  }
+
+  calculateCompetitorStats(competitors) {
+    const withRating = competitors.filter(c => c.rating);
+    const withReviews = competitors.filter(c => c.reviews);
+
     return {
-      keyword,
-      location,
-      businessName: businessName || (businessInfo?.name || keyword),
-      localVisibilityScore,
-      localVisibilityScoreLabel: t(lang, 'geo.labels.localVisibilityScore'),
-      businessInfo,
-      businessInfoLabel: t(lang, 'geo.labels.businessInfo'),
-      competitors,
-      competitorsLabel: t(lang, 'geo.labels.competitors'),
-      recommendations,
-      napIssues,
-      napIssuesLabel: t(lang, 'geo.labels.napConsistency'),
-      citationIssues,
-      citationIssuesLabel: t(lang, 'geo.labels.citations'),
-      raw: {
-        ...data,
-        original_items: data.items,
-      },
+      avgRating: withRating.length > 0 
+        ? parseFloat((withRating.reduce((sum, c) => sum + c.rating, 0) / withRating.length).toFixed(2))
+        : 0,
+      avgReviews: withReviews.length > 0
+        ? Math.round(withReviews.reduce((sum, c) => sum + c.reviews, 0) / withReviews.length)
+        : 0,
+      totalCompetitors: competitors.length,
+      topRating: withRating.length > 0 ? Math.max(...withRating.map(c => c.rating)) : 0,
+      topReviews: withReviews.length > 0 ? Math.max(...withReviews.map(c => c.reviews)) : 0,
     };
   }
 
-  calculateLocalVisibilityScore(businessIndex, competitors, businessInfo) {
+  getMarketPosition(businessIndex, score) {
+    if (businessIndex < 0) return 'notFound';
+    if (businessIndex === 0 && score >= 80) return 'leader';
+    if (businessIndex <= 2) return 'competitive';
+    if (score >= 50) return 'emerging';
+    return 'weak';
+  }
+
+  calculateLocalVisibilityScore(businessIndex, competitors, businessInfo, competitorStats) {
     let score = 0;
 
+    // Position score (0-50 points)
     if (businessIndex >= 0) {
       if (businessIndex === 0) score += 50;
       else if (businessIndex === 1) score += 40;
@@ -523,15 +537,24 @@ class GeoAuditService {
       return 0;
     }
 
+    // Rating score (0-25 points)
     if (businessInfo?.rating) {
-      score += (businessInfo.rating / 5) * 25;
+      const ratingScore = (businessInfo.rating / 5) * 25;
+      // Bonus if above average
+      if (businessInfo.rating > competitorStats.avgRating) {
+        score += ratingScore * 1.1;
+      } else {
+        score += ratingScore;
+      }
     }
 
+    // Review score (0-15 points)
     if (businessInfo?.reviews) {
-      const reviewScore = Math.min(businessInfo.reviews / 100, 1) * 15;
+      const reviewScore = Math.min(businessInfo.reviews / Math.max(competitorStats.avgReviews, 50), 1) * 15;
       score += reviewScore;
     }
 
+    // Profile completeness (0-10 points)
     let completeness = 0;
     if (businessInfo?.name) completeness += 2;
     if (businessInfo?.address) completeness += 2;
@@ -540,95 +563,99 @@ class GeoAuditService {
     if (businessInfo?.category) completeness += 2;
     score += completeness;
 
-    return Math.round(score);
+    return Math.min(100, Math.round(score));
   }
 
-  generateRecommendations(businessInfo, competitors, businessIndex, lang = 'en') {
+  generateEnhancedRecommendations(businessInfo, competitors, businessIndex, competitorStats, lang = 'en') {
     const recommendations = [];
 
-    // Position recommendations
+    // Helper to add recommendation
+    const addRec = (priority, category, issueKey, actionKey, vars = {}) => {
+      const issue = t(lang, `geo.recommendations.${issueKey}.issue`, vars);
+      const action = t(lang, `geo.recommendations.${issueKey}.action`, vars);
+
+      if (issue && action && !issue.includes('.issue')) {
+        recommendations.push({
+          priority,
+          category,
+          issue,
+          action,
+          impact: priority === 'critical' || priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low',
+          effort: ['missingPhone', 'missingWebsite'].includes(issueKey) ? 'easy' : 'moderate',
+        });
+      }
+    };
+
+    // === CRITICAL: Not in Local Pack ===
     if (businessIndex < 0) {
-      recommendations.push({
-        priority: 'high',
-        issue: t(lang, 'geo.recommendations.notInLocalPack.issue'),
-        action: t(lang, 'geo.recommendations.notInLocalPack.action'),
-      });
-    } else if (businessIndex >= 3) {
-      recommendations.push({
-        priority: 'high',
-        issue: t(lang, 'geo.recommendations.lowPosition.issue', { position: businessIndex + 1 }),
-        action: t(lang, 'geo.recommendations.lowPosition.action'),
-      });
+      addRec('critical', 'visibility', 'notInLocalPack', 'notInLocalPack');
+      return recommendations;
     }
 
-    // Rating recommendations
-    if (businessInfo?.rating) {
-      const avgCompetitorRating = competitors
-        .filter(c => c.rating)
-        .reduce((sum, c) => sum + c.rating, 0) / competitors.filter(c => c.rating).length || 0;
+    // === POSITION-BASED RECOMMENDATIONS ===
+    if (businessIndex === 0) {
+      addRec('low', 'success', 'position1', 'position1');
+    } else if (businessIndex <= 2) {
+      addRec('medium', 'visibility', 'position2or3', 'position2or3', { position: businessIndex + 1 });
+    } else {
+      addRec('high', 'visibility', 'lowPosition', 'lowPosition', { position: businessIndex + 1 });
+    }
 
-      if (businessInfo.rating < avgCompetitorRating) {
-        recommendations.push({
-          priority: 'high',
-          issue: t(lang, 'geo.recommendations.competitorsBetterRating.issue'),
-          action: t(lang, 'geo.recommendations.competitorsBetterRating.action'),
-        });
-      }
-
+    // === RATING RECOMMENDATIONS ===
+    if (businessInfo?.rating !== null && businessInfo?.rating !== undefined) {
       if (businessInfo.rating < 4) {
-        recommendations.push({
-          priority: 'high',
-          issue: t(lang, 'geo.recommendations.lowRating.issue', { rating: businessInfo.rating }),
-          action: t(lang, 'geo.recommendations.lowRating.action'),
+        addRec('high', 'reviews', 'lowRating', 'lowRating', { rating: businessInfo.rating });
+      } else if (businessInfo.rating >= 4 && businessInfo.rating < 4.5) {
+        addRec('low', 'reviews', 'goodRating', 'goodRating', { rating: businessInfo.rating });
+      } else if (businessInfo.rating >= 4.5) {
+        addRec('low', 'success', 'excellentRating', 'excellentRating', { rating: businessInfo.rating });
+      }
+
+      // Competitor rating comparison
+      if (businessInfo.rating < competitorStats.avgRating) {
+        addRec('high', 'reviews', 'competitorsBetterRating', 'competitorsBetterRating', {
+          avg: competitorStats.avgRating.toFixed(1),
+          rating: businessInfo.rating,
         });
       }
     }
 
-    // Review recommendations
+    // === REVIEW RECOMMENDATIONS ===
     if (businessInfo?.reviews !== undefined) {
       if (businessInfo.reviews === 0) {
-        recommendations.push({
-          priority: 'high',
-          issue: t(lang, 'geo.recommendations.noReviews.issue'),
-          action: t(lang, 'geo.recommendations.noReviews.action'),
+        addRec('critical', 'reviews', 'noReviews', 'noReviews');
+      } else if (businessInfo.reviews < 10) {
+        addRec('high', 'reviews', 'fewReviews', 'fewReviews', {
+          count: businessInfo.reviews,
+          avg: competitorStats.avgReviews,
+          target: Math.max(20, competitorStats.avgReviews),
         });
-      } else if (businessInfo.reviews < 20) {
-        recommendations.push({
-          priority: 'medium',
-          issue: t(lang, 'geo.recommendations.fewReviews.issue', { count: businessInfo.reviews }),
-          action: t(lang, 'geo.recommendations.fewReviews.action'),
-        });
-      }
-
-      const avgCompetitorReviews = competitors
-        .filter(c => c.reviews)
-        .reduce((sum, c) => sum + c.reviews, 0) / competitors.filter(c => c.reviews).length || 0;
-
-      if (businessInfo.reviews < avgCompetitorReviews) {
-        recommendations.push({
-          priority: 'medium',
-          issue: t(lang, 'geo.recommendations.competitorsMoreReviews.issue'),
-          action: t(lang, 'geo.recommendations.competitorsMoreReviews.action'),
+      } else if (businessInfo.reviews < competitorStats.avgReviews) {
+        addRec('medium', 'reviews', 'competitorsMoreReviews', 'competitorsMoreReviews', {
+          avgReviews: competitorStats.avgReviews,
+          reviews: businessInfo.reviews,
+          target: Math.round(competitorStats.avgReviews * 1.5),
         });
       }
     }
 
-    // NAP recommendations
+    // === NAP RECOMMENDATIONS ===
     if (!businessInfo?.phone) {
-      recommendations.push({
-        priority: 'high',
-        issue: t(lang, 'geo.recommendations.missingPhone.issue'),
-        action: t(lang, 'geo.recommendations.missingPhone.action'),
-      });
+      addRec('high', 'nap', 'missingPhone', 'missingPhone');
     }
 
     if (!businessInfo?.website) {
-      recommendations.push({
-        priority: 'medium',
-        issue: t(lang, 'geo.recommendations.missingWebsite.issue'),
-        action: t(lang, 'geo.recommendations.missingWebsite.action'),
-      });
+      addRec('medium', 'nap', 'missingWebsite', 'missingWebsite');
     }
+
+    // === COMPETITION ANALYSIS ===
+    if (competitors.length >= 5) {
+      addRec('medium', 'competition', 'strongCompetition', 'strongCompetition', { count: competitors.length });
+    }
+
+    // Sort by priority
+    const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    recommendations.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
 
     return recommendations;
   }
@@ -638,7 +665,7 @@ class GeoAuditService {
     let nameConsistency = true;
     let addressConsistency = true;
     let phoneConsistency = true;
-  
+
     if (!businessInfo) {
       return {
         nameConsistency: false,
@@ -653,22 +680,22 @@ class GeoAuditService {
         issues: [t(lang, 'geo.nap.notFoundInLocalPack')],
       };
     }
-  
+
     if (!businessInfo.name) {
       nameConsistency = false;
       issues.push(t(lang, 'geo.nap.nameMissing'));
     }
-  
+
     if (!businessInfo.address) {
       addressConsistency = false;
       issues.push(t(lang, 'geo.nap.addressMissing'));
     }
-  
+
     if (!businessInfo.phone) {
       phoneConsistency = false;
       issues.push(t(lang, 'geo.nap.phoneMissing'));
     }
-  
+
     return {
       nameConsistency,
       nameConsistencyLabel: t(lang, 'geo.nap.nameConsistency'),
@@ -686,7 +713,7 @@ class GeoAuditService {
   analyzeCitationIssues(businessInfo, competitors, lang = 'en') {
     const missingCitations = [];
     const inconsistentData = [];
-  
+
     if (!businessInfo) {
       return {
         missingCitationsLabel: t(lang, 'geo.citations.missingCitations'),
@@ -695,27 +722,27 @@ class GeoAuditService {
         inconsistentData: [],
       };
     }
-  
+
     if (!businessInfo.website) {
       missingCitations.push(t(lang, 'geo.citations.websiteNotListed'));
     }
-  
+
     if (!businessInfo.category) {
       missingCitations.push(t(lang, 'geo.citations.categoryNotSpecified'));
     }
-  
+
     const topCompetitors = competitors.slice(0, 3);
     const competitorWebsites = topCompetitors.filter(c => c.website).length;
     const competitorCategories = topCompetitors.filter(c => c.category).length;
-  
+
     if (competitorWebsites > 0 && !businessInfo.website) {
       inconsistentData.push(t(lang, 'geo.citations.competitorsHaveWebsite'));
     }
-  
+
     if (competitorCategories > 0 && !businessInfo.category) {
       inconsistentData.push(t(lang, 'geo.citations.competitorsHaveCategory'));
     }
-  
+
     return {
       missingCitationsLabel: t(lang, 'geo.citations.missingCitations'),
       missingCitations,

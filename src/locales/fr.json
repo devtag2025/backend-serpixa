@@ -5,11 +5,17 @@
       "description": "Meta Description",
       "h1": "Balise H1",
       "h2": "Balises H2",
+      "h3": "Balises H3",
       "canonical": "URL Canonique",
       "images": "Images",
       "links": "Liens",
       "loadTime": "Temps de Chargement",
-      "wordCount": "Nombre de Mots"
+      "wordCount": "Nombre de Mots",
+      "schema": "Balisage Schema",
+      "mobile": "Compatible Mobile",
+      "https": "Sécurité HTTPS",
+      "openGraph": "Balises Open Graph",
+      "robots": "Meta Robots"
     },
     "labels": {
       "exists": "Existe",
@@ -23,7 +29,14 @@
       "external": "Externe",
       "broken": "Cassé",
       "yes": "Oui",
-      "no": "Non"
+      "no": "Non",
+      "good": "Bon",
+      "needsImprovement": "À Améliorer",
+      "poor": "Faible",
+      "detected": "Détecté",
+      "notDetected": "Non Détecté",
+      "secure": "Sécurisé",
+      "notSecure": "Non Sécurisé"
     },
     "keywordAnalysis": {
       "title": "Analyse du Mot-clé",
@@ -32,78 +45,178 @@
       "inH1": "Dans H1",
       "inH2": "Dans H2",
       "inContent": "Dans le Contenu",
+      "inUrl": "Dans l'URL",
+      "inFirst100Words": "Dans les 100 Premiers Mots",
       "occurrences": "Occurrences",
       "density": "Densité du Mot-clé",
-      "densityOptimal": "Densité Optimale"
+      "densityOptimal": "Densité Optimale",
+      "recommendedOccurrences": "Occurrences Recommandées",
+      "competitorAvgWordCount": "Moyenne Mots Concurrents"
     },
     "recommendations": {
       "competitorAnalysis": {
         "issue": "{count} résultats de concurrents trouvés pour \"{keyword}\"",
-        "action": "Analysez les concurrents les mieux classés pour identifier les opportunités d'optimisation"
+        "action": "Analysez les concurrents les mieux classés pour identifier les opportunités d'optimisation et les lacunes de contenu"
       },
       "missingTitle": {
-        "issue": "Balise titre manquante",
-        "action": "Ajoutez une balise titre descriptive (30-60 caractères)"
+        "issue": "Balise titre manquante - Élément SEO critique",
+        "action": "Ajoutez une balise titre accrocheuse (50-60 caractères) incluant votre mot-clé cible au début. Exemple : \"{keyword} - Votre Proposition Unique | Marque\""
       },
       "titleNotOptimal": {
-        "issue": "Longueur du titre non optimale",
-        "action": "Ajustez le titre à 30-60 caractères"
+        "issue": "La longueur du titre est de {length} caractères (optimal : 50-60)",
+        "action": "Ajustez votre titre à 50-60 caractères. Le titre actuel peut être tronqué dans les résultats de recherche, réduisant le taux de clic. Gardez votre mot-clé principal dans les 60 premiers caractères."
+      },
+      "titleTooShort": {
+        "issue": "Le titre est trop court ({length} caractères)",
+        "action": "Allongez votre titre à 50-60 caractères. Incluez votre mot-clé principal, un avantage et votre nom de marque. Les titres courts manquent des opportunités de classement."
       },
       "missingDescription": {
-        "issue": "Meta description manquante",
-        "action": "Ajoutez une meta description (120-160 caractères)"
+        "issue": "Meta description manquante - Lacune SEO majeure",
+        "action": "Ajoutez une meta description convaincante (150-160 caractères) avec votre mot-clé cible, une proposition de valeur claire et un appel à l'action. Cela impacte directement les taux de clic."
       },
       "descriptionNotOptimal": {
-        "issue": "Longueur de la meta description non optimale",
-        "action": "Ajustez à 120-160 caractères"
+        "issue": "La meta description fait {length} caractères (optimal : 150-160)",
+        "action": "Ajustez à 150-160 caractères. Incluez naturellement votre mot-clé principal, mettez en avant vos avantages uniques et terminez par un CTA convaincant comme 'En savoir plus' ou 'Commencez aujourd'hui'."
       },
       "missingH1": {
-        "issue": "Balise H1 manquante",
-        "action": "Ajoutez exactement une balise H1"
+        "issue": "Balise H1 manquante - Problème structurel majeur",
+        "action": "Ajoutez exactement une balise H1 qui décrit clairement le contenu de la page et inclut votre mot-clé cible. Le H1 doit être unique et différent de votre balise titre."
       },
       "multipleH1": {
-        "issue": "Plusieurs balises H1",
-        "action": "Utilisez une seule balise H1 par page"
+        "issue": "Plusieurs balises H1 détectées ({count} trouvées)",
+        "action": "Utilisez une seule balise H1 par page. Convertissez les H1 supplémentaires en H2. Plusieurs H1 déroutent les moteurs de recherche et diluent la pertinence des mots-clés."
+      },
+      "missingH2": {
+        "issue": "Aucun sous-titre H2 trouvé",
+        "action": "Ajoutez 3-6 sous-titres H2 pour structurer votre contenu. Incluez des variations de mots-clés et des termes connexes dans les H2. Cela améliore la lisibilité et aide les moteurs de recherche."
+      },
+      "fewH2": {
+        "issue": "Seulement {count} sous-titre(s) H2 - Structure de contenu faible",
+        "action": "Ajoutez plus de sous-titres H2 (visez 1 pour 300 mots). Utilisez-les pour diviser le contenu en sections lisibles. Incluez des mots-clés LSI et des questions que les utilisateurs pourraient poser."
       },
       "imagesNoAlt": {
         "issue": "{count} images sans texte alt",
-        "action": "Ajoutez un texte alt descriptif à toutes les images"
+        "action": "Ajoutez un texte alt descriptif à toutes les images. Incluez votre mot-clé naturellement. Bon texte alt : 'Plombier professionnel réparant évier de cuisine à Paris' au lieu de 'plombier' ou 'image1'."
+      },
+      "tooManyImages": {
+        "issue": "{count} images peuvent ralentir le chargement",
+        "action": "Optimisez les images : compressez en format WebP, implémentez le lazy loading, spécifiez les attributs width/height, et utilisez des images responsives. Visez une taille totale inférieure à 1 Mo."
       },
       "brokenLinks": {
-        "issue": "{count} liens cassés trouvés",
-        "action": "Corrigez ou supprimez les liens cassés"
+        "issue": "{count} liens cassés détectés - Nuit à l'expérience utilisateur et au SEO",
+        "action": "Corrigez ou supprimez tous les liens cassés immédiatement. Les liens cassés signalent un mauvais entretien aux moteurs de recherche et frustrent les utilisateurs. Utilisez des redirections 301 si nécessaire."
+      },
+      "fewInternalLinks": {
+        "issue": "Seulement {count} liens internes - Mauvaise structure du site",
+        "action": "Ajoutez 3-5 liens internes pertinents vers des pages importantes. Utilisez des ancres descriptives avec des mots-clés. Le maillage interne distribue l'autorité et aide la navigation."
+      },
+      "noExternalLinks": {
+        "issue": "Aucun lien externe vers des sources autoritaires",
+        "action": "Ajoutez 2-3 liens vers des sources externes pertinentes et autoritaires. Cela construit la confiance. Assurez-vous que les liens s'ouvrent dans de nouveaux onglets avec rel='noopener'."
       },
       "missingCanonical": {
-        "issue": "Balise canonique manquante",
-        "action": "Ajoutez l'URL canonique pour éviter le contenu dupliqué"
+        "issue": "Balise canonique manquante - Risque de contenu dupliqué",
+        "action": "Ajoutez une balise canonique auto-référentielle pour éviter les problèmes de contenu dupliqué. Format : <link rel='canonical' href='https://votresite.com/cette-page' />"
       },
       "lowWordCount": {
-        "issue": "Nombre de mots insuffisant",
-        "action": "Ajoutez plus de contenu de qualité (visez 300+ mots)"
+        "issue": "Le contenu ne fait que {count} mots - En dessous de la moyenne concurrentielle",
+        "action": "Développez le contenu à au moins {recommended} mots. Les pages en tête font en moyenne {competitorAvg} mots. Ajoutez : explications détaillées, FAQs, exemples, études de cas et sous-sujets connexes."
+      },
+      "veryLowWordCount": {
+        "issue": "Contenu léger détecté ({count} mots)",
+        "action": "Les pages de moins de 300 mots se classent rarement bien. Créez un contenu complet couvrant : quoi, pourquoi, comment, FAQs, exemples et conseils d'experts. Visez 1500+ mots pour les mots-clés compétitifs."
       },
       "keywordNotInTitle": {
-        "issue": "Mot-clé cible absent du titre",
-        "action": "Incluez \"{keyword}\" dans votre balise titre"
+        "issue": "Mot-clé cible \"{keyword}\" absent de la balise titre",
+        "action": "Incluez votre mot-clé principal au début de votre titre. Exemple : \"{keyword} : [Votre Angle Unique] | Nom de Marque\". C'est crucial pour le classement."
       },
       "keywordNotInDescription": {
-        "issue": "Mot-clé cible absent de la meta description",
-        "action": "Incluez \"{keyword}\" dans votre meta description"
+        "issue": "Mot-clé cible \"{keyword}\" absent de la meta description",
+        "action": "Incluez \"{keyword}\" naturellement dans votre meta description. Google met souvent en gras les mots-clés correspondants, augmentant la visibilité et le taux de clic."
       },
       "keywordNotInH1": {
-        "issue": "Mot-clé cible absent du H1",
-        "action": "Incluez \"{keyword}\" dans votre titre H1"
+        "issue": "Mot-clé cible \"{keyword}\" absent du titre H1",
+        "action": "Incluez \"{keyword}\" dans votre balise H1. Cela confirme le sujet de la page aux moteurs de recherche. Rendez-le naturel et attrayant pour les lecteurs."
       },
       "keywordNotInContent": {
-        "issue": "Mot-clé cible absent du contenu",
-        "action": "Ajoutez \"{keyword}\" naturellement dans votre contenu"
+        "issue": "Mot-clé cible \"{keyword}\" non trouvé dans le contenu",
+        "action": "Ajoutez \"{keyword}\" naturellement dans votre contenu. Incluez-le dans : le premier paragraphe, au moins un sous-titre et la conclusion. Évitez le placement forcé."
+      },
+      "keywordNotInFirst100Words": {
+        "issue": "Mot-clé \"{keyword}\" absent des 100 premiers mots",
+        "action": "Incluez votre mot-clé cible dans les 100 premiers mots (idéalement le premier paragraphe). Cela signale la pertinence aux moteurs de recherche et montre immédiatement aux utilisateurs qu'ils sont au bon endroit."
+      },
+      "keywordNotInUrl": {
+        "issue": "Mot-clé cible \"{keyword}\" absent de l'URL",
+        "action": "Si possible, incluez votre mot-clé dans le slug URL. Exemple : /votre-mot-cle-guide au lieu de /page123. Gardez les URLs courtes, lisibles et pertinentes."
       },
       "keywordDensityLow": {
-        "issue": "Densité du mot-clé trop faible",
-        "action": "Augmentez l'utilisation de \"{keyword}\" (visez 1-3% de densité)"
+        "issue": "La densité du mot-clé est de {density}% (en dessous de l'optimal 1-2%)",
+        "action": "Actuel : {occurrences} occurrences dans {wordCount} mots. Ajoutez {recommended} mentions naturelles supplémentaires de \"{keyword}\". Utilisez des variations et synonymes pour éviter la répétition."
       },
       "keywordDensityHigh": {
-        "issue": "Densité du mot-clé trop élevée",
-        "action": "Réduisez l'utilisation de \"{keyword}\" pour éviter le bourrage de mots-clés"
+        "issue": "La densité du mot-clé est de {density}% - Risque de sur-optimisation",
+        "action": "Réduisez l'utilisation de \"{keyword}\" de {occurrences} à environ {recommended} fois. Remplacez certaines instances par des synonymes, termes connexes ou pronoms."
+      },
+      "keywordDensityOptimal": {
+        "issue": "La densité du mot-clé est optimale à {density}%",
+        "action": "Maintenez l'utilisation actuelle du mot-clé. Concentrez-vous sur l'ajout de mots-clés LSI (connexes) et de synonymes pour renforcer la pertinence thématique sans sur-optimisation."
+      },
+      "missingSchema": {
+        "issue": "Aucune donnée structurée (balisage Schema) détectée",
+        "action": "Ajoutez un balisage JSON-LD pour obtenir des extraits enrichis. Types recommandés : Article, LocalBusiness, Product, FAQ, HowTo ou BreadcrumbList selon votre type de page."
+      },
+      "missingOpenGraph": {
+        "issue": "Balises Open Graph manquantes pour le partage social",
+        "action": "Ajoutez les balises og:title, og:description, og:image et og:url. Cela contrôle l'apparence de votre page sur Facebook, LinkedIn et autres plateformes."
+      },
+      "missingTwitterCards": {
+        "issue": "Balises Twitter Card manquantes",
+        "action": "Ajoutez twitter:card, twitter:title, twitter:description et twitter:image pour un partage Twitter optimisé. Utilisez 'summary_large_image' pour une meilleure visibilité."
+      },
+      "slowLoadTime": {
+        "issue": "Le temps de chargement est de {time}s (devrait être inférieur à 3s)",
+        "action": "Améliorez la vitesse : compressez les images, activez le cache navigateur, minifiez CSS/JS, utilisez un CDN, différez le JavaScript non critique, et considérez le lazy loading."
+      },
+      "noHttps": {
+        "issue": "Page non servie en HTTPS",
+        "action": "HTTPS est un facteur de classement. Installez un certificat SSL et redirigez tout le trafic HTTP vers HTTPS. Cela renforce également la confiance des utilisateurs."
+      },
+      "missingViewport": {
+        "issue": "Balise viewport manquante - Problèmes mobiles probables",
+        "action": "Ajoutez <meta name='viewport' content='width=device-width, initial-scale=1'> pour un rendu mobile correct. Google utilise l'indexation mobile-first."
+      },
+      "noRobotsMeta": {
+        "issue": "Aucune balise meta robots spécifiée",
+        "action": "Ajoutez <meta name='robots' content='index, follow'> pour indiquer explicitement aux moteurs de recherche d'indexer cette page et de suivre ses liens."
+      },
+      "contentBelowCompetitors": {
+        "issue": "Le contenu est {percent}% plus court que les top concurrents",
+        "action": "Les 10 premiers résultats font en moyenne {avgWords} mots. Développez votre contenu pour égaler ou dépasser. Ajoutez des sections : questions fréquentes, tutoriels détaillés, études de cas, insights d'experts."
+      },
+      "noLsiKeywords": {
+        "issue": "Utilisation limitée de mots-clés connexes et synonymes",
+        "action": "Ajoutez des mots-clés LSI et variations sémantiques. Pour \"{keyword}\", considérez : {suggestions}. Cela signale une couverture thématique complète aux moteurs de recherche."
+      },
+      "duplicateTitle": {
+        "issue": "Le titre pourrait être dupliqué sur votre site",
+        "action": "Assurez-vous que chaque page a une balise titre unique. Les titres dupliqués déroutent les moteurs de recherche et diluent le potentiel de classement."
+      },
+      "duplicateDescription": {
+        "issue": "La meta description pourrait être dupliquée",
+        "action": "Rédigez des meta descriptions uniques pour chaque page. Les descriptions dupliquées sont une opportunité manquée de cibler des mots-clés spécifiques et d'attirer des clics pertinents."
+      },
+      "strongBoldUsage": {
+        "issue": "Aucune balise <strong> ou <b> utilisée pour l'emphase",
+        "action": "Utilisez des balises <strong> pour mettre en évidence 2-3 phrases importantes incluant votre mot-clé. Cela fournit une hiérarchie visuelle et peut aider les moteurs de recherche."
+      },
+      "missingBreadcrumbs": {
+        "issue": "Aucune navigation fil d'Ariane détectée",
+        "action": "Ajoutez une navigation fil d'Ariane et le schema BreadcrumbList. Cela améliore la navigation utilisateur, le maillage interne, et peut s'afficher dans les résultats de recherche."
+      },
+      "excellentOptimization": {
+        "issue": "La page est bien optimisée pour \"{keyword}\"",
+        "action": "Maintenez votre forte optimisation. Concentrez-vous sur : la création de backlinks de qualité, la mise à jour régulière du contenu, l'amélioration des Core Web Vitals et la surveillance des concurrents."
       }
     }
   },
@@ -122,7 +235,10 @@
       "address": "Adresse",
       "phone": "Téléphone",
       "website": "Site Web",
-      "category": "Catégorie"
+      "category": "Catégorie",
+      "localPackPosition": "Position Pack Local",
+      "competitorStrength": "Force des Concurrents",
+      "marketOpportunity": "Opportunité de Marché"
     },
     "nap": {
       "nameConsistency": "Cohérence du Nom",
@@ -141,53 +257,105 @@
       "websiteNotListed": "URL du site web non listée",
       "categoryNotSpecified": "Catégorie de l'entreprise non spécifiée",
       "notFoundInLocalPack": "Entreprise non trouvée dans le pack local",
-      "competitorsHaveWebsite": "La plupart des concurrents ont un site web listé, mais pas le vôtre",
-      "competitorsHaveCategory": "La plupart des concurrents ont une catégorie listée, mais pas la vôtre"
+      "competitorsHaveWebsite": "Les concurrents ont des sites web listés, mais pas le vôtre",
+      "competitorsHaveCategory": "Les concurrents ont des catégories listées, mais pas la vôtre"
     },
     "recommendations": {
       "lowVisibility": {
-        "issue": "Score de visibilité locale faible ({score}%)",
-        "action": "Optimisez votre fiche Google Business et créez des citations locales"
+        "issue": "Le score de visibilité locale est de {score}% - En dessous du seuil compétitif",
+        "action": "SEO local complet requis : optimisez Google Business Profile, créez 50+ citations sur des annuaires (PagesJaunes, Yelp, sites spécialisés), générez 20+ avis, et créez du contenu localement ciblé."
       },
       "notInLocalPack": {
-        "issue": "Entreprise non trouvée dans les résultats du pack local",
-        "action": "Améliorez le SEO local en optimisant votre fiche Google Business et en obtenant plus d'avis"
+        "issue": "Entreprise absente du pack local - Trafic local significatif manqué",
+        "action": "Actions prioritaires : 1) Vérifiez la propriété GBP, 2) Assurez la cohérence NAP partout, 3) Créez des citations sur 30+ annuaires locaux, 4) Générez 10+ avis dans les 30 jours, 5) Ajoutez du contenu local à votre site."
       },
       "lowPosition": {
-        "issue": "Entreprise classée en position {position} dans le pack local",
-        "action": "Travaillez sur l'amélioration de votre classement en obtenant plus d'avis positifs"
+        "issue": "Classé #{position} dans le pack local - Le top 3 obtient 70% des clics",
+        "action": "Pour atteindre le top 3 : Augmentez le nombre d'avis (visez 50+), répondez à tous les avis sous 24h, publiez des posts hebdomadaires, uploadez des photos mensuelles, construisez plus de backlinks locaux."
+      },
+      "position1": {
+        "issue": "Actuellement classé #1 dans le pack local - Maintenez cette position",
+        "action": "Protégez votre classement : Continuez à générer de nouveaux avis, publiez des mises à jour hebdomadaires, surveillez et répondez à tous les avis, gardez les infos à jour, surveillez les concurrents."
+      },
+      "position2or3": {
+        "issue": "Classé #{position} - Proche de la position #1",
+        "action": "Pour atteindre le #1 : Augmentez la vélocité des avis (5+ nouveaux par mois), améliorez le temps de réponse aux avis, publiez des posts GBP hebdomadaires, créez 10+ nouvelles citations locales."
       },
       "noReviews": {
-        "issue": "Aucun avis trouvé",
-        "action": "Encouragez les clients à laisser des avis sur Google"
+        "issue": "Zéro avis - Critique pour le classement local",
+        "action": "Lancez une campagne d'avis immédiatement : Emailez les anciens clients, ajoutez des liens d'avis sur les factures, créez des QR codes pour les demandes en magasin, relancez 3-5 jours après le service."
       },
       "fewReviews": {
-        "issue": "Seulement {count} avis",
-        "action": "Développez votre base d'avis - visez au moins 20 avis"
+        "issue": "Seulement {count} avis vs moyenne concurrents de {avg}",
+        "action": "Construisez votre base d'avis : Objectif de {target} avis en 60 jours. Implémentez : demandes automatisées, formation du personnel, programme d'incitation pour le personnel (pas les clients)."
       },
       "lowRating": {
-        "issue": "Note de {rating}/5",
-        "action": "Répondez aux avis négatifs et améliorez la qualité du service"
+        "issue": "Note de {rating}/5 - En dessous du seuil de confiance de 4.0",
+        "action": "Plan de récupération de note : 1) Répondez professionnellement à tous les avis négatifs, 2) Identifiez et corrigez les problèmes de service, 3) Demandez proactivement aux clients satisfaits, 4) Proposez une compensation aux clients mécontents."
       },
-      "missingWebsite": {
-        "issue": "Aucun site web lié",
-        "action": "Ajoutez votre site web à votre fiche d'entreprise"
+      "goodRating": {
+        "issue": "Note de {rating}/5 - Bonne, mais améliorable",
+        "action": "Poussez vers 4.8+ : Remerciez tous les avis positifs, adressez les préoccupations récurrentes, continuez l'excellent service. Des notes plus élevées = meilleurs classements."
       },
-      "missingPhone": {
-        "issue": "Aucun numéro de téléphone listé",
-        "action": "Ajoutez un numéro de téléphone local à votre profil"
-      },
-      "napInconsistency": {
-        "issue": "Incohérence NAP (Nom, Adresse, Téléphone) détectée",
-        "action": "Assurez-vous que vos informations sont cohérentes sur toutes les plateformes"
+      "excellentRating": {
+        "issue": "Excellente note de {rating}/5 - Maintenez ce standard",
+        "action": "Maintenez l'excellence : Continuez votre excellent service, répondez à tous les avis, utilisez les retours positifs dans votre marketing. Mettez les témoignages sur votre site."
       },
       "competitorsBetterRating": {
-        "issue": "Les concurrents ont de meilleures notes",
-        "action": "Concentrez-vous sur la satisfaction client pour améliorer votre note"
+        "issue": "Les concurrents ont une moyenne de {avg} vs votre {rating}",
+        "action": "Comblez l'écart de note : Analysez les avis concurrents, identifiez vos faiblesses, formez le personnel sur l'expérience client, implémentez un système proactif de demande d'avis."
       },
       "competitorsMoreReviews": {
-        "issue": "Les concurrents ont plus d'avis",
-        "action": "Mettez en place une stratégie de génération d'avis"
+        "issue": "Les concurrents ont en moyenne {avgReviews} avis vs vos {reviews}",
+        "action": "Stratégie de génération d'avis : Visez {target} nouveaux avis en 90 jours. Utilisez des suivis automatisés, demandes SMS, et demandes en personne. Les top entreprises obtiennent 10+ nouveaux avis par mois."
+      },
+      "missingPhone": {
+        "issue": "Aucun numéro de téléphone affiché - Conversions d'appels perdues",
+        "action": "Ajoutez un numéro local (même indicatif que votre adresse). Les numéros locaux renforcent la confiance et améliorent les classements. Utilisez un numéro de suivi si nécessaire mais en format local."
+      },
+      "missingWebsite": {
+        "issue": "Aucun site web lié - Opportunités de conversion manquées",
+        "action": "Ajoutez l'URL de votre site web. Cela génère du trafic, construit l'autorité et fournit un chemin de conversion. Assurez-vous que votre site a des infos NAP cohérentes et des pages de localisation."
+      },
+      "napInconsistency": {
+        "issue": "Incohérences NAP détectées entre les annuaires",
+        "action": "Auditez toutes les fiches et standardisez : Utilisez exactement le même nom, format d'adresse complet et numéro de téléphone partout. Même de petites variations (Av vs Avenue) peuvent nuire aux classements."
+      },
+      "missingCategories": {
+        "issue": "Seule la catégorie principale est définie - Opportunités de visibilité manquées",
+        "action": "Ajoutez 5-9 catégories secondaires pertinentes à votre Google Business Profile. Cela vous aide à apparaître pour plus de recherches locales. Choisissez des catégories décrivant précisément vos services."
+      },
+      "noGbpPosts": {
+        "issue": "Aucune publication Google Business récente",
+        "action": "Publiez des mises à jour hebdomadaires : promotions, événements, conseils ou actualités. Les posts améliorent l'engagement, montrent l'activité et peuvent inclure des appels à l'action. Ils expirent après 7 jours."
+      },
+      "noPhotos": {
+        "issue": "Peu de photos sur le profil Google Business",
+        "action": "Ajoutez 10+ photos de haute qualité : extérieur, intérieur, équipe, produits/services et exemples de travaux. Les entreprises avec 100+ photos obtiennent 520% plus d'appels. Uploadez de nouvelles photos mensuellement."
+      },
+      "distanceFromSearcher": {
+        "issue": "La distance peut affecter les classements locaux",
+        "action": "Pour améliorer les classements basés sur la distance : Créez des pages spécifiques par localisation, construisez des backlinks locaux, générez des avis mentionnant votre emplacement, définissez correctement la zone de service."
+      },
+      "strongCompetition": {
+        "issue": "Face à {count} concurrents bien établis",
+        "action": "Différenciation compétitive nécessaire : Concentrez-vous sur un service de niche, ciblez les quartiers sous-desservis, construisez des partenariats avec des entreprises locales, créez du contenu local unique."
+      },
+      "citationOpportunity": {
+        "issue": "Nombre de citations en dessous de la moyenne des concurrents",
+        "action": "Créez des citations sur : annuaires sectoriels, annuaires locaux, chambre de commerce, et sites de niche. Visez 50+ citations avec un NAP parfaitement cohérent."
+      },
+      "localContentMissing": {
+        "issue": "Pas de contenu local sur le site web",
+        "action": "Créez des pages locales pour chaque zone de service, rédigez des articles de blog spécifiques à la localisation, ajoutez des références aux points de repère locaux, et intégrez Google Map sur la page contact."
+      },
+      "reviewResponseNeeded": {
+        "issue": "Les avis ne reçoivent pas de réponse",
+        "action": "Répondez à TOUS les avis sous 24-48 heures. Remerciez spécifiquement les avis positifs, adressez les retours négatifs professionnellement. Le taux de réponse affecte les classements."
+      },
+      "serviceAreaOptimization": {
+        "issue": "La zone de service peut ne pas être correctement configurée",
+        "action": "Dans les paramètres GBP, définissez clairement vos zones de service. Pour les entreprises de service à domicile, masquez votre adresse mais spécifiez les régions desservies."
       }
     }
   },
@@ -204,7 +372,10 @@
       "website": "Site Web",
       "category": "Catégorie",
       "rating": "Note",
-      "reviews": "Avis"
+      "reviews": "Avis",
+      "profileStrength": "Force du Profil",
+      "engagementLevel": "Niveau d'Engagement",
+      "competitivePosition": "Position Concurrentielle"
     },
     "checklist": {
       "name": "Nom de l'Entreprise",
@@ -218,72 +389,129 @@
       "photos": "Photos",
       "rating": "Note Google",
       "reviewCount": "Avis Clients",
-      "attributes": "Attributs de l'Entreprise"
+      "attributes": "Attributs de l'Entreprise",
+      "services": "Services/Produits",
+      "posts": "Publications Google",
+      "qAndA": "Questions & Réponses",
+      "messaging": "Messagerie Activée",
+      "booking": "Lien de Réservation"
     },
     "recommendations": {
       "name": {
-        "issue": "Nom de l'entreprise manquant",
-        "action": "Ajoutez le nom officiel de votre entreprise à votre profil."
+        "issue": "Nom de l'entreprise manquant ou incomplet",
+        "action": "Ajoutez votre nom légal exact. N'ajoutez pas de mots-clés ou de localisation (sauf si partie du nom légal) - cela viole les directives et risque la suspension. Exemple : 'Plomberie Dupont' pas 'Meilleur Plombier Paris - Plomberie Dupont'."
       },
       "address": {
-        "issue": "Adresse de l'entreprise manquante",
-        "action": "Ajoutez l'adresse complète pour la visibilité locale."
+        "issue": "Adresse non définie - Critique pour la visibilité locale",
+        "action": "Ajoutez votre adresse complète. Utilisez le format exact : numéro, rue, appartement/bâtiment, ville, code postal. C'est requis pour le placement Google Maps et le classement pack local."
       },
       "phone": {
-        "issue": "Numéro de téléphone manquant",
-        "action": "Ajoutez un numéro local pour permettre les appels clients."
+        "issue": "Numéro de téléphone manquant - 60% des recherches locales génèrent des appels",
+        "action": "Ajoutez un numéro local (correspondant à votre zone de service). Évitez les numéros 0800 pour les entreprises locales. Si vous utilisez un numéro de suivi, assurez-vous qu'il redirige vers votre ligne principale."
       },
       "website": {
-        "issue": "URL du site web manquante",
-        "action": "Liez votre site web pour générer du trafic depuis votre fiche GBP."
+        "issue": "Aucun site web lié - Opportunité de conversion majeure manquée",
+        "action": "Ajoutez l'URL de votre site web. Si vous n'en avez pas, Google propose un site basique gratuit via GBP. Votre site doit avoir des infos NAP cohérentes et du contenu local."
       },
       "category": {
-        "issue": "Catégorie principale manquante",
-        "action": "Sélectionnez la catégorie principale la plus appropriée."
+        "issue": "Catégorie principale non définie - Facteur de classement critique",
+        "action": "Choisissez la catégorie principale la plus spécifique décrivant votre service principal. C'est le facteur de classement le plus important. Soyez spécifique : 'Restaurant Italien' bat 'Restaurant'."
       },
       "additionalCategories": {
-        "issue": "Pas de catégories supplémentaires",
-        "action": "Ajoutez 2-5 catégories secondaires pertinentes."
+        "issue": "Pas de catégories secondaires - Visibilité de recherche manquée",
+        "action": "Ajoutez 5-9 catégories supplémentaires pertinentes pour tous les services offerts. Exemple pour un plombier : Plombier (principal), Réparation Chauffe-eau, Débouchage, Plombier Urgence, Rénovation Salle de Bain."
       },
       "description": {
-        "issue": "Description de l'entreprise manquante",
-        "action": "Ajoutez une description convaincante (750 caractères max) avec des mots-clés."
+        "issue": "Description de l'entreprise manquante - Racontez votre histoire",
+        "action": "Rédigez une description de 750 caractères couvrant : ce que vous faites, qui vous servez, ce qui vous rend unique, votre zone de service et vos services clés. Incluez des mots-clés naturellement."
+      },
+      "descriptionTooShort": {
+        "issue": "La description ne fait que {length} caractères - Sous-utilisée",
+        "action": "Développez à 500-750 caractères. Incluez : années d'activité, arguments uniques, zone de service, services principaux et spécialisations. Ne gaspillez pas cet espace précieux pour les mots-clés."
       },
       "hours": {
-        "issue": "Horaires d'ouverture manquants",
-        "action": "Définissez vos horaires pour informer les clients."
+        "issue": "Horaires non définis - Les clients ne sauront pas quand venir",
+        "action": "Ajoutez des horaires précis pour chaque jour. Incluez les horaires spéciaux pour les jours fériés. Ajoutez 'Plus d'horaires' pour différents services si applicable. Des horaires inexacts mènent à des avis négatifs."
       },
       "photos": {
-        "issue": "Aucune photo téléchargée",
-        "action": "Ajoutez des photos de qualité de votre entreprise et produits."
+        "issue": "Aucune photo uploadée - Les fiches avec photos obtiennent 42% plus de demandes d'itinéraire",
+        "action": "Uploadez 25+ photos de haute qualité : logo, couverture, extérieur (jour/nuit), intérieur, équipe, produits/services et exemples de travaux. Mettez à jour mensuellement."
+      },
+      "fewPhotos": {
+        "issue": "Seulement {count} photos - En dessous du minimum recommandé",
+        "action": "Uploadez au moins 25 photos dans différentes catégories. Les entreprises avec 100+ photos obtiennent 520% plus d'appels. Incluez : extérieur (3+), intérieur (3+), équipe (3+), produits/services (10+)."
       },
       "rating": {
-        "issue": "Pas encore de note Google",
-        "action": "Encouragez les clients à noter votre entreprise sur Google."
+        "issue": "Pas encore de note Google - Les avis sont cruciaux pour le classement",
+        "action": "Commencez à générer des avis immédiatement. Créez un lien d'avis (Paramètres > Obtenir plus d'avis), envoyez-le aux clients récents et implémentez un suivi systématique après chaque transaction."
       },
       "reviewCount": {
-        "issue": "Moins de 5 avis",
-        "action": "Développez votre base d'avis en demandant aux clients satisfaits."
+        "issue": "Moins de 5 avis - En dessous du seuil de confiance",
+        "action": "Les entreprises avec 10+ avis obtiennent 50% plus de conversions. Lancez une campagne d'avis : emailez les anciens clients, ajoutez un lien d'avis sur les factures, demandez directement aux clients satisfaits."
+      },
+      "lowReviewCount": {
+        "issue": "Seulement {count} avis - Besoin de 50+ pour être compétitif",
+        "action": "Accélérez la génération d'avis : automatisez les demandes 2-3 jours après le service, formez le personnel à demander des avis, créez des QR codes pour les locaux physiques, répondez à chaque avis."
       },
       "attributes": {
-        "issue": "Aucun attribut d'entreprise défini",
-        "action": "Ajoutez les attributs pertinents (WiFi, accessibilité, paiements, etc.)."
+        "issue": "Aucun attribut d'entreprise sélectionné - Informations précieuses manquantes",
+        "action": "Ajoutez tous les attributs pertinents : accessibilité, moyens de paiement, commodités (WiFi, parking), santé & sécurité, LGBTQ+ friendly, entreprise féminine, etc. Cela aide à apparaître dans les recherches filtrées."
       },
       "lowReviews": {
-        "issue": "Seulement {count} avis",
-        "action": "Encouragez les clients satisfaits à laisser des avis. Répondez rapidement à tous les avis."
+        "issue": "Seulement {count} avis - Les concurrents en ont probablement plus",
+        "action": "Objectif : Générer {target}+ avis dans les 90 prochains jours. Stratégie : suivis automatisés, demandes en personne, liens SMS et campagnes de génération d'avis. Suivez le progrès hebdomadaire."
       },
       "lowRating": {
-        "issue": "Note de {rating}/5",
-        "action": "Répondez aux avis négatifs de manière professionnelle. Améliorez la qualité du service."
+        "issue": "Note de {rating}/5 - En dessous du seuil critique de 4.0",
+        "action": "Récupération nécessaire : 1) Répondez professionnellement à TOUS les avis négatifs, 2) Identifiez les problèmes de service via les retours, 3) Demandez activement aux clients satisfaits, 4) Formez le personnel sur l'expérience client."
       },
       "shortDescription": {
-        "issue": "Description de l'entreprise trop courte",
-        "action": "Développez votre description à 750+ caractères avec mots-clés et services."
+        "issue": "La description fait {length} caractères - Utilisez les 750 autorisés",
+        "action": "Développez votre description pour inclure : historique de l'entreprise, services offerts, zone de service, qualifications uniques et avantages clients. Utilisez les mots-clés naturellement."
       },
       "notFound": {
-        "issue": "Entreprise non trouvée",
-        "action": "Vérifiez le nom de l'entreprise ou créez une fiche Google Business."
+        "issue": "Profil d'entreprise non trouvé dans la recherche",
+        "action": "Revendiquez ou créez votre Google Business Profile : 1) Recherchez votre entreprise sur Google, 2) Cliquez 'Revendiquer cette entreprise' ou créez une nouvelle fiche sur business.google.com, 3) Complétez la vérification."
+      },
+      "missingServices": {
+        "issue": "Aucun service ou produit listé",
+        "action": "Ajoutez tous vos services avec descriptions et prix (si applicable). Cela aide les clients à comprendre vos offres et améliore la visibilité pour les recherches de services spécifiques."
+      },
+      "noPosts": {
+        "issue": "Aucune publication Google Business dans les 30 derniers jours - Le profil semble inactif",
+        "action": "Publiez des mises à jour hebdomadaires : offres, événements, mises à jour, conseils ou actualités. Les publications apparaissent dans votre fiche et les résultats de recherche. Incluez une photo, 100-300 mots et un bouton d'action."
+      },
+      "noQA": {
+        "issue": "Section Q&R vide - Opportunité d'engagement manquée",
+        "action": "Préremplissez votre Q&R avec 5-10 questions fréquentes. Cela fournit des infos utiles, montre que vous êtes actif et peut inclure des mots-clés naturellement. Surveillez et répondez rapidement à toutes les questions clients."
+      },
+      "messagingDisabled": {
+        "issue": "La messagerie est désactivée - Demandes clients manquées",
+        "action": "Activez la messagerie dans les paramètres GBP. Cela permet aux clients de vous envoyer des messages directement depuis votre fiche. Configurez des réponses automatiques et assurez une surveillance quotidienne."
+      },
+      "noBookingLink": {
+        "issue": "Aucun lien de réservation/rendez-vous configuré",
+        "action": "Ajoutez un lien de réservation via GBP (Paramètres > Réservation). Cela permet aux clients de prendre rendez-vous directement depuis votre profil. Utilisez votre propre système de réservation ou des intégrations partenaires."
+      },
+      "verificationNeeded": {
+        "issue": "Le profil n'est peut-être pas vérifié",
+        "action": "Complétez la vérification dès que possible - les profils non vérifiés ne se classent pas. Demandez une vérification par carte postale ou téléphone/email si disponible. La vérification prend généralement 5-14 jours par courrier."
+      },
+      "irregularHours": {
+        "issue": "Les horaires semblent incohérents ou incomplets",
+        "action": "Vérifiez et mettez à jour les horaires pour qu'ils soient précis. Ajoutez des horaires spéciaux pour les jours fériés, fermetures temporaires et différents horaires de service. Des horaires inexacts frustrent les clients."
+      },
+      "noMenuOrCatalog": {
+        "issue": "Pas de menu/catalogue de produits ajouté",
+        "action": "Pour les restaurants : ajoutez le menu complet avec les prix. Pour le retail/services : ajoutez un catalogue de produits. Cela apparaît dans votre fiche et aide les clients à décider."
+      },
+      "profileIncomplete": {
+        "issue": "La complétude du profil est de {score}% - Les profils incomplets se classent moins bien",
+        "action": "Les profils complets se classent mieux et convertissent plus. Priorités : adresse, téléphone, horaires, catégories, description, photos, services, attributs. Visez 100% de complétude."
+      },
+      "excellentProfile": {
+        "issue": "Profil bien optimisé à {score}% de complétude",
+        "action": "Maintenez l'excellence du profil : publiez hebdomadairement, uploadez de nouvelles photos mensuellement, répondez à tous les avis, répondez aux Q&R rapidement, gardez les informations à jour. Surveillez les profils concurrents."
       }
     }
   },
@@ -293,7 +521,19 @@
     "set": "Défini",
     "notSet": "Non Défini",
     "chars": "caractères",
-    "notAvailable": "N/D"
+    "notAvailable": "N/D",
+    "recommendation": "Recommandation",
+    "action": "Action Requise",
+    "priority": "Priorité",
+    "high": "Élevée",
+    "medium": "Moyenne",
+    "low": "Faible",
+    "critical": "Critique",
+    "impact": "Impact",
+    "effort": "Effort",
+    "easy": "Facile",
+    "moderate": "Modéré",
+    "difficult": "Difficile"
   },
   "pdf": {
     "seo": {
@@ -309,7 +549,9 @@
       "keywordDensity": "Densité du Mot-clé",
       "occurrences": "Occurrences",
       "competitorRankings": "Classement des Concurrents",
-      "recommendations": "Recommandations",
+      "recommendations": "Recommandations Actionnables",
+      "priorityActions": "Actions Prioritaires",
+      "quickWins": "Gains Rapides",
       "pos": "Pos",
       "titleCol": "Titre",
       "urlCol": "URL",
@@ -321,18 +563,22 @@
       "external": "Externe",
       "broken": "Cassé",
       "page": "Page",
-      "of": "de"
+      "of": "de",
+      "summary": "Résumé Exécutif",
+      "technicalSeo": "SEO Technique",
+      "contentAnalysis": "Analyse du Contenu",
+      "competitorInsights": "Insights Concurrentiels"
     },
     "gbp": {
-      "title": "Rapport d'Audit GBP",
+      "title": "Rapport d'Audit Google Business Profile",
       "poweredBy": "Propulsé par Serpixa",
       "business": "Entreprise",
       "date": "Date",
       "generatedFor": "Généré pour",
-      "completenessScore": "Score de Complétude",
+      "completenessScore": "Score de Complétude du Profil",
       "businessInfo": "Informations sur l'Entreprise",
-      "profileChecklist": "Liste de Vérification du Profil",
-      "recommendations": "Recommandations",
+      "profileChecklist": "Checklist de Complétion du Profil",
+      "recommendations": "Recommandations d'Optimisation",
       "name": "Nom",
       "address": "Adresse",
       "phone": "Téléphone",
@@ -341,10 +587,13 @@
       "rating": "Note",
       "reviews": "avis",
       "page": "Page",
-      "of": "de"
+      "of": "de",
+      "summary": "Résumé Exécutif",
+      "profileStrength": "Analyse de la Force du Profil",
+      "competitiveAnalysis": "Positionnement Concurrentiel"
     },
     "geo": {
-      "title": "Rapport d'Audit Géographique",
+      "title": "Rapport d'Audit SEO Local",
       "poweredBy": "Propulsé par Serpixa",
       "business": "Entreprise",
       "keyword": "Mot-clé",
@@ -354,14 +603,14 @@
       "localVisibilityScore": "Score de Visibilité Locale",
       "businessInfo": "Informations sur l'Entreprise",
       "nearbyCompetitors": "Concurrents à Proximité",
-      "napConsistency": "Cohérence NAP",
+      "napConsistency": "Analyse de Cohérence NAP",
       "nameConsistency": "Cohérence du Nom",
       "addressConsistency": "Cohérence de l'Adresse",
       "phoneConsistency": "Cohérence du Téléphone",
       "citationAnalysis": "Analyse des Citations",
       "missingCitations": "Citations Manquantes",
       "inconsistentData": "Données Incohérentes",
-      "recommendations": "Recommandations",
+      "recommendations": "Recommandations SEO Local",
       "pos": "Pos",
       "name": "Nom",
       "rating": "Note",
@@ -373,7 +622,10 @@
       "category": "Catégorie",
       "reviews": "avis",
       "page": "Page",
-      "of": "de"
+      "of": "de",
+      "summary": "Résumé Exécutif",
+      "marketAnalysis": "Analyse du Marché Local",
+      "rankingFactors": "Facteurs Clés de Classement"
     }
   }
 }

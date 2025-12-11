@@ -93,7 +93,7 @@ class PDFService {
 
       for (const rec of audit.recommendations) {
         y = this.checkPageBreak(doc, y, 20);
-        const priorityColor = rec.priority === 'high' ? [220, 53, 69] : rec.priority === 'medium' ? [255, 193, 7] : [40, 167, 69];
+        const priorityColor = rec.priority === 'critical' ? [139, 0, 0] : rec.priority === 'high' ? [220, 53, 69] : rec.priority === 'medium' ? [255, 193, 7] : [40, 167, 69];
         doc.setFillColor(...priorityColor);
         doc.circle(25, y - 2, 2, 'F');
         doc.setFontSize(10);
@@ -102,9 +102,10 @@ class PDFService {
         y += 6;
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(80);
-        doc.text(rec.action, 30, y);
+        const seoActionLines = doc.splitTextToSize(rec.action, 155);
+        doc.text(seoActionLines, 30, y);
         doc.setTextColor(0);
-        y += 10;
+        y += seoActionLines.length * 5 + 5;
       }
     }
 
@@ -183,7 +184,7 @@ class PDFService {
 
       for (const rec of audit.recommendations) {
         y = this.checkPageBreak(doc, y, 20);
-        const priorityColor = rec.priority === 'high' ? [220, 53, 69] : rec.priority === 'medium' ? [255, 193, 7] : [40, 167, 69];
+        const priorityColor = rec.priority === 'critical' ? [139, 0, 0] : rec.priority === 'high' ? [220, 53, 69] : rec.priority === 'medium' ? [255, 193, 7] : [40, 167, 69];
         doc.setFillColor(...priorityColor);
         doc.circle(25, y - 2, 2, 'F');
         doc.setFontSize(10);
@@ -339,7 +340,7 @@ class PDFService {
 
       for (const rec of audit.recommendations) {
         y = this.checkPageBreak(doc, y, 20);
-        const priorityColor = rec.priority === 'high' ? [220, 53, 69] : rec.priority === 'medium' ? [255, 193, 7] : [40, 167, 69];
+        const priorityColor = rec.priority === 'critical' ? [139, 0, 0] : rec.priority === 'high' ? [220, 53, 69] : rec.priority === 'medium' ? [255, 193, 7] : [40, 167, 69];
         doc.setFillColor(...priorityColor);
         doc.circle(25, y - 2, 2, 'F');
         doc.setFontSize(10);
