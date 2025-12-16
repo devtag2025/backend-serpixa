@@ -627,5 +627,27 @@
       "marketAnalysis": "Analyse du Marché Local",
       "rankingFactors": "Facteurs Clés de Classement"
     }
+  },
+  "email": {
+    "passwordReset": {
+      "subject": "Réinitialiser votre mot de passe",
+      "greeting": "Bonjour {name},",
+      "message": "Cliquez sur le bouton ci-dessous pour réinitialiser votre mot de passe.",
+      "button": "Réinitialiser le mot de passe",
+      "expiry": "Ce lien expire dans 1 heure."
+    },
+    "emailVerification": {
+      "subject": "Vérifiez votre email",
+      "greeting": "Bonjour {name},",
+      "message": "Cliquez sur le bouton ci-dessous pour vérifier votre email.",
+      "button": "Vérifier l'email",
+      "expiry": "Ce lien expire dans 24 heures."
+    },
+    "welcome": {
+      "subject": "Bienvenue sur Serpixa",
+      "greeting": "Bonjour {name},",
+      "message": "Votre compte est prêt. Vous pouvez maintenant créer et gérer des audits SEO et des campagnes.",
+      "button": "Aller au Tableau de bord"
+    }
   }
 }
