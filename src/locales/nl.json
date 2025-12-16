@@ -627,5 +627,27 @@
       "marketAnalysis": "Lokale Markt Analyse",
       "rankingFactors": "Belangrijke Rankingfactoren"
     }
+  },
+  "email": {
+    "passwordReset": {
+      "subject": "Reset uw wachtwoord",
+      "greeting": "Hallo {name},",
+      "message": "Klik op de onderstaande knop om uw wachtwoord te resetten.",
+      "button": "Wachtwoord Resetten",
+      "expiry": "Deze link verloopt over 1 uur."
+    },
+    "emailVerification": {
+      "subject": "Verifieer uw e-mail",
+      "greeting": "Hallo {name},",
+      "message": "Klik op de onderstaande knop om uw e-mail te verifiëren.",
+      "button": "E-mail Verifiëren",
+      "expiry": "Deze link verloopt over 24 uur."
+    },
+    "welcome": {
+      "subject": "Welkom bij Serpixa",
+      "greeting": "Hallo {name},",
+      "message": "Uw account is klaar. U kunt nu SEO-audits en campagnes maken en beheren.",
+      "button": "Ga naar Dashboard"
+    }
   }
 }

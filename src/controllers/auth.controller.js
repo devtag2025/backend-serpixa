@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
 import { env } from '../config/index.js';
-import { ApiResponse, ApiError, paginate } from '../utils/index.js';
+import { ApiResponse, ApiError, paginate, getLocaleFromRequest } from '../utils/index.js';
 import { User } from '../models/index.js';
 import { emailService } from '../services/index.js';
 import { setAuthTokens } from '../helpers/index.js';
@@ -30,9 +30,15 @@ export const signup = async (req, res, next) => {
     const emailToken = user.generateEmailVerificationToken();
     await user.save();
 
+    // Get locale from request
+    const locale = getLocaleFromRequest(req);
+
     // Best-effort email sending; don't block signup in development if email fails
     try {
-      await emailService.sendEmailVerification(email, emailToken, { userName: name });
+      await emailService.sendEmailVerification(email, emailToken, { 
+        userName: name,
+        locale: locale 
+      });
     } catch (err) {
       if (env.NODE_ENV === 'development') {
         // Log and continue so local testing works even without valid email credentials
@@ -99,6 +105,20 @@ export const verifyEmail = async (req, res, next) => {
     user.email_verification_expires = undefined;
     await user.save();
 
+    // Send welcome email after successful verification
+    const locale = getLocaleFromRequest(req);
+    try {
+      await emailService.sendWelcomeEmail(user.email, {
+        userName: user.name,
+        locale: locale
+      });
+    } catch (err) {
+      // Don't fail verification if welcome email fails
+      if (env.NODE_ENV === 'development') {
+        console.error('Welcome email send failed:', err.message || err);
+      }
+    }
+
     res.json(new ApiResponse(200, null, "Email verified successfully"));
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -129,9 +149,13 @@ export const resendVerification = async (req, res, next) => {
     const emailToken = user.generateEmailVerificationToken();
     await user.save();
 
+    // Get locale from request
+    const locale = getLocaleFromRequest(req);
+
     try {
       await emailService.sendEmailVerification(email, emailToken, {
         userName: user.name,
+        locale: locale
       });
     } catch (err) {
       if (env.NODE_ENV === 'development') {
@@ -166,9 +190,13 @@ export const forgotPassword = async (req, res, next) => {
     user.reset_password_expires = new Date(Date.now() + 3600000);
     await user.save();
 
+    // Get locale from request
+    const locale = getLocaleFromRequest(req);
+
     try {
       await emailService.sendPasswordResetEmail(email, resetToken, {
         userName: user.name,
+        locale: locale
       });
     } catch (err) {
       if (env.NODE_ENV === 'development') {

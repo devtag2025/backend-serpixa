@@ -12,3 +12,6 @@ export * as enums from './enum.js';
 
 // Google domains utilities
 export { getGoogleDomain, getLanguageName, parseLocale } from './googleDomains.js';
+
+// Locale utilities
+export { getLocaleFromRequest, normalizeLocale } from './locale.utils.js';
