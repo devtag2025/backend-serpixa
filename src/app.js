@@ -9,6 +9,7 @@ import { env } from './config/index.js';
 import routes from './routes/index.js';
 import { ApiResponse } from './utils/index.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
+import { handleStripeWebhook } from './controllers/webhook.controller.js';
 
 const app = express();
 
@@ -38,10 +39,10 @@ if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Stripe webhook endpoint needs raw body for signature verification
-app.use('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }));
+// Stripe webhook endpoint - MUST be before express.json() to preserve raw body
+app.post('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
-// Parse JSON
+// Parse JSON 
 app.use(express.json({ limit: '10mb' }));
 
 // Parse URL-encoded

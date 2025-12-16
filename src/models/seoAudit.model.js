@@ -3,9 +3,12 @@ import mongoose from 'mongoose';
 const { Schema, model } = mongoose;
 
 const RecommendationSchema = new Schema({
-  priority: { type: String, enum: ['high', 'medium', 'low'] },
+  priority: { type: String, enum: ['critical', 'high', 'medium', 'low'] },
+  category: { type: String },
   issue: { type: String },
   action: { type: String },
+  impact: { type: String, enum: ['high', 'medium', 'low'] },
+  effort: { type: String, enum: ['easy', 'moderate', 'difficult'] },
 }, { _id: false });
 
 const SEOAuditSchema = new Schema(
@@ -23,6 +26,10 @@ const SEOAuditSchema = new Schema(
     keyword: {
       type: String,
       required: true,
+    },
+    locale: {
+      type: String,
+      default: 'en',
     },
     score: {
       type: Number,

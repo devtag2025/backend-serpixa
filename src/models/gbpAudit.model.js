@@ -3,9 +3,12 @@ import mongoose from 'mongoose';
 const { Schema, model } = mongoose;
 
 const RecommendationSchema = new Schema({
-  priority: { type: String, enum: ['high', 'medium', 'low'] },
+  priority: { type: String, enum: ['critical', 'high', 'medium', 'low'] },
+  category: { type: String },
   issue: { type: String },
   action: { type: String },
+  impact: { type: String, enum: ['high', 'medium', 'low'] },
+  effort: { type: String, enum: ['easy', 'moderate', 'difficult'] },
 }, { _id: false });
 
 const ChecklistItemSchema = new Schema({
@@ -30,6 +33,10 @@ const GBPAuditSchema = new Schema(
     gbpLink: {
       type: String,
       default: null,
+    },
+    locale: {
+      type: String,
+      default: 'en',
     },
     placeId: {
       type: String,

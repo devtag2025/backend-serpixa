@@ -1,11 +1,12 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
-import { GeoAudit } from '../models/index.js';
+import { GeoAudit, User } from '../models/index.js';
 import { geoAuditService, pdfService } from '../services/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
     const { keyword, city, country, googleDomain, language, businessName } = req.body;
     const userId = req.user._id;
+    const { creditInfo } = req;
 
     if (!keyword) {
       return res.status(400).json(
@@ -54,6 +55,21 @@ export const runAudit = async (req, res, next) => {
       raw_data: auditResult.raw,
       status: 'completed',
     });
+
+    // Decrement credits after successful audit
+    if (creditInfo) {
+      const { subscription, userCredits } = creditInfo;
+
+      if (subscription && subscription.usage?.geo_audits_used < (subscription.plan_id?.limits?.geo_audits || 0)) {
+        await subscription.incrementUsage('geo_audits', 1);
+      } else if (userCredits > 0) {
+        const user = await User.findById(userId);
+        if (user && user.credits?.geo_audits > 0) {
+          user.credits.geo_audits = Math.max(0, user.credits.geo_audits - 1);
+          await user.save();
+        }
+      }
+    }
 
     res.status(201).json(
       new ApiResponse(201, { audit }, 'Geo audit completed successfully')
@@ -150,7 +166,7 @@ export const downloadAuditPDF = async (req, res, next) => {
   try {
     const { auditId } = req.params;
     const userId = req.user._id;
-    const { view } = req.query; // Optional: ?view=true to open in browser instead of download
+    const { view } = req.query;
 
     const audit = await GeoAudit.findOne({ _id: auditId, user: userId }).lean();
 
@@ -160,7 +176,6 @@ export const downloadAuditPDF = async (req, res, next) => {
 
     const pdfBuffer = pdfService.generateGeoAuditReport(audit, req.user);
 
-    // Create a descriptive filename
     const businessSlug = audit.businessName
       ? audit.businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30)
       : 'business';
@@ -170,15 +185,12 @@ export const downloadAuditPDF = async (req, res, next) => {
     const dateStr = new Date(audit.createdAt).toISOString().split('T')[0];
     const filename = `geo-audit-${businessSlug}-${keywordSlug}-${dateStr}.pdf`;
 
-    // Set headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', pdfBuffer.byteLength);
-    
-    // Use 'inline' to view in browser, 'attachment' to force download
+
     const disposition = view === 'true' ? 'inline' : 'attachment';
     res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
-    
-    // Cache control for sharing
+
     res.setHeader('Cache-Control', 'private, max-age=3600');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
@@ -196,5 +208,3 @@ export const geoAuditController = {
   deleteAudit,
   downloadAuditPDF,
 };
-
-

@@ -2,6 +2,15 @@ import Joi from "joi";
 
 // Helper function to validate request body
 const validateRequest = (schema) => (req, res, next) => {
+  // Check if req.body exists
+  if (!req.body) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      error: "Request body is required",
+    });
+  }
+
   const { error } = schema.validate(req.body);
   if (error) {
     return res.status(400).json({
@@ -82,6 +91,8 @@ const changePassword = validateRequest(Joi.object({
 const runSEOAudit = validateRequest(Joi.object({
   url,
   keyword,
+  locale: Joi.string().max(10).optional(),
+  device: Joi.string().valid('desktop', 'mobile', 'tablet').optional(),
 }));
 
 const auditIdParam = validateParams(Joi.object({
@@ -94,8 +105,7 @@ const auditIdParam = validateParams(Joi.object({
 const runGBPAudit = validateRequest(Joi.object({
   businessName: Joi.string().min(2).max(200).optional(),
   gbpLink: Joi.string().uri().optional(),
-  location: Joi.string().max(100).optional(),
-  languageCode: Joi.string().length(2).optional(),
+  locale: Joi.string().max(10).optional(),
 }).or('businessName', 'gbpLink').messages({
   'object.missing': 'Either businessName or gbpLink is required',
 }));
@@ -129,10 +139,10 @@ const runGeoAudit = validateRequest(Joi.object({
 
 // Checkout validations
 const createCheckout = validateRequest(Joi.object({
-  price_id: Joi.string().optional(),
-  plan_id: Joi.string().regex(/^[a-fA-F0-9]{24}$/).optional(),
-}).or('price_id', 'plan_id').messages({
-  'object.missing': 'Either price_id or plan_id is required',
+  price_id: Joi.string().required().messages({
+    'any.required': 'price_id is required',
+    'string.empty': 'price_id cannot be empty',
+  }),
 }));
 
 export const validate = {

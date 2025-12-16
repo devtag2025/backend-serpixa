@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { env } from '../config/index.js';
+import { env, getLocaleConfig, DEFAULT_LOCALE } from '../config/index.js';
 import { ApiError } from '../utils/index.js';
 import { Logger } from '../utils/logger.js';
+import { t } from '../locales/index.js';
 
 class GBPService {
   constructor() {
@@ -26,10 +27,18 @@ class GBPService {
     });
   }
 
-  async runAudit(businessName, location = 'United States', languageCode = 'en') {
+  async runAudit(businessName, locale = DEFAULT_LOCALE) {
     try {
-      const gbpData = await this.fetchGBPData(businessName, location, languageCode);
-      return this.transformResult(gbpData, businessName);
+      const localeConfig = getLocaleConfig(locale);
+      const lang = localeConfig.language || 'en';
+
+      const gbpData = await this.fetchGBPData(
+        businessName,
+        localeConfig.locationName,
+        localeConfig.languageCode
+      );
+
+      return this.transformResult(gbpData, businessName, lang);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(502, `GBP audit failed: ${error.message}`);
@@ -80,112 +89,241 @@ class GBPService {
     }
   }
 
-  transformResult(data, businessName) {
+  transformResult(data, businessName, lang = 'en') {
     if (!data) {
       return {
         businessName,
         found: false,
         score: 0,
+        scoreLabel: t(lang, 'gbp.labels.completenessScore'),
+        profileStrength: 'poor',
+        profileStrengthLabel: t(lang, 'gbp.labels.profileStrength'),
         businessInfo: {},
-        checklist: this.generateEmptyChecklist(),
+        businessInfoLabel: t(lang, 'gbp.labels.businessInfo'),
+        checklist: this.generateEmptyChecklist(lang),
+        checklistLabel: t(lang, 'gbp.labels.profileChecklist'),
         recommendations: [
-          { priority: 'high', issue: 'Business not found', action: 'Verify the business name or create a Google Business Profile' }
+          {
+            priority: 'critical',
+            category: 'setup',
+            issue: t(lang, 'gbp.recommendations.notFound.issue'),
+            action: t(lang, 'gbp.recommendations.notFound.action'),
+            impact: 'high',
+            effort: 'moderate',
+          },
         ],
         raw: null,
       };
     }
 
-    const businessInfo = {
-      name: data.title || null,
-      address: data.address || null,
-      addressComponents: data.address_info || null,
-      phone: data.phone || null,
-      website: data.url || null,
-      category: data.category || null,
-      additionalCategories: data.additional_categories || [],
-      description: data.description || null,
-      hours: data.work_hours || null,
-      rating: data.rating?.value || null,
-      reviewCount: data.rating?.votes_count || 0,
-      priceLevel: data.price_level || null,
-      attributes: data.attributes?.available_attributes || [],
-      photos: data.main_image ? 1 : 0,
-      latitude: data.latitude || null,
-      longitude: data.longitude || null,
-      placeId: data.place_id || null,
-    };
-
-    const checklist = this.generateChecklist(businessInfo);
+    const businessInfo = this.buildBusinessInfo(data, lang);
+    const checklist = this.generateChecklist(businessInfo, lang);
     const score = this.calculateScore(checklist);
-    const recommendations = this.generateRecommendations(checklist, businessInfo);
+    const profileStrength = this.getProfileStrength(score);
+    const recommendations = this.generateEnhancedRecommendations(checklist, businessInfo, score, lang);
 
     return {
       businessName,
       found: true,
       placeId: data.place_id || null,
       score,
+      scoreLabel: t(lang, 'gbp.labels.completenessScore'),
+      profileStrength,
+      profileStrengthLabel: t(lang, 'gbp.labels.profileStrength'),
       businessInfo,
+      businessInfoLabel: t(lang, 'gbp.labels.businessInfo'),
       checklist,
+      checklistLabel: t(lang, 'gbp.labels.profileChecklist'),
       recommendations,
       raw: data,
     };
   }
 
-  generateChecklist(info) {
+  buildBusinessInfo(data, lang) {
+    const photoCount = this.countPhotos(data);
+    const descriptionLength = data.description?.length || 0;
+
+    return {
+      name: data.title || null,
+      nameLabel: t(lang, 'gbp.labels.name'),
+      address: data.address || null,
+      addressLabel: t(lang, 'gbp.labels.address'),
+      addressComponents: data.address_info || null,
+      phone: data.phone || null,
+      phoneLabel: t(lang, 'gbp.labels.phone'),
+      website: data.url || null,
+      websiteLabel: t(lang, 'gbp.labels.website'),
+      category: data.category || null,
+      categoryLabel: t(lang, 'gbp.labels.category'),
+      additionalCategories: data.additional_categories || [],
+      description: data.description || null,
+      descriptionLength,
+      hours: data.work_hours || null,
+      rating: data.rating?.value || null,
+      ratingLabel: t(lang, 'gbp.labels.rating'),
+      reviewCount: data.rating?.votes_count || 0,
+      reviewsLabel: t(lang, 'gbp.labels.reviews'),
+      priceLevel: data.price_level || null,
+      attributes: data.attributes?.available_attributes || null,
+      photos: photoCount,
+      latitude: data.latitude || null,
+      longitude: data.longitude || null,
+      placeId: data.place_id || null,
+      isVerified: data.is_claimed || null,
+    };
+  }
+
+  countPhotos(data) {
+    let count = 0;
+    if (data.main_image) count += 1;
+    if (data.photos && Array.isArray(data.photos)) count += data.photos.length;
+    if (data.photos_count) count = Math.max(count, data.photos_count);
+    return count;
+  }
+
+  getProfileStrength(score) {
+    if (score >= 90) return 'excellent';
+    if (score >= 70) return 'good';
+    if (score >= 50) return 'needsImprovement';
+    return 'poor';
+  }
+
+  generateChecklist(info, lang = 'en') {
+    const complete = t(lang, 'gbp.labels.complete');
+    const incomplete = t(lang, 'gbp.labels.incomplete');
+    const chars = t(lang, 'common.chars');
+    const set = t(lang, 'common.set');
+    const notSet = t(lang, 'common.notSet');
+
+    const hasHours = info.hours && Object.keys(info.hours).length > 0;
+    const hasAttributes = info.attributes && (Array.isArray(info.attributes) ? info.attributes.length > 0 : Object.keys(info.attributes).length > 0);
+    const attributeCount = Array.isArray(info.attributes) ? info.attributes.length : (info.attributes ? Object.keys(info.attributes).length : 0);
+
     return [
-      { field: 'name', label: 'Business Name', completed: !!info.name, value: info.name },
-      { field: 'address', label: 'Business Address', completed: !!info.address, value: info.address },
-      { field: 'phone', label: 'Phone Number', completed: !!info.phone, value: info.phone },
-      { field: 'website', label: 'Website URL', completed: !!info.website, value: info.website },
-      { field: 'category', label: 'Primary Category', completed: !!info.category, value: info.category },
-      { field: 'additionalCategories', label: 'Additional Categories', completed: info.additionalCategories?.length > 0, value: info.additionalCategories?.length || 0 },
-      { field: 'description', label: 'Business Description', completed: !!info.description, value: info.description ? `${info.description.length} chars` : null },
-      { field: 'hours', label: 'Business Hours', completed: !!info.hours && Object.keys(info.hours).length > 0, value: info.hours ? 'Set' : null },
-      { field: 'photos', label: 'Photos', completed: info.photos > 0, value: info.photos },
-      { field: 'rating', label: 'Google Rating', completed: info.rating !== null, value: info.rating ? `${info.rating}/5` : null },
-      { field: 'reviewCount', label: 'Customer Reviews', completed: info.reviewCount >= 5, value: info.reviewCount },
-      { field: 'attributes', label: 'Business Attributes', completed: info.attributes?.length > 0, value: info.attributes?.length || 0 },
+      {
+        field: 'name',
+        label: t(lang, 'gbp.checklist.name'),
+        completed: !!info.name,
+        completedLabel: !!info.name ? complete : incomplete,
+        value: info.name,
+        weight: 10,
+      },
+      {
+        field: 'address',
+        label: t(lang, 'gbp.checklist.address'),
+        completed: !!info.address,
+        completedLabel: !!info.address ? complete : incomplete,
+        value: info.address,
+        weight: 15,
+      },
+      {
+        field: 'phone',
+        label: t(lang, 'gbp.checklist.phone'),
+        completed: !!info.phone,
+        completedLabel: !!info.phone ? complete : incomplete,
+        value: info.phone,
+        weight: 10,
+      },
+      {
+        field: 'website',
+        label: t(lang, 'gbp.checklist.website'),
+        completed: !!info.website,
+        completedLabel: !!info.website ? complete : incomplete,
+        value: info.website,
+        weight: 10,
+      },
+      {
+        field: 'category',
+        label: t(lang, 'gbp.checklist.category'),
+        completed: !!info.category,
+        completedLabel: !!info.category ? complete : incomplete,
+        value: info.category,
+        weight: 12,
+      },
+      {
+        field: 'additionalCategories',
+        label: t(lang, 'gbp.checklist.additionalCategories'),
+        completed: info.additionalCategories?.length > 0,
+        completedLabel: info.additionalCategories?.length > 0 ? complete : incomplete,
+        value: info.additionalCategories?.length || 0,
+        weight: 5,
+      },
+      {
+        field: 'description',
+        label: t(lang, 'gbp.checklist.description'),
+        completed: !!info.description && info.descriptionLength >= 250,
+        completedLabel: (!!info.description && info.descriptionLength >= 250) ? complete : incomplete,
+        value: info.description ? `${info.descriptionLength} ${chars}` : null,
+        weight: 10,
+      },
+      {
+        field: 'hours',
+        label: t(lang, 'gbp.checklist.hours'),
+        completed: hasHours,
+        completedLabel: hasHours ? complete : incomplete,
+        value: hasHours ? set : notSet,
+        weight: 8,
+      },
+      {
+        field: 'photos',
+        label: t(lang, 'gbp.checklist.photos'),
+        completed: info.photos >= 10,
+        completedLabel: info.photos >= 10 ? complete : incomplete,
+        value: info.photos,
+        weight: 8,
+      },
+      {
+        field: 'rating',
+        label: t(lang, 'gbp.checklist.rating'),
+        completed: info.rating !== null && info.rating >= 4,
+        completedLabel: (info.rating !== null && info.rating >= 4) ? complete : incomplete,
+        value: info.rating ? `${info.rating}/5` : null,
+        weight: 5,
+      },
+      {
+        field: 'reviewCount',
+        label: t(lang, 'gbp.checklist.reviewCount'),
+        completed: info.reviewCount >= 10,
+        completedLabel: info.reviewCount >= 10 ? complete : incomplete,
+        value: info.reviewCount,
+        weight: 5,
+      },
+      {
+        field: 'attributes',
+        label: t(lang, 'gbp.checklist.attributes'),
+        completed: hasAttributes,
+        completedLabel: hasAttributes ? complete : incomplete,
+        value: attributeCount,
+        weight: 2,
+      },
     ];
   }
 
-  generateEmptyChecklist() {
+  generateEmptyChecklist(lang = 'en') {
+    const incomplete = t(lang, 'gbp.labels.incomplete');
+
     return [
-      { field: 'name', label: 'Business Name', completed: false, value: null },
-      { field: 'address', label: 'Business Address', completed: false, value: null },
-      { field: 'phone', label: 'Phone Number', completed: false, value: null },
-      { field: 'website', label: 'Website URL', completed: false, value: null },
-      { field: 'category', label: 'Primary Category', completed: false, value: null },
-      { field: 'additionalCategories', label: 'Additional Categories', completed: false, value: null },
-      { field: 'description', label: 'Business Description', completed: false, value: null },
-      { field: 'hours', label: 'Business Hours', completed: false, value: null },
-      { field: 'photos', label: 'Photos', completed: false, value: null },
-      { field: 'rating', label: 'Google Rating', completed: false, value: null },
-      { field: 'reviewCount', label: 'Customer Reviews', completed: false, value: null },
-      { field: 'attributes', label: 'Business Attributes', completed: false, value: null },
+      { field: 'name', label: t(lang, 'gbp.checklist.name'), completed: false, completedLabel: incomplete, value: null, weight: 10 },
+      { field: 'address', label: t(lang, 'gbp.checklist.address'), completed: false, completedLabel: incomplete, value: null, weight: 15 },
+      { field: 'phone', label: t(lang, 'gbp.checklist.phone'), completed: false, completedLabel: incomplete, value: null, weight: 10 },
+      { field: 'website', label: t(lang, 'gbp.checklist.website'), completed: false, completedLabel: incomplete, value: null, weight: 10 },
+      { field: 'category', label: t(lang, 'gbp.checklist.category'), completed: false, completedLabel: incomplete, value: null, weight: 12 },
+      { field: 'additionalCategories', label: t(lang, 'gbp.checklist.additionalCategories'), completed: false, completedLabel: incomplete, value: null, weight: 5 },
+      { field: 'description', label: t(lang, 'gbp.checklist.description'), completed: false, completedLabel: incomplete, value: null, weight: 10 },
+      { field: 'hours', label: t(lang, 'gbp.checklist.hours'), completed: false, completedLabel: incomplete, value: null, weight: 8 },
+      { field: 'photos', label: t(lang, 'gbp.checklist.photos'), completed: false, completedLabel: incomplete, value: null, weight: 8 },
+      { field: 'rating', label: t(lang, 'gbp.checklist.rating'), completed: false, completedLabel: incomplete, value: null, weight: 5 },
+      { field: 'reviewCount', label: t(lang, 'gbp.checklist.reviewCount'), completed: false, completedLabel: incomplete, value: null, weight: 5 },
+      { field: 'attributes', label: t(lang, 'gbp.checklist.attributes'), completed: false, completedLabel: incomplete, value: null, weight: 2 },
     ];
   }
 
   calculateScore(checklist) {
-    const weights = {
-      name: 10,
-      address: 15,
-      phone: 10,
-      website: 10,
-      category: 10,
-      additionalCategories: 5,
-      description: 10,
-      hours: 10,
-      photos: 5,
-      rating: 5,
-      reviewCount: 5,
-      attributes: 5,
-    };
-
     let earnedPoints = 0;
     let totalPoints = 0;
 
     for (const item of checklist) {
-      const weight = weights[item.field] || 5;
+      const weight = item.weight || 5;
       totalPoints += weight;
       if (item.completed) {
         earnedPoints += weight;
@@ -195,54 +333,110 @@ class GBPService {
     return Math.round((earnedPoints / totalPoints) * 100);
   }
 
-  generateRecommendations(checklist, info) {
+  generateEnhancedRecommendations(checklist, info, score, lang = 'en') {
     const recommendations = [];
     const incompleteItems = checklist.filter(item => !item.completed);
 
-    const recommendationMap = {
-      name: { priority: 'high', issue: 'Missing business name', action: 'Add your official business name to your profile.' },
-      address: { priority: 'high', issue: 'Missing business address', action: 'Add your complete business address for local search visibility.' },
-      phone: { priority: 'high', issue: 'Missing phone number', action: 'Add a local phone number to enable customer calls.' },
-      website: { priority: 'high', issue: 'Missing website URL', action: 'Link your website to drive traffic from your GBP listing.' },
-      category: { priority: 'high', issue: 'Missing primary category', action: 'Select the most accurate primary category for your business.' },
-      additionalCategories: { priority: 'medium', issue: 'No additional categories', action: 'Add 2-5 relevant secondary categories to improve visibility.' },
-      description: { priority: 'medium', issue: 'Missing business description', action: 'Add a compelling description (750 chars max) with relevant keywords.' },
-      hours: { priority: 'high', issue: 'Missing business hours', action: 'Set your operating hours to help customers know when to visit.' },
-      photos: { priority: 'medium', issue: 'No photos uploaded', action: 'Add high-quality photos of your business, products, and team.' },
-      rating: { priority: 'low', issue: 'No Google rating yet', action: 'Encourage customers to rate your business on Google.' },
-      reviewCount: { priority: 'medium', issue: 'Less than 5 reviews', action: 'Build your review base by asking satisfied customers for feedback.' },
-      attributes: { priority: 'low', issue: 'No business attributes set', action: 'Add relevant attributes (WiFi, accessibility, payment methods, etc.).' },
+    // Helper to add recommendation with consistent structure
+    const addRec = (priority, category, issueKey, actionKey, vars = {}) => {
+      const issue = t(lang, `gbp.recommendations.${issueKey}.issue`, vars);
+      const action = t(lang, `gbp.recommendations.${issueKey}.action`, vars);
+
+      if (issue && action && !issue.includes('.issue')) {
+        const effortMap = {
+          name: 'easy', address: 'easy', phone: 'easy', website: 'easy',
+          category: 'easy', additionalCategories: 'easy', description: 'easy',
+          hours: 'easy', photos: 'moderate', rating: 'moderate',
+          reviewCount: 'moderate', attributes: 'easy',
+        };
+
+        recommendations.push({
+          priority,
+          category,
+          issue,
+          action,
+          impact: priority === 'critical' || priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low',
+          effort: effortMap[issueKey] || 'moderate',
+        });
+      }
     };
 
-    for (const item of incompleteItems) {
-      if (recommendationMap[item.field]) {
-        recommendations.push(recommendationMap[item.field]);
-      }
+    // === CRITICAL ITEMS (Core profile elements) ===
+    const criticalFields = ['name', 'address', 'phone', 'category'];
+    for (const item of incompleteItems.filter(i => criticalFields.includes(i.field))) {
+      addRec('critical', 'profile', item.field, item.field);
     }
 
-    if (info.reviewCount < 10 && info.reviewCount >= 0) {
-      recommendations.push({
-        priority: 'medium',
-        issue: `Only ${info.reviewCount} reviews`,
-        action: 'Encourage satisfied customers to leave reviews. Respond to all existing reviews promptly.',
+    // === HIGH PRIORITY ===
+    // Website
+    if (!info.website) {
+      addRec('high', 'profile', 'website', 'website');
+    }
+
+    // Hours
+    if (!info.hours || Object.keys(info.hours).length === 0) {
+      addRec('high', 'profile', 'hours', 'hours');
+    }
+
+    // Description
+    if (!info.description) {
+      addRec('high', 'content', 'description', 'description');
+    } else if (info.descriptionLength < 500) {
+      addRec('medium', 'content', 'shortDescription', 'shortDescription', { length: info.descriptionLength });
+    }
+
+    // Photos
+    if (info.photos === 0) {
+      addRec('high', 'content', 'photos', 'photos');
+    } else if (info.photos < 25) {
+      addRec('medium', 'content', 'fewPhotos', 'fewPhotos', { count: info.photos });
+    }
+
+    // === MEDIUM PRIORITY ===
+    // Additional Categories
+    if (!info.additionalCategories || info.additionalCategories.length === 0) {
+      addRec('medium', 'profile', 'additionalCategories', 'additionalCategories');
+    }
+
+    // Attributes
+    const hasAttributes = info.attributes && (Array.isArray(info.attributes) ? info.attributes.length > 0 : Object.keys(info.attributes).length > 0);
+    if (!hasAttributes) {
+      addRec('medium', 'profile', 'attributes', 'attributes');
+    }
+
+    // === REVIEW-BASED RECOMMENDATIONS ===
+    // Rating
+    if (info.rating === null) {
+      addRec('high', 'reviews', 'rating', 'rating');
+    } else if (info.rating < 4) {
+      addRec('high', 'reviews', 'lowRating', 'lowRating', { rating: info.rating });
+    }
+
+    // Review Count
+    if (info.reviewCount === 0) {
+      addRec('high', 'reviews', 'reviewCount', 'reviewCount');
+    } else if (info.reviewCount < 10) {
+      addRec('high', 'reviews', 'lowReviewCount', 'lowReviewCount', {
+        count: info.reviewCount,
+        target: 50,
+      });
+    } else if (info.reviewCount < 50) {
+      addRec('medium', 'reviews', 'lowReviews', 'lowReviews', {
+        count: info.reviewCount,
+        target: Math.max(100, info.reviewCount * 2),
       });
     }
 
-    if (info.rating && info.rating < 4) {
-      recommendations.push({
-        priority: 'high',
-        issue: `Rating is ${info.rating}/5`,
-        action: 'Address negative reviews professionally. Improve service quality to boost ratings.',
-      });
+    // === PROFILE COMPLETENESS ===
+    if (score < 100 && score >= 70) {
+      addRec('low', 'profile', 'profileIncomplete', 'profileIncomplete', { score });
+    } else if (score >= 90) {
+      addRec('low', 'success', 'excellentProfile', 'excellentProfile', { score });
     }
 
-    if (info.description && info.description.length < 250) {
-      recommendations.push({
-        priority: 'low',
-        issue: 'Business description is short',
-        action: 'Expand your description to 750+ characters with keywords and services offered.',
-      });
-    }
+    // Sort by priority
+    const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    recommendations.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
 
     return recommendations;
   }

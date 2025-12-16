@@ -117,7 +117,6 @@ class GeoAuditService {
       let result;
       if (Array.isArray(response.data)) {
         if (response.data.length === 0) {
-          Logger.warn('DataForSEO Maps API returned empty array');
           throw new ApiError(502, 'No Maps data received');
         }
         result = response.data[0];
@@ -130,7 +129,6 @@ class GeoAuditService {
 
       // Check for API errors
       if (result.status_code !== 20000) {
-        Logger.error('DataForSEO Maps API error:', result.status_message, 'Code:', result.status_code);
         throw new ApiError(502, result.status_message || 'DataForSEO Maps API error');
       }
 
@@ -154,7 +152,6 @@ class GeoAuditService {
       } else if (task.result) {
         mapsData = task.result;
       } else {
-        Logger.error('No Maps result data found in task:', JSON.stringify(task, null, 2));
         throw new ApiError(502, 'No Maps result data found');
       }
 
@@ -182,21 +179,13 @@ class GeoAuditService {
 
       if (error.response) {
         const statusCode = error.response.status;
-        const errorMessage = error.response.data?.message || error.response.statusText || 'DataForSEO Maps API request failed';
-
         if (statusCode === 401) {
           Logger.error('DataForSEO authentication failed. Please check your credentials.');
           throw new ApiError(401, 'DataForSEO authentication failed. Please check your credentials in .env file');
         }
-
-        Logger.error('DataForSEO Maps API error response:', {
-          status: statusCode,
-          data: error.response.data,
-        });
-        throw new ApiError(statusCode, errorMessage);
+        throw new ApiError(statusCode, error.response.data?.message || 'Maps API request failed');
       }
 
-      Logger.error('Maps data fetch failed:', error.message);
       throw new ApiError(502, `Maps data fetch failed: ${error.message}`);
     }
   }
