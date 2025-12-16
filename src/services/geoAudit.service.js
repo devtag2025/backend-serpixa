@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { env } from '../config/index.js';
-import { ApiError } from '../utils/index.js';
+import { ApiError, getGoogleDomain, getLanguageName, parseLocale } from '../utils/index.js';
 import { Logger } from '../utils/logger.js';
 
 class GeoAuditService {
@@ -26,310 +26,94 @@ class GeoAuditService {
     });
   }
 
-  async runGeoAudit(keyword, location, businessName = null, languageName = 'English', device = 'desktop') {
+  /**
+   * Run geo audit using Google Maps API
+   * @param {string} keyword - Search keyword
+   * @param {string} city - City name
+   * @param {string} country - Country name
+   * @param {string} googleDomain - Google domain (e.g., 'google.be', 'google.fr')
+   * @param {string} language - Language code (e.g., 'fr', 'en', 'nl')
+   * @returns {Promise<Object>} Audit result with local visibility score, competitors, and recommendations
+   */
+  async runGeoAudit(keyword, city, country, googleDomain = null, language = null) {
     try {
-      const localPackData = await this.fetchLocalPackData(keyword, location, languageName, device);
-      return this.transformLocalPackResult(localPackData, keyword, location, businessName);
+      // Get language name for DataForSEO API
+      const languageName = language ? getLanguageName(language) : 'English';
+      
+      // Construct location_name as "City,Country" (no space after comma as per DataForSEO format)
+      const locationName = `${city},${country}`;
+
+      // Auto-detect googleDomain from country if not provided
+      let finalGoogleDomain = googleDomain;
+      if (!finalGoogleDomain && country) {
+        const countryLower = country.toLowerCase();
+        const domainMap = {
+          'belgium': 'google.be',
+          'france': 'google.fr',
+          'netherlands': 'google.nl',
+          'germany': 'google.de',
+          'spain': 'google.es',
+          'italy': 'google.it',
+          'united kingdom': 'google.co.uk',
+          'uk': 'google.co.uk',
+          'united states': 'google.com',
+          'us': 'google.com',
+          'usa': 'google.com',
+        };
+        finalGoogleDomain = domainMap[countryLower] || 'google.com';
+      }
+
+      // Fetch data from Google Maps API
+      const mapsData = await this.fetchMapsData(keyword, locationName, languageName, finalGoogleDomain);
+
+      // Transform and return results (no business name needed)
+      return this.transformMapsResult(mapsData, keyword, locationName);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(502, `Geo audit failed: ${error.message}`);
     }
   }
 
-  async fetchLocalPackData(keyword, locationName = 'United States', languageName = 'English', device = 'desktop') {
+  /**
+   * Fetch data from DataForSEO Google Maps API
+   * Uses only the 4 required parameters: keyword, location_name, language_name, se_domain
+   * @param {string} keyword - Search keyword
+   * @param {string} locationName - Location in format "City,Country" (e.g., "Brussels,Belgium")
+   * @param {string} languageName - Language name (e.g., "French", "English")
+   * @param {string} googleDomain - Google domain (e.g., "google.be", "google.fr") - optional
+   * @returns {Promise<Object>} Maps API response data
+   */
+  async fetchMapsData(keyword, locationName, languageName, googleDomain = null) {
     if (!this.login || !this.password) {
       throw new ApiError(500, 'DataForSEO credentials not configured');
     }
 
-    // Common location codes mapping for fallback
-    const locationCodeMap = {
-      'united states': 2840,
-      'us': 2840,
-      'usa': 2840,
-      'united kingdom': 2826,
-      'uk': 2826,
-      'canada': 2036,
-      'australia': 2033,
-      'germany': 2276,
-      'france': 2250,
-      'new york': 1006164, // New York, NY
-      'los angeles': 1002980, // Los Angeles, CA
-      'chicago': 1002801, // Chicago, IL
-      'houston': 1002931, // Houston, TX
-      'phoenix': 1003444, // Phoenix, AZ
-      'philadelphia': 1003440, // Philadelphia, PA
-      'san antonio': 1003520, // San Antonio, TX
-      'san diego': 1003521, // San Diego, CA
-      'dallas': 1002840, // Dallas, TX
-      'san jose': 1003522, // San Jose, CA
-    };
-
-    // Helper function to parse location string
-    const parseLocation = (locationStr) => {
-      if (!locationStr) return null;
-      
-      // Check if it's already a number
-      const num = parseInt(locationStr);
-      if (!isNaN(num) && num > 0) {
-        return { type: 'code', value: num };
-      }
-      
-      // Clean and normalize the location string
-      let cleaned = locationStr.trim();
-      
-      // Remove common suffixes like ", NY", ", CA", etc.
-      // Match patterns like "City, ST" or "City, State"
-      const cityStateMatch = cleaned.match(/^(.+?),\s*[A-Z]{2}$/i);
-      if (cityStateMatch) {
-        cleaned = cityStateMatch[1].trim();
-      }
-      
-      // Check if cleaned location is in our map
-      const locationLower = cleaned.toLowerCase();
-      if (locationCodeMap[locationLower]) {
-        return { type: 'code', value: locationCodeMap[locationLower] };
-      }
-      
-      // Try the original string in the map
-      const originalLower = locationStr.toLowerCase().trim();
-      if (locationCodeMap[originalLower]) {
-        return { type: 'code', value: locationCodeMap[originalLower] };
-      }
-      
-      // Return as location_name (try the cleaned version first, then original)
-      return { type: 'name', value: cleaned || locationStr };
-    };
-
     try {
-      // Use the regular SERP endpoint which includes local_pack items
-      // Build payload - try location_name first, fallback to location_code if needed
-      const payload = [
-        {
-          keyword: keyword.trim(),
-          language_name: languageName,
-          device: device,
-          depth: 100,
-        },
-      ];
-
-      // Add location - parse and use appropriate format
-      const parsedLocation = parseLocation(locationName);
-      if (parsedLocation) {
-        if (parsedLocation.type === 'code') {
-          payload[0].location_code = parsedLocation.value;
-        } else {
-          payload[0].location_name = parsedLocation.value;
-        }
-      } else {
-        // Default to United States if no location provided
-        payload[0].location_code = 2840;
-      }
-
-      Logger.log('Sending request to DataForSEO SERP API:', {
-        endpoint: '/v3/serp/google/organic/live/regular',
+      // Build payload with only the 4 required parameters
+      const payload = [{
         keyword: keyword.trim(),
-        location: parsedLocation,
-        language: languageName,
-        device: device,
-      });
+        location_name: locationName,
+        language_name: languageName,
+      }];
 
-      const response = await this.client.post('/v3/serp/google/organic/live/regular', payload);
-      
-      Logger.log('DataForSEO API Response Status:', response.status);
-
-      // Handle different response structures
-      let result;
-      if (Array.isArray(response.data)) {
-        if (response.data.length === 0) {
-          Logger.warn('DataForSEO SERP API returned empty array');
-          throw new ApiError(502, 'No SERP data received');
-        }
-        result = response.data[0];
-      } else if (response.data?.status_code !== undefined) {
-        result = response.data;
-      } else {
-        Logger.error('Unexpected SERP response structure:', typeof response.data);
-        throw new ApiError(502, 'Unexpected API response structure');
+      // Add se_domain only if provided (optional)
+      if (googleDomain && googleDomain !== 'google.com') {
+        payload[0].se_domain = googleDomain;
       }
 
-      if (result.status_code !== 20000) {
-        Logger.error('DataForSEO SERP API error:', result.status_message, 'Code:', result.status_code);
-        throw new ApiError(502, result.status_message || 'DataForSEO SERP API error');
-      }
-
-      const task = result.tasks?.[0];
-      if (!task || task.status_code !== 20000) {
-        const errorMsg = task?.status_message || 'SERP data fetch failed';
-        Logger.error('DataForSEO SERP task error:', errorMsg, 'Code:', task?.status_code);
-        
-        // If location_name is invalid, provide helpful error message
-        if (errorMsg.includes('location_name') || errorMsg.includes('Invalid Field')) {
-          throw new ApiError(400, `Invalid location: "${locationName}". Please use a valid location name (e.g., "United States", "New York") or provide a location code (numeric). Error: ${errorMsg}`);
-        }
-        
-        throw new ApiError(502, errorMsg);
-      }
-
-      let serpData;
-      if (Array.isArray(task.result)) {
-        serpData = task.result[0];
-      } else if (task.result) {
-        serpData = task.result;
-      } else {
-        Logger.error('No SERP result data found in task:', JSON.stringify(task, null, 2));
-        throw new ApiError(502, 'No SERP result data found');
-      }
-
-      // Log the response structure for debugging
-      Logger.log('SERP Data received:', {
-        hasItems: !!serpData?.items,
-        itemsCount: serpData?.items?.length || 0,
-        itemTypes: serpData?.items?.map(item => item.type) || [],
-        keyword: keyword,
-        location: locationName,
-      });
-
-      // Extract local pack items from the SERP results
-      const items = serpData?.items || [];
-      Logger.log('Total items in SERP:', items.length);
-      Logger.log('Item types found:', [...new Set(items.map(item => item.type))]);
-
-      const localPackItems = items.filter(item => item.type === 'local_pack');
-      Logger.log('Local pack items found:', localPackItems.length);
-
-      // If no local pack items found, try Maps API as fallback
-      if (localPackItems.length === 0) {
-        Logger.warn('No local pack items found in SERP results, trying Maps API...');
-        try {
-          return await this.fetchMapsData(keyword, locationName, languageName, device);
-        } catch (mapsError) {
-          Logger.error('Maps API also failed:', mapsError.message);
-          // Return the full SERP data so we can still process it
-          return {
-            items: items,
-            local_pack_items: [],
-            has_local_pack: false,
-            serp_data: serpData,
-          };
-        }
-      }
-
-      // Return structured data with local pack items
-      return {
-        items: items,
-        local_pack_items: localPackItems,
-        has_local_pack: true,
-        keyword: keyword,
-        location: locationName,
-        language: languageName,
-        device: device,
-      };
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-
-      if (error.response) {
-        const statusCode = error.response.status;
-        const errorMessage = error.response.data?.message || error.response.statusText || 'DataForSEO API request failed';
-
-        if (statusCode === 401) {
-          Logger.error('DataForSEO authentication failed. Please check your credentials.');
-          throw new ApiError(401, 'DataForSEO authentication failed. Please check your credentials in .env file');
-        }
-
-        Logger.error('DataForSEO Local Pack API error response:', {
-          status: statusCode,
-          data: error.response.data,
-        });
-        throw new ApiError(statusCode, errorMessage);
-      }
-
-      Logger.error('Local Pack data fetch failed:', error.message);
-      throw new ApiError(502, `Local Pack data fetch failed: ${error.message}`);
-    }
-  }
-
-  async fetchMapsData(keyword, locationName = 'United States', languageName = 'English', device = 'desktop') {
-    if (!this.login || !this.password) {
-      throw new ApiError(500, 'DataForSEO credentials not configured');
-    }
-
-    // Helper function to parse location (reuse from fetchLocalPackData)
-    const locationCodeMap = {
-      'united states': 2840,
-      'us': 2840,
-      'usa': 2840,
-      'united kingdom': 2826,
-      'uk': 2826,
-      'canada': 2036,
-      'australia': 2033,
-      'germany': 2276,
-      'france': 2250,
-      'new york': 1006164,
-      'los angeles': 1002980,
-      'chicago': 1002801,
-      'houston': 1002931,
-      'phoenix': 1003444,
-      'philadelphia': 1003440,
-      'san antonio': 1003520,
-      'san diego': 1003521,
-      'dallas': 1002840,
-      'san jose': 1003522,
-    };
-
-    const parseLocation = (locationStr) => {
-      if (!locationStr) return null;
-      const num = parseInt(locationStr);
-      if (!isNaN(num) && num > 0) {
-        return { type: 'code', value: num };
-      }
-      let cleaned = locationStr.trim();
-      const cityStateMatch = cleaned.match(/^(.+?),\s*[A-Z]{2}$/i);
-      if (cityStateMatch) {
-        cleaned = cityStateMatch[1].trim();
-      }
-      const locationLower = cleaned.toLowerCase();
-      if (locationCodeMap[locationLower]) {
-        return { type: 'code', value: locationCodeMap[locationLower] };
-      }
-      const originalLower = locationStr.toLowerCase().trim();
-      if (locationCodeMap[originalLower]) {
-        return { type: 'code', value: locationCodeMap[originalLower] };
-      }
-      return { type: 'name', value: cleaned || locationStr };
-    };
-
-    try {
-      const payload = [
-        {
-          keyword: keyword.trim(),
-          language_name: languageName,
-          device: device,
-        },
-      ];
-
-      const parsedLocation = parseLocation(locationName);
-      if (parsedLocation) {
-        if (parsedLocation.type === 'code') {
-          payload[0].location_code = parsedLocation.value;
-        } else {
-          payload[0].location_name = parsedLocation.value;
-        }
-      } else {
-        payload[0].location_code = 2840;
-      }
-
-      Logger.log('Sending request to DataForSEO Maps API:', {
+      Logger.log('Sending request to DataForSEO Google Maps API:', {
         endpoint: '/v3/serp/google/maps/live/advanced',
         keyword: keyword.trim(),
-        location: parsedLocation,
-        language: languageName,
-        device: device,
+        location_name: locationName,
+        language_name: languageName,
+        se_domain: googleDomain || 'not set',
       });
 
       const response = await this.client.post('/v3/serp/google/maps/live/advanced', payload);
 
       Logger.log('DataForSEO Maps API Response Status:', response.status);
 
+      // Handle response structure
       let result;
       if (Array.isArray(response.data)) {
         if (response.data.length === 0) {
@@ -341,9 +125,10 @@ class GeoAuditService {
         result = response.data;
       } else {
         Logger.error('Unexpected Maps API response structure:', typeof response.data);
-        throw new ApiError(502, 'Unexpected Maps API response structure');
+        throw new ApiError(502, 'Unexpected API response structure');
       }
 
+      // Check for API errors
       if (result.status_code !== 20000) {
         Logger.error('DataForSEO Maps API error:', result.status_message, 'Code:', result.status_code);
         throw new ApiError(502, result.status_message || 'DataForSEO Maps API error');
@@ -353,9 +138,16 @@ class GeoAuditService {
       if (!task || task.status_code !== 20000) {
         const errorMsg = task?.status_message || 'Maps data fetch failed';
         Logger.error('DataForSEO Maps task error:', errorMsg, 'Code:', task?.status_code);
+        
+        // Provide helpful error messages
+        if (errorMsg.includes('location_name') || errorMsg.includes('Invalid Field')) {
+          throw new ApiError(400, `Invalid location: "${locationName}". Please use format "City,Country" (e.g., "Brussels,Belgium", "Paris,France"). Error: ${errorMsg}`);
+        }
+        
         throw new ApiError(502, errorMsg);
       }
 
+      // Extract result data
       let mapsData;
       if (Array.isArray(task.result)) {
         mapsData = task.result[0];
@@ -366,36 +158,24 @@ class GeoAuditService {
         throw new ApiError(502, 'No Maps result data found');
       }
 
-      Logger.log('Maps Data received:', {
-        hasItems: !!mapsData?.items,
-        itemsCount: mapsData?.items?.length || 0,
-        itemTypes: mapsData?.items?.map(item => item.type) || [],
-      });
 
-      const items = mapsData?.items || [];
-      Logger.log('Total items in Maps response:', items.length);
-      Logger.log('Item types found in Maps:', [...new Set(items.map(item => item.type))]);
-
-      // Maps API returns items directly, not in local_pack format
       // Extract business listings from maps results
-      const mapItems = items.filter(item => 
+      const items = mapsData?.items || [];
+      const businessItems = items.filter(item => 
         item.type === 'maps_results' || 
         item.type === 'local_pack' ||
         item.type === 'map' ||
         (item.title && (item.rating || item.reviews_count))
       );
 
-      Logger.log('Map items found:', mapItems.length);
+      Logger.log('Business items found:', businessItems.length);
 
       return {
-        items: items,
-        local_pack_items: mapItems,
-        has_local_pack: mapItems.length > 0,
-        maps_data: mapsData,
+        items: businessItems,
         keyword: keyword,
         location: locationName,
         language: languageName,
-        device: device,
+        google_domain: googleDomain,
       };
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -405,7 +185,7 @@ class GeoAuditService {
         const errorMessage = error.response.data?.message || error.response.statusText || 'DataForSEO Maps API request failed';
 
         if (statusCode === 401) {
-          Logger.error('DataForSEO Maps authentication failed. Please check your credentials.');
+          Logger.error('DataForSEO authentication failed. Please check your credentials.');
           throw new ApiError(401, 'DataForSEO authentication failed. Please check your credentials in .env file');
         }
 
@@ -421,16 +201,23 @@ class GeoAuditService {
     }
   }
 
-  transformLocalPackResult(data, keyword, location, businessName = null) {
-    if (!data) {
+  /**
+   * Transform Maps API response into audit result
+   * Returns: local visibility score, competitors, and recommendations
+   * No business info required - score is based on competitors analysis
+   */
+  transformMapsResult(data, keyword, location) {
+    if (!data || !data.items || data.items.length === 0) {
       return {
         keyword,
         location,
-        businessName,
         localVisibilityScore: 0,
-        businessInfo: null,
         competitors: [],
-        recommendations: [],
+        recommendations: [{
+          priority: 'high',
+          issue: 'No local pack results found for this keyword and location',
+          action: 'Try using a more specific location or a keyword that typically shows local results',
+        }],
         napIssues: {
           nameConsistency: true,
           addressConsistency: true,
@@ -441,129 +228,30 @@ class GeoAuditService {
           missingCitations: [],
           inconsistentData: [],
         },
-        raw: null,
-      };
-    }
-
-    // Extract local pack items from the structured data
-    let localPackItems = data.local_pack_items || [];
-    
-    Logger.log('Transform: local_pack_items count:', localPackItems.length);
-    Logger.log('Transform: has items array:', !!data.items);
-    Logger.log('Transform: items count:', data.items?.length || 0);
-    
-    // If no local pack items found, check if we need to extract from items
-    if (localPackItems.length === 0 && data.items) {
-      const items = data.items || [];
-      Logger.log('Transform: Filtering items for local_pack type...');
-      const filtered = items.filter(item => item.type === 'local_pack');
-      Logger.log('Transform: Found local_pack items:', filtered.length);
-      if (filtered.length > 0) {
-        localPackItems.push(...filtered);
-      }
-      
-      // Also check for maps_results type (from Maps API)
-      if (localPackItems.length === 0) {
-        Logger.log('Transform: Checking for maps_results type...');
-        const mapsResults = items.filter(item => 
-          item.type === 'maps_results' || 
-          item.type === 'map' ||
-          (item.title && (item.rating || item.reviews_count))
-        );
-        Logger.log('Transform: Found maps_results items:', mapsResults.length);
-        if (mapsResults.length > 0) {
-          localPackItems.push(...mapsResults);
-        }
-      }
-    }
-    
-    Logger.log('Transform: Final localPackItems count:', localPackItems.length);
-
-    // Find business in results if businessName provided
-    // First, we need to flatten all local pack items to search through them
-    let businessInfo = null;
-    let businessIndex = -1;
-    
-    if (businessName && localPackItems.length > 0) {
-      const businessNameLower = businessName.toLowerCase();
-      
-      // Flatten all local pack items to search
-      const allLocalItems = [];
-      localPackItems.forEach((item) => {
-        if (item.items && Array.isArray(item.items)) {
-          item.items.forEach(localItem => allLocalItems.push(localItem));
-        } else {
-          allLocalItems.push(item);
-        }
-      });
-      
-      // Search for business in flattened items
-      businessIndex = allLocalItems.findIndex((item) => {
-        const itemName = (item.title || item.name || '').toLowerCase();
-        return itemName.includes(businessNameLower) || businessNameLower.includes(itemName);
-      });
-
-      if (businessIndex >= 0) {
-        const businessItem = allLocalItems[businessIndex];
-        businessInfo = this.extractBusinessInfo(businessItem);
-      }
-    }
-
-    // Extract competitors from local pack items
-    // Local pack items can have different structures - handle both
-    const competitors = [];
-    
-    if (localPackItems.length === 0) {
-      // No local pack found - return empty result with recommendations
-      return {
-        keyword,
-        location,
-        businessName: businessName || keyword,
-        localVisibilityScore: 0,
-        businessInfo: null,
-        competitors: [],
-        recommendations: [{
-          priority: 'high',
-          issue: 'No local pack results found for this keyword and location',
-          action: 'Try using a more specific location or a keyword that typically shows local results (e.g., "restaurants near me", "plumbers in [city]")',
-        }],
-        napIssues: {
-          nameConsistency: true,
-          addressConsistency: true,
-          phoneConsistency: true,
-          issues: ['No local pack data available'],
-        },
-        citationIssues: {
-          missingCitations: [],
-          inconsistentData: [],
-        },
         raw: data,
       };
     }
-    
-    for (let i = 0; i < localPackItems.length; i++) {
-      const item = localPackItems[i];
-      
-      // Handle different local pack item structures
-      // Some items might have a 'items' array inside them
+
+    // Extract competitors from maps results
+    const competitors = [];
+    data.items.forEach((item, index) => {
+      // Handle items that may have nested items array
       if (item.items && Array.isArray(item.items)) {
-        // This is a local_pack container with items inside
-        item.items.forEach((localItem, idx) => {
+        item.items.forEach((nestedItem) => {
           competitors.push({
             position: competitors.length + 1,
-            name: localItem.title || localItem.name || '',
-            rating: localItem.rating?.value || localItem.rating || null,
-            reviews: localItem.reviews_count || localItem.reviews || 0,
-            distance: localItem.distance || null,
-            address: localItem.address || localItem.address_lines?.join(', ') || '',
-            phone: localItem.phone || null,
-            website: localItem.website || null,
-            category: localItem.category || localItem.type || null,
-            placeId: localItem.place_id || null,
+            name: nestedItem.title || nestedItem.name || '',
+            rating: nestedItem.rating?.value || nestedItem.rating || null,
+            reviews: nestedItem.reviews_count || nestedItem.reviews || 0,
+            distance: nestedItem.distance || null,
+            address: nestedItem.address || nestedItem.address_lines?.join(', ') || '',
+            phone: nestedItem.phone || null,
+            website: nestedItem.website || null,
+            category: nestedItem.category || nestedItem.type || null,
+            placeId: nestedItem.place_id || null,
           });
         });
       } else {
-        // Direct local pack item
         competitors.push({
           position: competitors.length + 1,
           name: item.title || item.name || '',
@@ -577,229 +265,208 @@ class GeoAuditService {
           placeId: item.place_id || null,
         });
       }
-    }
-    
-    // Recalculate businessIndex based on competitors array if businessName was provided
-    if (businessName && businessIndex < 0) {
-      const businessNameLower = businessName.toLowerCase();
-      businessIndex = competitors.findIndex((comp) => {
-        const compName = (comp.name || '').toLowerCase();
-        return compName.includes(businessNameLower) || businessNameLower.includes(compName);
-      });
-      
-      if (businessIndex >= 0) {
-        businessInfo = {
-          name: competitors[businessIndex].name,
-          address: competitors[businessIndex].address,
-          phone: competitors[businessIndex].phone,
-          website: competitors[businessIndex].website,
-          rating: competitors[businessIndex].rating,
-          reviews: competitors[businessIndex].reviews,
-          category: competitors[businessIndex].category,
-          placeId: competitors[businessIndex].placeId,
-        };
-      }
-    }
+    });
 
-    // Calculate local visibility score
-    const localVisibilityScore = this.calculateLocalVisibilityScore(businessIndex, competitors, businessInfo);
+    // Calculate local visibility score based on competitors analysis (no business info needed)
+    const localVisibilityScore = this.calculateLocalVisibilityScore(competitors);
 
-    // Generate recommendations
-    const recommendations = this.generateRecommendations(businessInfo, competitors, businessIndex);
+    // Generate recommendations based on competitors
+    const recommendations = this.generateRecommendations(competitors);
 
-    // Analyze NAP consistency
-    const napIssues = this.analyzeNAPConsistency(businessInfo, competitors);
+    // Analyze NAP consistency from competitors
+    const napIssues = this.analyzeNAPConsistency(competitors);
 
-    // Analyze citation issues
-    const citationIssues = this.analyzeCitationIssues(businessInfo, competitors);
+    // Analyze citation issues from competitors
+    const citationIssues = this.analyzeCitationIssues(competitors);
 
-      return {
-        keyword,
-        location,
-        businessName: businessName || (businessInfo?.name || keyword),
-        localVisibilityScore,
-        businessInfo,
-        competitors,
-        recommendations,
-        napIssues,
-        citationIssues,
-        raw: {
-          ...data,
-          original_items: data.items,
-        },
-      };
-  }
-
-  extractBusinessInfo(item) {
     return {
-      name: item.title || item.name || null,
-      address: item.address || item.address_lines?.join(', ') || null,
-      phone: item.phone || null,
-      website: item.website || null,
-      rating: item.rating?.value || item.rating || null,
-      reviews: item.reviews_count || item.reviews || 0,
-      category: item.category || item.type || null,
-      placeId: item.place_id || null,
-      latitude: item.latitude || null,
-      longitude: item.longitude || null,
+      keyword,
+      location,
+      localVisibilityScore,
+      competitors,
+      recommendations,
+      napIssues,
+      citationIssues,
+      raw: data,
     };
   }
 
-  calculateLocalVisibilityScore(businessIndex, competitors, businessInfo) {
-    let score = 0;
-
-    // Position in local pack (0-50 points)
-    if (businessIndex >= 0) {
-      // Top 3 positions get higher scores
-      if (businessIndex === 0) score += 50;
-      else if (businessIndex === 1) score += 40;
-      else if (businessIndex === 2) score += 30;
-      else if (businessIndex < 5) score += 20;
-      else score += 10;
-    } else {
-      // Business not found in local pack
+  /**
+   * Calculate local visibility score (0-100)
+   * Based on competitors analysis: average rating, total competitors, data completeness
+   */
+  calculateLocalVisibilityScore(competitors) {
+    if (!competitors || competitors.length === 0) {
       return 0;
     }
 
-    // Rating score (0-25 points)
-    if (businessInfo?.rating) {
-      score += (businessInfo.rating / 5) * 25;
+    let score = 0;
+
+    // Number of competitors (0-30 points)
+    // More competitors = more competitive market = higher potential visibility
+    const competitorCount = competitors.length;
+    if (competitorCount >= 20) score += 30;
+    else if (competitorCount >= 10) score += 25;
+    else if (competitorCount >= 5) score += 20;
+    else score += 15;
+
+    // Average rating of competitors (0-30 points)
+    const ratings = competitors.filter(c => c.rating).map(c => c.rating);
+    if (ratings.length > 0) {
+      const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+      score += (avgRating / 5) * 30; // Scale to 30 points
     }
 
-    // Review count score (0-15 points)
-    if (businessInfo?.reviews) {
-      const reviewScore = Math.min(businessInfo.reviews / 100, 1) * 15;
+    // Average reviews (0-20 points)
+    const reviews = competitors.filter(c => c.reviews).map(c => c.reviews);
+    if (reviews.length > 0) {
+      const avgReviews = reviews.reduce((sum, r) => sum + r, 0) / reviews.length;
+      const reviewScore = Math.min(avgReviews / 100, 1) * 20;
       score += reviewScore;
     }
 
-    // Completeness score (0-10 points)
+    // Data completeness across competitors (0-20 points)
     let completeness = 0;
-    if (businessInfo?.name) completeness += 2;
-    if (businessInfo?.address) completeness += 2;
-    if (businessInfo?.phone) completeness += 2;
-    if (businessInfo?.website) completeness += 2;
-    if (businessInfo?.category) completeness += 2;
-    score += completeness;
+    competitors.forEach(comp => {
+      if (comp.name) completeness += 0.2;
+      if (comp.address) completeness += 0.2;
+      if (comp.phone) completeness += 0.2;
+      if (comp.website) completeness += 0.2;
+      if (comp.category) completeness += 0.2;
+    });
+    const avgCompleteness = completeness / competitors.length;
+    score += avgCompleteness * 20;
 
-    return Math.round(score);
+    return Math.round(Math.min(score, 100));
   }
 
-  generateRecommendations(businessInfo, competitors, businessIndex) {
+  /**
+   * Generate recommendations for citation and NAP improvement
+   * Based on competitors analysis
+   */
+  generateRecommendations(competitors) {
     const recommendations = [];
 
-    // Position recommendations
-    if (businessIndex < 0) {
-      recommendations.push({
-        priority: 'high',
-        issue: 'Business not found in local pack results',
-        action: 'Improve local SEO by optimizing your Google Business Profile, getting more reviews, and ensuring NAP consistency across all citations',
-      });
-    } else if (businessIndex >= 3) {
-      recommendations.push({
-        priority: 'high',
-        issue: `Business is ranked at position ${businessIndex + 1} in local pack`,
-        action: 'Work on improving your ranking by getting more positive reviews, optimizing your GBP profile, and improving local relevance',
-      });
-    } else if (businessIndex > 0) {
-      recommendations.push({
-        priority: 'medium',
-        issue: `Business is ranked at position ${businessIndex + 1} in local pack`,
-        action: 'You\'re in the top 3! Focus on getting more reviews and maintaining consistency to reach #1',
-      });
+    if (!competitors || competitors.length === 0) {
+      return recommendations;
     }
 
-    // Rating recommendations
-    if (businessInfo?.rating) {
-      const avgCompetitorRating = competitors
-        .filter(c => c.rating)
-        .reduce((sum, c) => sum + c.rating, 0) / competitors.filter(c => c.rating).length || 0;
+    // Analyze competitor ratings
+    const ratings = competitors.filter(c => c.rating).map(c => c.rating);
+    if (ratings.length > 0) {
+      const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+      const minRating = Math.min(...ratings);
+      const maxRating = Math.max(...ratings);
 
-      if (businessInfo.rating < avgCompetitorRating) {
+      if (avgRating >= 4.5) {
         recommendations.push({
           priority: 'high',
-          issue: `Your rating (${businessInfo.rating}) is below the average competitor rating (${avgCompetitorRating.toFixed(1)})`,
-          action: 'Focus on improving customer satisfaction and encourage satisfied customers to leave positive reviews',
+          issue: `High competition: Average competitor rating is ${avgRating.toFixed(1)}/5`,
+          action: 'Focus on maintaining excellent service quality and customer satisfaction to compete effectively',
         });
-      }
-    } else {
-      recommendations.push({
-        priority: 'high',
-        issue: 'No rating found for your business',
-        action: 'Ensure your Google Business Profile is properly set up and verified',
-      });
-    }
-
-    // Review count recommendations
-    if (businessInfo?.reviews) {
-      const avgCompetitorReviews = competitors
-        .filter(c => c.reviews)
-        .reduce((sum, c) => sum + c.reviews, 0) / competitors.filter(c => c.reviews).length || 0;
-
-      if (businessInfo.reviews < avgCompetitorReviews) {
+      } else if (avgRating < 3.5) {
         recommendations.push({
           priority: 'medium',
-          issue: `You have fewer reviews (${businessInfo.reviews}) than competitors (avg: ${Math.round(avgCompetitorReviews)})`,
-          action: 'Implement a review generation strategy to encourage more customers to leave reviews',
+          issue: `Market opportunity: Average competitor rating is ${avgRating.toFixed(1)}/5`,
+          action: 'There is room to stand out by providing better service quality than competitors',
         });
       }
+    }
+
+    // Analyze review counts
+    const reviews = competitors.filter(c => c.reviews).map(c => c.reviews);
+    if (reviews.length > 0) {
+      const avgReviews = reviews.reduce((sum, r) => sum + r, 0) / reviews.length;
+      const maxReviews = Math.max(...reviews);
+
+      if (avgReviews > 50) {
+        recommendations.push({
+          priority: 'high',
+          issue: `Competitive market: Competitors average ${Math.round(avgReviews)} reviews`,
+          action: 'Implement an active review generation strategy to build social proof and compete effectively',
+        });
+      }
+    }
+
+    // Analyze NAP completeness
+    const competitorsWithNAP = competitors.filter(c => c.name && c.address && c.phone).length;
+    const napCompleteness = (competitorsWithNAP / competitors.length) * 100;
+
+    if (napCompleteness < 80) {
+      recommendations.push({
+        priority: 'medium',
+        issue: `${Math.round(100 - napCompleteness)}% of competitors are missing complete NAP information`,
+        action: 'Ensure your business has complete Name, Address, and Phone information to improve visibility',
+      });
     } else {
       recommendations.push({
-        priority: 'medium',
-        issue: 'No reviews found for your business',
-        action: 'Start collecting reviews from satisfied customers to improve your local visibility',
+        priority: 'high',
+        issue: 'Most competitors have complete NAP information',
+        action: 'Ensure your NAP (Name, Address, Phone) is complete and consistent across all platforms to compete effectively',
       });
     }
 
-    // NAP consistency recommendations
-    if (!businessInfo?.name || !businessInfo?.address || !businessInfo?.phone) {
+    // Analyze website presence
+    const competitorsWithWebsite = competitors.filter(c => c.website).length;
+    const websitePercentage = (competitorsWithWebsite / competitors.length) * 100;
+
+    if (websitePercentage > 70) {
       recommendations.push({
         priority: 'high',
-        issue: 'Missing NAP (Name, Address, Phone) information',
-        action: 'Ensure your business name, address, and phone number are complete and consistent across all platforms',
+        issue: `${Math.round(websitePercentage)}% of competitors have websites listed`,
+        action: 'Add your website URL to your Google Business Profile to match competitor standards',
       });
     }
 
-    // Website recommendations
-    if (!businessInfo?.website) {
+    // Analyze category consistency
+    const competitorsWithCategory = competitors.filter(c => c.category).length;
+    if (competitorsWithCategory < competitors.length * 0.8) {
       recommendations.push({
         priority: 'medium',
-        issue: 'No website listed in local pack',
-        action: 'Add your website URL to your Google Business Profile to improve credibility and provide customers with more information',
+        issue: 'Some competitors are missing category information',
+        action: 'Ensure your business category is properly set in your Google Business Profile',
       });
     }
 
     return recommendations;
   }
 
-  analyzeNAPConsistency(businessInfo, competitors) {
-    const issues = [];
-    let nameConsistency = true;
-    let addressConsistency = true;
-    let phoneConsistency = true;
-
-    if (!businessInfo) {
+  /**
+   * Analyze NAP (Name, Address, Phone) consistency from competitors
+   */
+  analyzeNAPConsistency(competitors) {
+    if (!competitors || competitors.length === 0) {
       return {
-        nameConsistency: false,
-        addressConsistency: false,
-        phoneConsistency: false,
-        issues: ['Business information not found in local pack'],
+        nameConsistency: true,
+        addressConsistency: true,
+        phoneConsistency: true,
+        issues: [],
       };
     }
 
-    // Check if NAP data exists
-    if (!businessInfo.name) {
-      nameConsistency = false;
-      issues.push('Business name is missing');
-    }
+    const issues = [];
+    
+    // Calculate NAP completeness across competitors
+    const withName = competitors.filter(c => c.name).length;
+    const withAddress = competitors.filter(c => c.address).length;
+    const withPhone = competitors.filter(c => c.phone).length;
 
-    if (!businessInfo.address) {
-      addressConsistency = false;
-      issues.push('Business address is missing');
-    }
+    const namePercentage = (withName / competitors.length) * 100;
+    const addressPercentage = (withAddress / competitors.length) * 100;
+    const phonePercentage = (withPhone / competitors.length) * 100;
 
-    if (!businessInfo.phone) {
-      phoneConsistency = false;
-      issues.push('Business phone number is missing');
+    const nameConsistency = namePercentage >= 90;
+    const addressConsistency = addressPercentage >= 90;
+    const phoneConsistency = phonePercentage >= 90;
+
+    if (!nameConsistency) {
+      issues.push(`${Math.round(100 - namePercentage)}% of competitors are missing business names`);
+    }
+    if (!addressConsistency) {
+      issues.push(`${Math.round(100 - addressPercentage)}% of competitors are missing addresses`);
+    }
+    if (!phoneConsistency) {
+      issues.push(`${Math.round(100 - phonePercentage)}% of competitors are missing phone numbers`);
     }
 
     return {
@@ -810,38 +477,49 @@ class GeoAuditService {
     };
   }
 
-  analyzeCitationIssues(businessInfo, competitors) {
+  /**
+   * Analyze citation issues from competitors
+   */
+  analyzeCitationIssues(competitors) {
     const missingCitations = [];
     const inconsistentData = [];
 
-    if (!businessInfo) {
+    if (!competitors || competitors.length === 0) {
       return {
-        missingCitations: ['Business not found in local pack'],
+        missingCitations: [],
         inconsistentData: [],
       };
     }
 
-    // Check for missing website
-    if (!businessInfo.website) {
-      missingCitations.push('Website URL not listed');
+    // Analyze website presence
+    const competitorsWithWebsite = competitors.filter(c => c.website).length;
+    const websitePercentage = (competitorsWithWebsite / competitors.length) * 100;
+
+    if (websitePercentage < 50) {
+      missingCitations.push(`${Math.round(100 - websitePercentage)}% of competitors are missing website URLs`);
+    } else if (websitePercentage >= 80) {
+      inconsistentData.push(`Most competitors (${Math.round(websitePercentage)}%) have websites listed - ensure yours is included`);
     }
 
-    // Check for missing category
-    if (!businessInfo.category) {
-      missingCitations.push('Business category not specified');
+    // Analyze category presence
+    const competitorsWithCategory = competitors.filter(c => c.category).length;
+    const categoryPercentage = (competitorsWithCategory / competitors.length) * 100;
+
+    if (categoryPercentage < 70) {
+      missingCitations.push(`${Math.round(100 - categoryPercentage)}% of competitors are missing category information`);
     }
 
-    // Compare with top competitors
-    const topCompetitors = competitors.slice(0, 3);
-    const competitorWebsites = topCompetitors.filter(c => c.website).length;
-    const competitorCategories = topCompetitors.filter(c => c.category).length;
+    // Analyze top competitors
+    const topCompetitors = competitors.slice(0, 10);
+    const topWithWebsite = topCompetitors.filter(c => c.website).length;
+    const topWithCategory = topCompetitors.filter(c => c.category).length;
 
-    if (competitorWebsites > 0 && !businessInfo.website) {
-      inconsistentData.push('Most competitors have websites listed, but yours is missing');
+    if (topWithWebsite >= 8 && websitePercentage < 80) {
+      inconsistentData.push('Top competitors have websites - ensure your website is listed to compete effectively');
     }
 
-    if (competitorCategories > 0 && !businessInfo.category) {
-      inconsistentData.push('Most competitors have categories listed, but yours is missing');
+    if (topWithCategory >= 8 && categoryPercentage < 80) {
+      inconsistentData.push('Top competitors have categories - ensure your category is properly set');
     }
 
     return {
@@ -852,4 +530,3 @@ class GeoAuditService {
 }
 
 export const geoAuditService = new GeoAuditService();
-

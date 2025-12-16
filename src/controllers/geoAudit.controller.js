@@ -4,7 +4,7 @@ import { geoAuditService, pdfService } from '../services/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
-    const { keyword, location, businessName, languageName, device } = req.body;
+    const { keyword, city, country, googleDomain, language, businessName } = req.body;
     const userId = req.user._id;
 
     if (!keyword) {
@@ -13,27 +13,32 @@ export const runAudit = async (req, res, next) => {
       );
     }
 
-    if (!location) {
+    if (!city) {
       return res.status(400).json(
-        new ApiResponse(400, null, 'Location is required for geo audit')
+        new ApiResponse(400, null, 'City is required for geo audit')
+      );
+    }
+
+    if (!country) {
+      return res.status(400).json(
+        new ApiResponse(400, null, 'Country is required for geo audit')
       );
     }
 
     const auditResult = await geoAuditService.runGeoAudit(
       keyword,
-      location,
-      businessName,
-      languageName || 'English',
-      device || 'desktop'
+      city,
+      country,
+      googleDomain || null,
+      language || null
     );
 
     const audit = await GeoAudit.create({
       user: userId,
-      businessName: auditResult.businessName,
+      businessName: businessName || keyword, // Store provided businessName or keyword
       location: auditResult.location,
       keyword: auditResult.keyword,
       localVisibilityScore: auditResult.localVisibilityScore,
-      businessInfo: auditResult.businessInfo,
       competitors: auditResult.competitors || [],
       recommendations: auditResult.recommendations || [],
       napIssues: auditResult.napIssues || {

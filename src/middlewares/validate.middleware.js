@@ -110,13 +110,21 @@ const runGeoAudit = validateRequest(Joi.object({
     'any.required': 'Keyword is required',
     'string.empty': 'Keyword cannot be empty',
   }),
-  location: Joi.string().min(1).max(200).required().messages({
-    'any.required': 'Location is required',
-    'string.empty': 'Location cannot be empty',
+  city: Joi.string().min(1).max(200).required().messages({
+    'any.required': 'City is required',
+    'string.empty': 'City cannot be empty',
+  }),
+  country: Joi.string().min(1).max(200).required().messages({
+    'any.required': 'Country is required',
+    'string.empty': 'Country cannot be empty',
+  }),
+  googleDomain: Joi.string().max(100).optional().messages({
+    'string.max': 'Google domain must be less than 100 characters',
+  }),
+  language: Joi.string().length(2).optional().messages({
+    'string.length': 'Language must be a 2-character code (e.g., "fr", "en", "nl")',
   }),
   businessName: Joi.string().min(1).max(200).optional(),
-  languageName: Joi.string().max(100).optional(),
-  device: Joi.string().valid('desktop', 'mobile', 'tablet').optional(),
 }));
 
 // Checkout validations
