@@ -51,9 +51,19 @@ export const runAudit = async (req, res, next) => {
     }
 
     // Send audit completion email (non-blocking) - only if found
-    if (auditResult.found) {
+
+     if (auditResult.found) {
+      const auditData = {
+        _id: audit._id,
+        businessName: audit.businessName,
+        status: audit.status,
+        score: audit.score,
+        locale: audit.locale,
+        recommendations: audit.recommendations,
+      };
+      
       emailService.sendGBPAuditEmail(req.user.email, {
-        audit: audit.toObject(),
+        audit: auditData,
         userName: req.user.name,
       });
     }

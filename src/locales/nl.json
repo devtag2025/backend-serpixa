@@ -719,9 +719,9 @@
       "footer": "Deze audit is gegenereerd door Serpixa. Voor vragen, neem contact op met ons team."
     },
     "geoAudit": {
-      "subject": "Uw lokale SEO-audit is klaar - {keyword}",
+      "subject": "Uw lokale GEO-audit is klaar - {keyword}",
       "greeting": "Hallo {name},",
-      "intro": "Uw lokale SEO-audit voor \"{keyword}\" in {location} is voltooid.",
+      "intro": "Uw lokale GEO-audit voor \"{keyword}\" in {location} is voltooid.",
       "scoreLabel": "Lokale zichtbaarheidsscore",
       "competitorsLabel": "Concurrenten gevonden",
       "topIssuesLabel": "Top aanbevelingen",

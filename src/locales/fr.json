@@ -719,9 +719,9 @@
       "footer": "Cet audit a été généré par Serpixa. Pour toute question, contactez notre équipe."
     },
     "geoAudit": {
-      "subject": "Votre audit SEO local est prêt - {keyword}",
+      "subject": "Votre audit GEO local est prêt - {keyword}",
       "greeting": "Bonjour {name},",
-      "intro": "Votre audit SEO local pour « {keyword} » à {location} est terminé.",
+      "intro": "Votre audit GEO local pour « {keyword} » à {location} est terminé.",
       "scoreLabel": "Score de visibilité locale",
       "competitorsLabel": "Concurrents trouvés",
       "topIssuesLabel": "Recommandations prioritaires",
