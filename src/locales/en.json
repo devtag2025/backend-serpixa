@@ -356,7 +356,51 @@
       "serviceAreaOptimization": {
         "issue": "Service area may not be properly configured",
         "action": "In GBP settings, clearly define your service areas. For service-area businesses, hide your address but specify service regions. This helps you appear in nearby location searches."
+      },
+      "noResults": {
+        "issue": "No local pack results found for this keyword and location",
+        "action": "Try using a more specific location or a keyword that typically shows local results"
+      },
+      "highCompetition": {
+        "issue": "High competition: Average competitor rating is {avgRating}/5",
+        "action": "Focus on maintaining excellent service quality and customer satisfaction to compete effectively"
+      },
+      "marketOpportunity": {
+        "issue": "Market opportunity: Average competitor rating is {avgRating}/5",
+        "action": "There is room to stand out by providing better service quality than competitors"
+      },
+      "competitiveMarket": {
+        "issue": "Competitive market: Competitors average {avgReviews} reviews",
+        "action": "Implement an active review generation strategy to build social proof and compete effectively"
+      },
+      "napIncomplete": {
+        "issue": "{percentage}% of competitors are missing complete NAP information",
+        "action": "Ensure your business has complete Name, Address, and Phone information to improve visibility"
+      },
+      "napComplete": {
+        "issue": "Most competitors have complete NAP information",
+        "action": "Ensure your NAP (Name, Address, Phone) is complete and consistent across all platforms to compete effectively"
+      },
+      "competitorsHaveWebsite": {
+        "issue": "{percentage}% of competitors have websites listed",
+        "action": "Add your website URL to your Google Business Profile to match competitor standards"
+      },
+      "missingCategory": {
+        "issue": "Some competitors are missing category information",
+        "action": "Ensure your business category is properly set in your Google Business Profile"
       }
+    },
+    "napIssues": {
+      "missingName": "{percentage}% of competitors are missing business names",
+      "missingAddress": "{percentage}% of competitors are missing addresses",
+      "missingPhone": "{percentage}% of competitors are missing phone numbers"
+    },
+    "citationIssues": {
+      "missingWebsite": "{percentage}% of competitors are missing website URLs",
+      "competitorsHaveWebsite": "Most competitors ({percentage}%) have websites listed - ensure yours is included",
+      "missingCategory": "{percentage}% of competitors are missing category information",
+      "topCompetitorsHaveWebsite": "Top competitors have websites - ensure your website is listed to compete effectively",
+      "topCompetitorsHaveCategory": "Top competitors have categories - ensure your category is properly set"
     }
   },
   "gbp": {

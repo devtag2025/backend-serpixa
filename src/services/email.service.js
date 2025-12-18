@@ -23,8 +23,7 @@ class EmailService {
 
     async sendEmailVerification(email, verificationToken, data = {}) {
         const locale = this.getLocale(data);
-        const t = (path, replacements = {}) => getTranslation(locale, path, replacements);
-        
+        const t = (path, replacements = {}) => getTranslation(locale, path, replacements);       
         const subject = t('email.emailVerification.subject');
         const html = this.emailVerificationHTML(verificationToken, data, locale);
         return this.send(email, subject, html);
@@ -33,7 +32,6 @@ class EmailService {
     async sendWelcomeEmail(email, data = {}) {
         const locale = this.getLocale(data);
         const t = (path, replacements = {}) => getTranslation(locale, path, replacements);
-        
         const subject = t('email.welcome.subject');
         const html = this.welcomeHTML(data, locale);
         return this.send(email, subject, html);
