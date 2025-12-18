@@ -1,7 +1,10 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
 import { GeoAudit, User } from '../models/index.js';
-import { geoAuditService, pdfService } from '../services/index.js';
+
 import { DEFAULT_LOCALE } from '../config/index.js';
+
+import { emailService, geoAuditService, pdfService } from '../services/index.js';
+
 
 export const runAudit = async (req, res, next) => {
   try {
@@ -75,6 +78,13 @@ export const runAudit = async (req, res, next) => {
         }
       }
     }
+
+    //  Send audit completion email (non-blocking)
+    emailService.sendGeoAuditEmail(req.user.email, {
+      audit: audit.toObject(),
+      userName: req.user.name,
+    });
+
 
     res.status(201).json(
       new ApiResponse(201, { audit }, 'Geo audit completed successfully')

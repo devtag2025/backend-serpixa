@@ -692,6 +692,42 @@
       "greeting": "Hallo {name},",
       "message": "Uw account is klaar. U kunt nu SEO-audits en campagnes maken en beheren.",
       "button": "Ga naar Dashboard"
+    },
+    "seoAudit": {
+      "subject": "Uw SEO-audit is klaar - {url}",
+      "greeting": "Hallo {name},",
+      "intro": "Uw SEO-audit voor {url} is voltooid. Hier zijn de belangrijkste bevindingen:",
+      "scoreLabel": "SEO Score",
+      "keywordLabel": "Doelzoekwoord",
+      "topIssuesLabel": "Prioritaire problemen",
+      "noIssues": "Geen kritieke problemen gevonden. Uitstekend werk!",
+      "viewButton": "Bekijk volledig rapport",
+      "downloadPdf": "Download PDF",
+      "footer": "Deze audit is gegenereerd door Serpixa. Voor vragen, neem contact op met ons team."
+    },
+    "gbpAudit": {
+      "subject": "Uw Google Bedrijfsprofiel-audit is klaar - {businessName}",
+      "greeting": "Hallo {name},",
+      "intro": "Uw Google Bedrijfsprofiel-audit voor {businessName} is voltooid.",
+      "scoreLabel": "Profielvolledigheid",
+      "statusLabel": "Status",
+      "statusFound": "Profiel gevonden",
+      "statusNotFound": "Profiel niet gevonden",
+      "topIssuesLabel": "Prioritaire verbeteringen",
+      "noIssues": "Uw profiel is goed geoptimaliseerd!",
+      "viewButton": "Bekijk volledige audit",
+      "footer": "Deze audit is gegenereerd door Serpixa. Voor vragen, neem contact op met ons team."
+    },
+    "geoAudit": {
+      "subject": "Uw lokale SEO-audit is klaar - {keyword}",
+      "greeting": "Hallo {name},",
+      "intro": "Uw lokale SEO-audit voor \"{keyword}\" in {location} is voltooid.",
+      "scoreLabel": "Lokale zichtbaarheidsscore",
+      "competitorsLabel": "Concurrenten gevonden",
+      "topIssuesLabel": "Top aanbevelingen",
+      "noIssues": "Sterke lokale aanwezigheid gedetecteerd!",
+      "viewButton": "Bekijk volledige audit",
+      "footer": "Deze audit is gegenereerd door Serpixa. Voor vragen, neem contact op met ons team."
     }
   }
 }

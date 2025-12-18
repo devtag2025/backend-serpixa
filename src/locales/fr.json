@@ -692,6 +692,42 @@
       "greeting": "Bonjour {name},",
       "message": "Votre compte est prêt. Vous pouvez maintenant créer et gérer des audits SEO et des campagnes.",
       "button": "Aller au Tableau de bord"
+    },
+    "seoAudit": {
+      "subject": "Votre audit SEO est prêt - {url}",
+      "greeting": "Bonjour {name},",
+      "intro": "Votre audit SEO pour {url} est terminé. Voici les principales conclusions :",
+      "scoreLabel": "Score SEO",
+      "keywordLabel": "Mot-clé cible",
+      "topIssuesLabel": "Problèmes prioritaires",
+      "noIssues": "Aucun problème critique trouvé. Excellent travail !",
+      "viewButton": "Voir le rapport complet",
+      "downloadPdf": "Télécharger le PDF",
+      "footer": "Cet audit a été généré par Serpixa. Pour toute question, contactez notre équipe."
+    },
+    "gbpAudit": {
+      "subject": "Votre audit Google Business Profile est prêt - {businessName}",
+      "greeting": "Bonjour {name},",
+      "intro": "Votre audit Google Business Profile pour {businessName} est terminé.",
+      "scoreLabel": "Complétude du profil",
+      "statusLabel": "Statut",
+      "statusFound": "Profil trouvé",
+      "statusNotFound": "Profil non trouvé",
+      "topIssuesLabel": "Améliorations prioritaires",
+      "noIssues": "Votre profil est bien optimisé !",
+      "viewButton": "Voir l'audit complet",
+      "footer": "Cet audit a été généré par Serpixa. Pour toute question, contactez notre équipe."
+    },
+    "geoAudit": {
+      "subject": "Votre audit SEO local est prêt - {keyword}",
+      "greeting": "Bonjour {name},",
+      "intro": "Votre audit SEO local pour « {keyword} » à {location} est terminé.",
+      "scoreLabel": "Score de visibilité locale",
+      "competitorsLabel": "Concurrents trouvés",
+      "topIssuesLabel": "Recommandations prioritaires",
+      "noIssues": "Forte présence locale détectée !",
+      "viewButton": "Voir l'audit complet",
+      "footer": "Cet audit a été généré par Serpixa. Pour toute question, contactez notre équipe."
     }
   }
 }

@@ -1,6 +1,6 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
 import { SEOAudit, User } from '../models/index.js';
-import { dataForSEOService, pdfService } from '../services/index.js';
+import { dataForSEOService, emailService, pdfService } from '../services/index.js';
 import { getLocaleConfig, DEFAULT_LOCALE } from '../config/index.js';
 
 export const runAudit = async (req, res, next) => {
@@ -54,6 +54,15 @@ export const runAudit = async (req, res, next) => {
         }
       }
     }
+
+
+    // Send audit completion email (non-blocking)
+    emailService.sendSEOAuditEmail(req.user.email, {
+      audit: audit.toObject(),
+      userName: req.user.name,
+    });
+
+
 
     res.status(201).json(
       new ApiResponse(201, { audit }, 'SEO audit completed successfully')

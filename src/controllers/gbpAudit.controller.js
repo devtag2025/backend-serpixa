@@ -1,6 +1,6 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
 import { GBPAudit, User } from '../models/index.js';
-import { gbpService, pdfService } from '../services/index.js';
+import { emailService, gbpService, pdfService } from '../services/index.js';
 import { DEFAULT_LOCALE } from '../config/index.js';
 
 export const runAudit = async (req, res, next) => {
@@ -49,6 +49,15 @@ export const runAudit = async (req, res, next) => {
         }
       }
     }
+
+    // Send audit completion email (non-blocking) - only if found
+    if (auditResult.found) {
+      emailService.sendGBPAuditEmail(req.user.email, {
+        audit: audit.toObject(),
+        userName: req.user.name,
+      });
+    }
+
 
     res.status(201).json(
       new ApiResponse(201, { audit }, auditResult.found
