@@ -356,7 +356,51 @@
       "serviceAreaOptimization": {
         "issue": "Servicegebied is mogelijk niet correct geconfigureerd",
         "action": "In GBP instellingen, definieer duidelijk uw servicegebieden. Voor servicegerichte bedrijven, verberg uw adres maar specificeer serviceregio's. Dit helpt u te verschijnen in nabije locatiezoekopdrachten."
+      },
+      "noResults": {
+        "issue": "Geen local pack resultaten gevonden voor dit trefwoord en locatie",
+        "action": "Probeer een specifiekere locatie of een trefwoord te gebruiken dat meestal lokale resultaten toont"
+      },
+      "highCompetition": {
+        "issue": "Hoge concurrentie: Gemiddelde concurrent beoordeling is {avgRating}/5",
+        "action": "Focus op het behouden van uitstekende servicekwaliteit en klanttevredenheid om effectief te concurreren"
+      },
+      "marketOpportunity": {
+        "issue": "Marktkans: Gemiddelde concurrent beoordeling is {avgRating}/5",
+        "action": "Er is ruimte om op te vallen door betere servicekwaliteit te bieden dan concurrenten"
+      },
+      "competitiveMarket": {
+        "issue": "Concurrerende markt: Concurrenten hebben gemiddeld {avgReviews} reviews",
+        "action": "Implementeer een actieve review generatie strategie om sociale bewijzen op te bouwen en effectief te concurreren"
+      },
+      "napIncomplete": {
+        "issue": "{percentage}% van de concurrenten missen complete NAP informatie",
+        "action": "Zorg ervoor dat uw bedrijf complete Naam, Adres en Telefoon informatie heeft om zichtbaarheid te verbeteren"
+      },
+      "napComplete": {
+        "issue": "De meeste concurrenten hebben complete NAP informatie",
+        "action": "Zorg ervoor dat uw NAP (Naam, Adres, Telefoon) compleet en consistent is op alle platforms om effectief te concurreren"
+      },
+      "competitorsHaveWebsite": {
+        "issue": "{percentage}% van de concurrenten hebben websites vermeld",
+        "action": "Voeg uw website URL toe aan uw Google Bedrijfsprofiel om te voldoen aan concurrent standaarden"
+      },
+      "missingCategory": {
+        "issue": "Sommige concurrenten missen categorie informatie",
+        "action": "Zorg ervoor dat uw bedrijfscategorie correct is ingesteld in uw Google Bedrijfsprofiel"
       }
+    },
+    "napIssues": {
+      "missingName": "{percentage}% van de concurrenten missen bedrijfsnamen",
+      "missingAddress": "{percentage}% van de concurrenten missen adressen",
+      "missingPhone": "{percentage}% van de concurrenten missen telefoonnummers"
+    },
+    "citationIssues": {
+      "missingWebsite": "{percentage}% van de concurrenten missen website URL's",
+      "competitorsHaveWebsite": "De meeste concurrenten ({percentage}%) hebben websites vermeld - zorg ervoor dat de uwe is opgenomen",
+      "missingCategory": "{percentage}% van de concurrenten missen categorie informatie",
+      "topCompetitorsHaveWebsite": "Top concurrenten hebben websites - zorg ervoor dat uw website is vermeld om effectief te concurreren",
+      "topCompetitorsHaveCategory": "Top concurrenten hebben categorieën - zorg ervoor dat uw categorie correct is ingesteld"
     }
   },
   "gbp": {

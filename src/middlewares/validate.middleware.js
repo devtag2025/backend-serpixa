@@ -135,6 +135,7 @@ const runGeoAudit = validateRequest(Joi.object({
     'string.length': 'Language must be a 2-character code (e.g., "fr", "en", "nl")',
   }),
   businessName: Joi.string().min(1).max(200).optional(),
+  locale: Joi.string().max(10).optional(),
 }));
 
 // Checkout validations

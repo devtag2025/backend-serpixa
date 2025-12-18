@@ -1,11 +1,6 @@
 import { DEFAULT_LOCALE } from '../config/index.js';
 
-/**
- * Extract locale from request
- * Priority: 1. req.body.locale, 2. req.headers['accept-language'], 3. DEFAULT_LOCALE
- * @param {Object} req - Express request object
- * @returns {string} Locale code (e.g., 'en', 'fr', 'nl')
- */
+
 export function getLocaleFromRequest(req) {
   // 1. Check request body first (explicitly sent from frontend)
   if (req.body?.locale) {
@@ -33,13 +28,7 @@ export function getLocaleFromRequest(req) {
   return DEFAULT_LOCALE;
 }
 
-/**
- * Normalize locale code for email translations
- * Converts 'fr-fr', 'fr_FR', 'FR', 'fr-be' to 'fr'
- * Email translations use simple language codes: 'en', 'fr', 'nl'
- * @param {string} locale - Locale string
- * @returns {string} Normalized locale code for email translations
- */
+
 export function normalizeLocale(locale) {
   if (!locale) return DEFAULT_LOCALE;
   

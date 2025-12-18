@@ -356,7 +356,51 @@
       "serviceAreaOptimization": {
         "issue": "La zone de service peut ne pas être correctement configurée",
         "action": "Dans les paramètres GBP, définissez clairement vos zones de service. Pour les entreprises de service à domicile, masquez votre adresse mais spécifiez les régions desservies."
+      },
+      "noResults": {
+        "issue": "Aucun résultat de pack local trouvé pour ce mot-clé et cette localisation",
+        "action": "Essayez d'utiliser une localisation plus spécifique ou un mot-clé qui affiche généralement des résultats locaux"
+      },
+      "highCompetition": {
+        "issue": "Forte concurrence : La note moyenne des concurrents est de {avgRating}/5",
+        "action": "Concentrez-vous sur le maintien d'une excellente qualité de service et de la satisfaction client pour concurrencer efficacement"
+      },
+      "marketOpportunity": {
+        "issue": "Opportunité de marché : La note moyenne des concurrents est de {avgRating}/5",
+        "action": "Il y a de la place pour se démarquer en offrant une meilleure qualité de service que les concurrents"
+      },
+      "competitiveMarket": {
+        "issue": "Marché concurrentiel : Les concurrents ont en moyenne {avgReviews} avis",
+        "action": "Mettez en place une stratégie active de génération d'avis pour renforcer la preuve sociale et concurrencer efficacement"
+      },
+      "napIncomplete": {
+        "issue": "{percentage}% des concurrents manquent d'informations NAP complètes",
+        "action": "Assurez-vous que votre entreprise a des informations complètes (Nom, Adresse, Téléphone) pour améliorer la visibilité"
+      },
+      "napComplete": {
+        "issue": "La plupart des concurrents ont des informations NAP complètes",
+        "action": "Assurez-vous que votre NAP (Nom, Adresse, Téléphone) est complet et cohérent sur toutes les plateformes pour concurrencer efficacement"
+      },
+      "competitorsHaveWebsite": {
+        "issue": "{percentage}% des concurrents ont des sites web listés",
+        "action": "Ajoutez l'URL de votre site web à votre Google Business Profile pour correspondre aux standards des concurrents"
+      },
+      "missingCategory": {
+        "issue": "Certains concurrents manquent d'informations de catégorie",
+        "action": "Assurez-vous que la catégorie de votre entreprise est correctement définie dans votre Google Business Profile"
       }
+    },
+    "napIssues": {
+      "missingName": "{percentage}% des concurrents manquent de noms d'entreprise",
+      "missingAddress": "{percentage}% des concurrents manquent d'adresses",
+      "missingPhone": "{percentage}% des concurrents manquent de numéros de téléphone"
+    },
+    "citationIssues": {
+      "missingWebsite": "{percentage}% des concurrents manquent d'URL de site web",
+      "competitorsHaveWebsite": "La plupart des concurrents ({percentage}%) ont des sites web listés - assurez-vous que le vôtre est inclus",
+      "missingCategory": "{percentage}% des concurrents manquent d'informations de catégorie",
+      "topCompetitorsHaveWebsite": "Les meilleurs concurrents ont des sites web - assurez-vous que votre site web est listé pour concurrencer efficacement",
+      "topCompetitorsHaveCategory": "Les meilleurs concurrents ont des catégories - assurez-vous que votre catégorie est correctement définie"
     }
   },
   "gbp": {

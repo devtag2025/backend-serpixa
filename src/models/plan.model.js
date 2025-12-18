@@ -64,3 +64,4 @@ PlanSchema.index({ plan_type: 1, is_active: 1 });
 export const Plan = model('Plan', PlanSchema);
 
 
+

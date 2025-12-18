@@ -1,10 +1,11 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
 import { GeoAudit, User } from '../models/index.js';
 import { geoAuditService, pdfService } from '../services/index.js';
+import { DEFAULT_LOCALE } from '../config/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
-    const { keyword, city, country, googleDomain, language, businessName } = req.body;
+    const { keyword, city, country, googleDomain, language, businessName, locale } = req.body;
     const userId = req.user._id;
     const { creditInfo } = req;
 
@@ -26,12 +27,15 @@ export const runAudit = async (req, res, next) => {
       );
     }
 
+    const effectiveLocale = locale || DEFAULT_LOCALE;
+
     const auditResult = await geoAuditService.runGeoAudit(
       keyword,
       city,
       country,
       googleDomain || null,
-      language || null
+      language || null,
+      effectiveLocale
     );
 
     const audit = await GeoAudit.create({
@@ -39,6 +43,7 @@ export const runAudit = async (req, res, next) => {
       businessName: businessName || keyword, // Store provided businessName or keyword
       location: auditResult.location,
       keyword: auditResult.keyword,
+      locale: effectiveLocale,
       localVisibilityScore: auditResult.localVisibilityScore,
       competitors: auditResult.competitors || [],
       recommendations: auditResult.recommendations || [],

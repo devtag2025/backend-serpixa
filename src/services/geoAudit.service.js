@@ -2,6 +2,8 @@ import axios from 'axios';
 import { env } from '../config/index.js';
 import { ApiError, getGoogleDomain, getLanguageName, parseLocale } from '../utils/index.js';
 import { Logger } from '../utils/logger.js';
+import { t } from '../locales/index.js';
+import { getLocaleConfig, DEFAULT_LOCALE } from '../config/index.js';
 
 class GeoAuditService {
   constructor() {
@@ -33,9 +35,10 @@ class GeoAuditService {
    * @param {string} country - Country name
    * @param {string} googleDomain - Google domain (e.g., 'google.be', 'google.fr')
    * @param {string} language - Language code (e.g., 'fr', 'en', 'nl')
+   * @param {string} locale - Locale code (e.g., 'fr-be', 'en', 'nl-nl')
    * @returns {Promise<Object>} Audit result with local visibility score, competitors, and recommendations
    */
-  async runGeoAudit(keyword, city, country, googleDomain = null, language = null) {
+  async runGeoAudit(keyword, city, country, googleDomain = null, language = null, locale = DEFAULT_LOCALE) {
     try {
       // Get language name for DataForSEO API
       const languageName = language ? getLanguageName(language) : 'English';
@@ -66,8 +69,12 @@ class GeoAuditService {
       // Fetch data from Google Maps API
       const mapsData = await this.fetchMapsData(keyword, locationName, languageName, finalGoogleDomain);
 
+      // Extract language code from locale for translations
+      const localeConfig = getLocaleConfig(locale);
+      const lang = localeConfig.language || 'en';
+
       // Transform and return results (no business name needed)
-      return this.transformMapsResult(mapsData, keyword, locationName);
+      return this.transformMapsResult(mapsData, keyword, locationName, lang);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(502, `Geo audit failed: ${error.message}`);
@@ -194,8 +201,9 @@ class GeoAuditService {
    * Transform Maps API response into audit result
    * Returns: local visibility score, competitors, and recommendations
    * No business info required - score is based on competitors analysis
+   * @param {string} lang - Language code for translations (e.g., 'en', 'fr', 'nl')
    */
-  transformMapsResult(data, keyword, location) {
+  transformMapsResult(data, keyword, location, lang = 'en') {
     if (!data || !data.items || data.items.length === 0) {
       return {
         keyword,
@@ -204,8 +212,8 @@ class GeoAuditService {
         competitors: [],
         recommendations: [{
           priority: 'high',
-          issue: 'No local pack results found for this keyword and location',
-          action: 'Try using a more specific location or a keyword that typically shows local results',
+          issue: t(lang, 'geo.recommendations.noResults.issue'),
+          action: t(lang, 'geo.recommendations.noResults.action'),
         }],
         napIssues: {
           nameConsistency: true,
@@ -260,13 +268,13 @@ class GeoAuditService {
     const localVisibilityScore = this.calculateLocalVisibilityScore(competitors);
 
     // Generate recommendations based on competitors
-    const recommendations = this.generateRecommendations(competitors);
+    const recommendations = this.generateRecommendations(competitors, lang);
 
     // Analyze NAP consistency from competitors
-    const napIssues = this.analyzeNAPConsistency(competitors);
+    const napIssues = this.analyzeNAPConsistency(competitors, lang);
 
     // Analyze citation issues from competitors
-    const citationIssues = this.analyzeCitationIssues(competitors);
+    const citationIssues = this.analyzeCitationIssues(competitors, lang);
 
     return {
       keyword,
@@ -332,33 +340,37 @@ class GeoAuditService {
   /**
    * Generate recommendations for citation and NAP improvement
    * Based on competitors analysis
+   * @param {string} lang - Language code for translations (e.g., 'en', 'fr', 'nl')
    */
-  generateRecommendations(competitors) {
+  generateRecommendations(competitors, lang = 'en') {
     const recommendations = [];
 
     if (!competitors || competitors.length === 0) {
       return recommendations;
     }
 
+    // Helper to add recommendation with translations
+    const addRec = (priority, issueKey, actionKey, vars = {}) => {
+      const issue = t(lang, `geo.recommendations.${issueKey}.issue`, vars);
+      const action = t(lang, `geo.recommendations.${issueKey}.action`, vars);
+      if (issue && action && !issue.includes('.issue')) {
+        recommendations.push({
+          priority,
+          issue,
+          action,
+        });
+      }
+    };
+
     // Analyze competitor ratings
     const ratings = competitors.filter(c => c.rating).map(c => c.rating);
     if (ratings.length > 0) {
       const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
-      const minRating = Math.min(...ratings);
-      const maxRating = Math.max(...ratings);
 
       if (avgRating >= 4.5) {
-        recommendations.push({
-          priority: 'high',
-          issue: `High competition: Average competitor rating is ${avgRating.toFixed(1)}/5`,
-          action: 'Focus on maintaining excellent service quality and customer satisfaction to compete effectively',
-        });
+        addRec('high', 'highCompetition', 'highCompetition', { avgRating: avgRating.toFixed(1) });
       } else if (avgRating < 3.5) {
-        recommendations.push({
-          priority: 'medium',
-          issue: `Market opportunity: Average competitor rating is ${avgRating.toFixed(1)}/5`,
-          action: 'There is room to stand out by providing better service quality than competitors',
-        });
+        addRec('medium', 'marketOpportunity', 'marketOpportunity', { avgRating: avgRating.toFixed(1) });
       }
     }
 
@@ -366,14 +378,9 @@ class GeoAuditService {
     const reviews = competitors.filter(c => c.reviews).map(c => c.reviews);
     if (reviews.length > 0) {
       const avgReviews = reviews.reduce((sum, r) => sum + r, 0) / reviews.length;
-      const maxReviews = Math.max(...reviews);
 
       if (avgReviews > 50) {
-        recommendations.push({
-          priority: 'high',
-          issue: `Competitive market: Competitors average ${Math.round(avgReviews)} reviews`,
-          action: 'Implement an active review generation strategy to build social proof and compete effectively',
-        });
+        addRec('high', 'competitiveMarket', 'competitiveMarket', { avgReviews: Math.round(avgReviews) });
       }
     }
 
@@ -382,17 +389,9 @@ class GeoAuditService {
     const napCompleteness = (competitorsWithNAP / competitors.length) * 100;
 
     if (napCompleteness < 80) {
-      recommendations.push({
-        priority: 'medium',
-        issue: `${Math.round(100 - napCompleteness)}% of competitors are missing complete NAP information`,
-        action: 'Ensure your business has complete Name, Address, and Phone information to improve visibility',
-      });
+      addRec('medium', 'napIncomplete', 'napIncomplete', { percentage: Math.round(100 - napCompleteness) });
     } else {
-      recommendations.push({
-        priority: 'high',
-        issue: 'Most competitors have complete NAP information',
-        action: 'Ensure your NAP (Name, Address, Phone) is complete and consistent across all platforms to compete effectively',
-      });
+      addRec('high', 'napComplete', 'napComplete');
     }
 
     // Analyze website presence
@@ -400,21 +399,13 @@ class GeoAuditService {
     const websitePercentage = (competitorsWithWebsite / competitors.length) * 100;
 
     if (websitePercentage > 70) {
-      recommendations.push({
-        priority: 'high',
-        issue: `${Math.round(websitePercentage)}% of competitors have websites listed`,
-        action: 'Add your website URL to your Google Business Profile to match competitor standards',
-      });
+      addRec('high', 'competitorsHaveWebsite', 'competitorsHaveWebsite', { percentage: Math.round(websitePercentage) });
     }
 
     // Analyze category consistency
     const competitorsWithCategory = competitors.filter(c => c.category).length;
     if (competitorsWithCategory < competitors.length * 0.8) {
-      recommendations.push({
-        priority: 'medium',
-        issue: 'Some competitors are missing category information',
-        action: 'Ensure your business category is properly set in your Google Business Profile',
-      });
+      addRec('medium', 'missingCategory', 'missingCategory');
     }
 
     return recommendations;
@@ -422,8 +413,9 @@ class GeoAuditService {
 
   /**
    * Analyze NAP (Name, Address, Phone) consistency from competitors
+   * @param {string} lang - Language code for translations (e.g., 'en', 'fr', 'nl')
    */
-  analyzeNAPConsistency(competitors) {
+  analyzeNAPConsistency(competitors, lang = 'en') {
     if (!competitors || competitors.length === 0) {
       return {
         nameConsistency: true,
@@ -449,13 +441,13 @@ class GeoAuditService {
     const phoneConsistency = phonePercentage >= 90;
 
     if (!nameConsistency) {
-      issues.push(`${Math.round(100 - namePercentage)}% of competitors are missing business names`);
+      issues.push(t(lang, 'geo.napIssues.missingName', { percentage: Math.round(100 - namePercentage) }));
     }
     if (!addressConsistency) {
-      issues.push(`${Math.round(100 - addressPercentage)}% of competitors are missing addresses`);
+      issues.push(t(lang, 'geo.napIssues.missingAddress', { percentage: Math.round(100 - addressPercentage) }));
     }
     if (!phoneConsistency) {
-      issues.push(`${Math.round(100 - phonePercentage)}% of competitors are missing phone numbers`);
+      issues.push(t(lang, 'geo.napIssues.missingPhone', { percentage: Math.round(100 - phonePercentage) }));
     }
 
     return {
@@ -468,8 +460,9 @@ class GeoAuditService {
 
   /**
    * Analyze citation issues from competitors
+   * @param {string} lang - Language code for translations (e.g., 'en', 'fr', 'nl')
    */
-  analyzeCitationIssues(competitors) {
+  analyzeCitationIssues(competitors, lang = 'en') {
     const missingCitations = [];
     const inconsistentData = [];
 
@@ -485,9 +478,9 @@ class GeoAuditService {
     const websitePercentage = (competitorsWithWebsite / competitors.length) * 100;
 
     if (websitePercentage < 50) {
-      missingCitations.push(`${Math.round(100 - websitePercentage)}% of competitors are missing website URLs`);
+      missingCitations.push(t(lang, 'geo.citationIssues.missingWebsite', { percentage: Math.round(100 - websitePercentage) }));
     } else if (websitePercentage >= 80) {
-      inconsistentData.push(`Most competitors (${Math.round(websitePercentage)}%) have websites listed - ensure yours is included`);
+      inconsistentData.push(t(lang, 'geo.citationIssues.competitorsHaveWebsite', { percentage: Math.round(websitePercentage) }));
     }
 
     // Analyze category presence
@@ -495,7 +488,7 @@ class GeoAuditService {
     const categoryPercentage = (competitorsWithCategory / competitors.length) * 100;
 
     if (categoryPercentage < 70) {
-      missingCitations.push(`${Math.round(100 - categoryPercentage)}% of competitors are missing category information`);
+      missingCitations.push(t(lang, 'geo.citationIssues.missingCategory', { percentage: Math.round(100 - categoryPercentage) }));
     }
 
     // Analyze top competitors
@@ -504,11 +497,11 @@ class GeoAuditService {
     const topWithCategory = topCompetitors.filter(c => c.category).length;
 
     if (topWithWebsite >= 8 && websitePercentage < 80) {
-      inconsistentData.push('Top competitors have websites - ensure your website is listed to compete effectively');
+      inconsistentData.push(t(lang, 'geo.citationIssues.topCompetitorsHaveWebsite'));
     }
 
     if (topWithCategory >= 8 && categoryPercentage < 80) {
-      inconsistentData.push('Top competitors have categories - ensure your category is properly set');
+      inconsistentData.push(t(lang, 'geo.citationIssues.topCompetitorsHaveCategory'));
     }
 
     return {
