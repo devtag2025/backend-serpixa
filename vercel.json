@@ -2,11 +2,19 @@
   "version": 2,
   "builds": [
     {
-      "src": "src/server.js",
+      "src": "src/app.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/health",
+      "dest": "src/server.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "src/server.js"
+    },
     {
       "src": "/(.*)",
       "dest": "src/server.js"
@@ -14,6 +22,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "regions": ["iad1"]
+  }
 }
