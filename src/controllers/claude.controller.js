@@ -1,6 +1,7 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
 import { claudeService } from '../services/index.js';
 import { User } from '../models/index.js';
+import { AIContent } from '../models/index.js';
 
 /**
  * Generate AI-powered SEO content optimization
@@ -50,11 +51,27 @@ export const optimizeContent = async (req, res, next) => {
       }
     }
 
-    res.status(200).json(
+    // Save content to database
+    const aiContent = await AIContent.create({
+      user: userId,
+      keyword: keyword.trim(),
+      locale: normalizedLocale,
+      metaTitle: optimizedContent.metaTitle,
+      metaDescription: optimizedContent.metaDescription,
+      htmlContent: optimizedContent.htmlContent,
+      faq: optimizedContent.faq || [],
+      cta: optimizedContent.cta || null,
+      seoScore: optimizedContent.seoScore || 75,
+      keywordDensity: optimizedContent.keywordDensity || 'N/A',
+      wordCount: optimizedContent.wordCount || 0,
+      status: 'completed',
+    });
+
+    res.status(201).json(
       new ApiResponse(
-        200,
+        201,
         {
-          content: optimizedContent,
+          content: aiContent,
           input: {
             keyword: keyword.trim(),
             locale: normalizedLocale
@@ -66,4 +83,91 @@ export const optimizeContent = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+/**
+ * Get AI content by ID
+ */
+export const getContentById = async (req, res, next) => {
+  try {
+    const { contentId } = req.params;
+    const userId = req.user._id;
+
+    const content = await AIContent.findOne({ _id: contentId, user: userId });
+
+    if (!content) {
+      throw new ApiError(404, 'Content not found');
+    }
+
+    res.json(new ApiResponse(200, { content }, 'Content retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get user's AI content list
+ */
+export const getUserContent = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { page = 1, limit = 10, keyword } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const query = { user: userId };
+
+    // Optional keyword filter
+    if (keyword && keyword.trim()) {
+      query.keyword = { $regex: keyword.trim(), $options: 'i' };
+    }
+
+    const [contents, total] = await Promise.all([
+      AIContent.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      AIContent.countDocuments(query),
+    ]);
+
+    res.json(
+      new ApiResponse(200, {
+        contents,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      }, 'Content retrieved successfully')
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete AI content
+ */
+export const deleteContent = async (req, res, next) => {
+  try {
+    const { contentId } = req.params;
+    const userId = req.user._id;
+
+    const content = await AIContent.findOneAndDelete({ _id: contentId, user: userId });
+
+    if (!content) {
+      throw new ApiError(404, 'Content not found');
+    }
+
+    res.json(new ApiResponse(200, null, 'Content deleted successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const claudeController = {
+  optimizeContent,
+  getContentById,
+  getUserContent,
+  deleteContent,
 };

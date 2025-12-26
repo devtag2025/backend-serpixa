@@ -50,6 +50,9 @@ const keyword = Joi.string().max(100).optional().allow('', null);
 const mongoId = Joi.string().regex(/^[a-fA-F0-9]{24}$/).required().messages({
   'string.pattern.base': 'Invalid ID format',
 });
+const locale = Joi.string().max(10).optional().messages({
+  'string.max': 'Locale must be less than 10 characters',
+});
 
 // Auth validations
 const registerUser = validateRequest(Joi.object({
@@ -57,7 +60,8 @@ const registerUser = validateRequest(Joi.object({
   email,
   password,
   confirmPassword: confirmPassword('password'),
-  referral_code: Joi.string().optional().allow('', null)
+  referral_code: Joi.string().optional().allow('', null),
+  locale
 }));
 
 const loginUser = validateRequest(Joi.object({
@@ -65,17 +69,24 @@ const loginUser = validateRequest(Joi.object({
   password: Joi.string().required()
 }));
 
-const forgotPassword = validateRequest(Joi.object({ email }));
+const forgotPassword = validateRequest(Joi.object({ 
+  email,
+  locale
+}));
 
 const resetPassword = validateRequest(Joi.object({
   token,
   password,
-  confirmPassword: confirmPassword('password')
+  confirmPassword: confirmPassword('password'),
+  locale
 }));
 
 const verifyEmailToken = validateParams(Joi.object({ token }));
 
-const resendVerification = validateRequest(Joi.object({ email }));
+const resendVerification = validateRequest(Joi.object({ 
+  email,
+  locale
+}));
 
 const updateProfile = validateRequest(Joi.object({
   name: name.optional(),
@@ -146,6 +157,19 @@ const createCheckout = validateRequest(Joi.object({
   }),
 }));
 
+// AI Content validations
+const generateAIContent = validateRequest(Joi.object({
+  keyword: Joi.string().min(1).max(200).required().messages({
+    'any.required': 'Keyword is required',
+    'string.empty': 'Keyword cannot be empty',
+  }),
+  locale: Joi.string().valid('en-us', 'en-gb', 'fr-fr', 'fr-be', 'nl-nl', 'nl-be').optional(),
+}));
+
+const aiContentIdParam = validateParams(Joi.object({
+  contentId: mongoId,
+}));
+
 export const validate = {
   // Auth
   registerUser,
@@ -170,4 +194,8 @@ export const validate = {
 
   // Checkout
   createCheckout,
+
+  // AI Content
+  generateAIContent,
+  aiContentIdParam,
 }

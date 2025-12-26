@@ -4,7 +4,9 @@ import { validate, auth, checkCredit } from '../middlewares/index.js';
 
 const router = Router();
 
+router.use(auth);
 
+// Generate AI content
 router.post(
   '/content-optimization',
   auth,
@@ -12,5 +14,24 @@ router.post(
   claudeController.optimizeContent
 );
 
-export default router;
+// Get user's AI content list
+router.get(
+  '/content',
+  claudeController.getUserContent
+);
 
+// Get AI content by ID
+router.get(
+  '/content/:contentId',
+  validate.aiContentIdParam,
+  claudeController.getContentById
+);
+
+// Delete AI content
+router.delete(
+  '/content/:contentId',
+  validate.aiContentIdParam,
+  claudeController.deleteContent
+);
+
+export default router;
