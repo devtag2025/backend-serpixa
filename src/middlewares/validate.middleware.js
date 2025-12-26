@@ -157,6 +157,66 @@ const createCheckout = validateRequest(Joi.object({
   }),
 }));
 
+// Admin validations
+const userIdParam = validateParams(Joi.object({
+  userId: Joi.string().regex(/^[a-fA-F0-9]{24}$/).required().messages({
+    'string.pattern.base': 'Invalid user ID format',
+  }),
+}));
+
+const updateCredits = validateRequest(Joi.object({
+  seo_audits: Joi.number().integer().min(0).optional(),
+  geo_audits: Joi.number().integer().min(0).optional(),
+  gbp_audits: Joi.number().integer().min(0).optional(),
+  ai_generations: Joi.number().integer().min(0).optional(),
+}).min(1).messages({
+  'object.min': 'At least one credit type must be provided',
+}));
+
+const creditTrendQuery = (req, res, next) => {
+  const schema = Joi.object({
+    period: Joi.string().valid('7days', '1year').optional().default('7days'),
+  });
+  
+  const { error, value } = schema.validate(req.query);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      error: error.details[0].message,
+    });
+  }
+  
+  req.validatedQuery = value;
+  next();
+};
+
+const paginationQuery = (req, res, next) => {
+  const schema = Joi.object({
+    page: Joi.number().integer().min(1).optional().default(1),
+    limit: Joi.number().integer().min(1).max(100).optional().default(20),
+    search: Joi.string().max(200).optional().allow(''),
+    status: Joi.string().optional().allow(''),
+    type: Joi.string().valid('seo', 'geo', 'gbp', 'all').optional().default('all'),
+    sort: Joi.string().optional().default('createdAt'),
+    order: Joi.string().valid('asc', 'desc').optional().default('desc'),
+    userId: Joi.string().regex(/^[a-fA-F0-9]{24}$/).optional(),
+  });
+  
+  const { error, value } = schema.validate(req.query);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      error: error.details[0].message,
+    });
+  }
+  
+  // Store validated values in a separate property instead of overwriting req.query
+  req.validatedQuery = value;
+  next();
+};
+
 // AI Content validations
 const generateAIContent = validateRequest(Joi.object({
   keyword: Joi.string().min(1).max(200).required().messages({
@@ -194,6 +254,12 @@ export const validate = {
 
   // Checkout
   createCheckout,
+
+  // Admin
+  userIdParam,
+  updateCredits,
+  creditTrendQuery,
+  paginationQuery,
 
   // AI Content
   generateAIContent,

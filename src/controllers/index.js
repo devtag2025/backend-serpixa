@@ -8,3 +8,4 @@ export * as geoAuditController from './geoAudit.controller.js';
 export * as claudeController from './claude.controller.js';
 export * as gbpAuditController from './gbpAudit.controller.js';
 export * as dashboardController from './dashboard.controller.js';
+export * as adminController from './admin.controller.js';
