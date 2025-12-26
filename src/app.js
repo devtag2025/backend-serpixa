@@ -9,8 +9,12 @@ import compression from 'compression';
 import { APP_CONFIG } from './config/app.config.js';
 import { ApiResponse } from './utils/response.js';
 import { notFoundHandler } from './middlewares/notFound.middleware.js';
+import connectDB from './config/db.js';
 
 const app = express();
+
+// Connect to database
+connectDB();
 
 // Compression
 app.use(compression());
