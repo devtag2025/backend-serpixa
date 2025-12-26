@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { APP_CONFIG } from './app.config.js';
-import { Logger } from '../utils/logger.js';
+import { env } from './index.js';
+import { Logger } from '../utils/index.js';
 
 let cached = global.mongoose;
 
@@ -22,7 +22,9 @@ const connectDB = async () => {
   }
 
   try {
-    cached.conn = await cached.promise;
+    const conn = await mongoose.connect(env.MONGO_URI);
+    Logger.log(`MongoDB Connected: ${conn.connection.host}`);
+    Logger.log(`Database: ${conn.connection.name}`);
   } catch (error) {
     cached.promise = null;
     Logger.error(`MongoDB Connection Error: ${error.message}`);

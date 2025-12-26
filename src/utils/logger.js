@@ -1,21 +1,26 @@
-import { APP_CONFIG } from '../config/app.config.js';
+import { env } from '../config/index.js';
 
 export class Logger {
   static log(...args) {
-    if (APP_CONFIG.NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       console.log('[LOG]', ...args);
     }
   }
 
   static error(...args) {
-    if (APP_CONFIG.NODE_ENV === 'development') {
-      console.error('[ERROR]', ...args);
-    }
+    // Always log errors, not just in development
+    console.error('[ERROR]', ...args);
   }
 
   static warn(...args) {
-    if (APP_CONFIG.NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       console.warn('[WARN]', ...args);
+    }
+  }
+
+  static info(...args) {
+    if (env.NODE_ENV === 'development' || env.NODE_ENV === 'production') {
+      console.info('[INFO]', ...args);
     }
   }
 }

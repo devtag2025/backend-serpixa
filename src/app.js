@@ -5,11 +5,11 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
-
-import { APP_CONFIG } from './config/app.config.js';
-import { ApiResponse } from './utils/response.js';
-import { notFoundHandler } from './middlewares/notFound.middleware.js';
-import connectDB from './config/db.js';
+import { env } from './config/index.js';
+import routes from './routes/index.js';
+import { ApiResponse } from './utils/index.js';
+import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
+import { handleStripeWebhook } from './controllers/webhook.controller.js';
 
 const app = express();
 
@@ -25,8 +25,8 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: APP_CONFIG.NODE_ENV === 'development' 
-      ? ['http://localhost:3000', 'http://localhost:5173'] 
+    origin: env.NODE_ENV === 'development'
+      ? ['http://localhost:3000', 'http://localhost:5173']
       : process.env.ALLOWED_ORIGINS?.split(',') || [],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -38,35 +38,41 @@ app.use(
 app.use(cookieParser());
 
 // Request logging (dev only)
-if (APP_CONFIG.NODE_ENV === 'development') {
+if (env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Parse JSON
+// Stripe webhook endpoint - MUST be before express.json() to preserve raw body
+app.post('/api/v1/webhooks/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
+
+// Parse JSON 
 app.use(express.json({ limit: '10mb' }));
 
 // Parse URL-encoded
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting
+// Rate limiting (exclude webhook endpoint)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/api/v1/webhooks/stripe', // Skip rate limiting for webhooks
 });
 app.use('/api', limiter);
 
+// API routes
+app.use('/api/v1', routes);
+
 // Health check
 app.get('/health', (req, res) => {
-  return ApiResponse(res, 200, 'Serpixa API is running');
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, 'Serpixa API is running'));
 });
 
-// TODO: Mount API routes here
-// app.use('/api', routes);
-
-// 404 handler
 app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
