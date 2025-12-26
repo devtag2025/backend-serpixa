@@ -36,7 +36,10 @@ const missingVars = requiredEnvVars.filter(key => !process.env[key]);
 if (missingVars.length > 0) {
   console.error("Missing required environment variables:");
   missingVars.forEach(key => console.error(`- ${key}`));
-  process.exit(1);
+  // Don't exit in serverless - throw error instead
+  if (process.env.VERCEL !== '1') {
+    process.exit(1);
+  }
 }
 
 optionalEnvVars.forEach((key) => {
@@ -52,12 +55,18 @@ if (process.env.NODE_ENV === "production") {
   if (missingProdVars.length > 0) {
     console.error("Missing required production environment variables:");
     missingProdVars.forEach(key => console.error(`- ${key}`));
-    process.exit(1);
+    // Don't exit in serverless
+    if (process.env.VERCEL !== '1') {
+      process.exit(1);
+    }
   }
 
-  if (process.env.JWT_SECRET.length < 32) {
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
     console.error("JWT_SECRET must be at least 32 characters in production");
-    process.exit(1);
+    // Don't exit in serverless
+    if (process.env.VERCEL !== '1') {
+      process.exit(1);
+    }
   }
 }
 
