@@ -13,6 +13,9 @@ import { handleStripeWebhook } from './controllers/webhook.controller.js';
 
 const app = express();
 
+// Connect to database
+connectDB();
+
 // Compression
 app.use(compression());
 
