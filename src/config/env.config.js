@@ -1,33 +1,20 @@
-import dotenv from "dotenv";
-dotenv.config();
+const isVercel = process.env.VERCEL === '1';
 
 const requiredEnvVars = [
   "MONGO_URI",
   "CLIENT_URL",
-//   "ADMIN_PANEL_URL",
   "JWT_SECRET",
   "ACCESS_TOKEN_SECRET",
   "REFRESH_TOKEN_SECRET",
-//   "EMAIL_VERIFICATION_SECRET",
-//   "FROM_NAME",
-//   "FROM_EMAIL",
-//   "SMTP_HOST",
-//   "SMTP_PORT",
-//   "SMTP_USER",
-//   "SMTP_PASS",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
-//   "ADMIN_EMAIL",
-//   "ADMIN_PASSWORD",
 ];
 
 const optionalEnvVars = [
   "COOKIE_SECRET",
   "RATE_LIMIT_WINDOW_MS",
   "RATE_LIMIT_MAX_REQUESTS",
-  // Claude API
   "CLAUDE_API_KEY",
-  // AWS optional vars
   "AWS_REGION",
   "AWS_S3_BUCKET"
 ];
@@ -36,8 +23,8 @@ const missingVars = requiredEnvVars.filter(key => !process.env[key]);
 if (missingVars.length > 0) {
   console.error("Missing required environment variables:");
   missingVars.forEach(key => console.error(`- ${key}`));
-  // Don't exit in serverless - throw error instead
-  if (process.env.VERCEL !== '1') {
+  // Log but don't crash on Vercel - let the request handler return proper error
+  if (!isVercel) {
     process.exit(1);
   }
 }
@@ -48,25 +35,19 @@ optionalEnvVars.forEach((key) => {
   }
 });
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === "production" && !isVercel) {
   const productionRequiredVars = ["JWT_SECRET", "COOKIE_SECRET"];
   const missingProdVars = productionRequiredVars.filter(key => !process.env[key]);
 
   if (missingProdVars.length > 0) {
     console.error("Missing required production environment variables:");
     missingProdVars.forEach(key => console.error(`- ${key}`));
-    // Don't exit in serverless
-    if (process.env.VERCEL !== '1') {
-      process.exit(1);
-    }
+    process.exit(1);
   }
 
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
     console.error("JWT_SECRET must be at least 32 characters in production");
-    // Don't exit in serverless
-    if (process.env.VERCEL !== '1') {
-      process.exit(1);
-    }
+    process.exit(1);
   }
 }
 
@@ -97,6 +78,7 @@ export const env = {
   // stripe Configuration
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+  
   // Email Configuration
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT,
@@ -108,7 +90,7 @@ export const env = {
   // SendGrid Configuration
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
 
-  // Admin User (created on startup if none exist)
+  // Admin User
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
 
@@ -121,6 +103,7 @@ export const env = {
 
   // Claude API Configuration
   CLAUDE_API_KEY: process.env.CLAUDE_API_KEY,
+  
   // DataForSEO Configuration
   DATAFORSEO_LOGIN: process.env.DATAFORSEO_LOGIN,
   DATAFORSEO_PASSWORD: process.env.DATAFORSEO_PASSWORD,
