@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import { env } from './config/index.js';
 import routes from './routes/index.js';
+import helmet from "helmet";
 import { ApiResponse } from './utils/index.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { handleStripeWebhook } from './controllers/webhook.controller.js';
@@ -22,12 +23,23 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: env.NODE_ENV === 'development'
-      ? ['http://localhost:3000', 'http://localhost:5173']
-      : process.env.ALLOWED_ORIGINS?.split(',') || [],
+    origin: process.env.ALLOWED_ORIGINS?.split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', "Cookie"],
+  })
+);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
   })
 );
 

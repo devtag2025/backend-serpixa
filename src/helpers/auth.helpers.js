@@ -22,7 +22,7 @@ export const getCookieOptions = (maxAge, httpOnly = true, userType = 'user') => 
   return {
     httpOnly,
     secure: env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: env.NODE_ENV === "production" ? "None" : "Lax",
     maxAge,
     path: "/",
     domain

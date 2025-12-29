@@ -23,6 +23,7 @@ const startServer = async () => {
 
     const server = app.listen(PORT, () => {
       Logger.log(`Server running on http://localhost:${PORT}`);
+      Logger.log(`Allowed Origins: ${process.env.ALLOWED_ORIGINS}`);
       Logger.log(`Environment: ${env.NODE_ENV}`);
     });
 
