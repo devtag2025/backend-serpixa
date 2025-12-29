@@ -16,18 +16,36 @@ const app = express();
 // Compression
 app.use(compression());
 
-// Security Headers
-app.use(helmet());
+// Security Headers - configure helmet to not interfere with CORS
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "unsafe-none" }
+}));
 
-// CORS
-app.use(
-  cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(','),
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', "Cookie"],
-  })
-);
+// Parse allowed origins
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) || [];
+
+// CORS - handle properly for all environments
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow if origin is in the list
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Block if not in list
+    return callback(new Error('Not allowed by CORS'), false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+}));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
 
 // Cookie parser
 app.use(cookieParser());
@@ -53,7 +71,7 @@ const limiter = rateLimit({
   message: { success: false, message: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/api/v1/webhooks/stripe', // Skip rate limiting for webhooks
+  skip: (req) => req.path === '/api/v1/webhooks/stripe',
 });
 app.use('/api', limiter);
 
