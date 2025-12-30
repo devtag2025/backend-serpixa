@@ -164,6 +164,71 @@ const userIdParam = validateParams(Joi.object({
   }),
 }));
 
+// Admin - Suspend User
+const suspendUser = validateRequest(Joi.object({
+  reason: Joi.string().min(5).max(500).required().messages({
+    'any.required': 'Suspension reason is required',
+    'string.min': 'Reason must be at least 5 characters',
+  }),
+}));
+
+// Admin - Cancel Subscription
+const cancelSubscription = validateRequest(Joi.object({
+  immediate: Joi.boolean().optional().default(false),
+}));
+
+// Admin - Process Refund
+const processRefund = validateRequest(Joi.object({
+  amount: Joi.number().positive().optional().messages({
+    'number.positive': 'Refund amount must be positive',
+  }),
+  reason: Joi.string().min(5).max(500).required().messages({
+    'any.required': 'Refund reason is required',
+  }),
+}));
+
+// Admin - Update Setting
+const updateSetting = validateRequest(Joi.object({
+  key: Joi.string().required().messages({
+    'any.required': 'Setting key is required',
+  }),
+  value: Joi.any().required().messages({
+    'any.required': 'Setting value is required',
+  }),
+}));
+
+// Admin - Subscription ID param
+const subscriptionIdParam = validateParams(Joi.object({
+  subscriptionId: Joi.string().regex(/^[a-fA-F0-9]{24}$/).required().messages({
+    'string.pattern.base': 'Invalid subscription ID format',
+  }),
+}));
+
+// Admin - Export Report Query
+const exportReportQuery = (req, res, next) => {
+  const schema = Joi.object({
+    type: Joi.string().valid('users', 'subscriptions', 'audits').required().messages({
+      'any.required': 'Report type is required',
+      'any.only': 'Report type must be users, subscriptions, or audits',
+    }),
+    startDate: Joi.date().iso().optional(),
+    endDate: Joi.date().iso().optional(),
+    format: Joi.string().valid('json', 'csv').optional().default('json'),
+  });
+  
+  const { error, value } = schema.validate(req.query);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      error: error.details[0].message,
+    });
+  }
+  
+  req.validatedQuery = value;
+  next();
+};
+
 const updateCredits = validateRequest(Joi.object({
   seo_audits: Joi.number().integer().min(0).optional(),
   geo_audits: Joi.number().integer().min(0).optional(),
@@ -264,4 +329,17 @@ export const validate = {
   // AI Content
   generateAIContent,
   aiContentIdParam,
+
+  // Admin - Suspend User
+  suspendUser,
+  // Admin - Cancel Subscription
+  cancelSubscription,
+  // Admin - Process Refund
+  processRefund,
+  // Admin - Update Setting
+  updateSetting,
+  // Admin - Subscription ID param
+  subscriptionIdParam,
+  // Admin - Export Report Query
+  exportReportQuery,
 }

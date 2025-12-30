@@ -12,8 +12,15 @@ export const auth = async (req, res, next) => {
     const { _id } = jwt.verify(token, env.ACCESS_TOKEN_SECRET);
     req.user = await User.findById(_id).select("-password");
     if (!req.user) throw new ApiError(401, "User not found");
+    
+    // Check if user is suspended
+    if (req.user.is_suspended) {
+      return next(new ApiError(403, "Account suspended. Please contact support."));
+    }
+    
     return next();
   } catch (err) {
+    if (err instanceof ApiError) return next(err);
     if (err?.name !== "TokenExpiredError") return next(new ApiError(401, "Invalid access token"));
 
     try {
@@ -22,9 +29,16 @@ export const auth = async (req, res, next) => {
       const { _id } = jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET);
       req.user = await User.findById(_id).select("-password");
       if (!req.user) throw new ApiError(401, "User not found");
+      
+      // Check if user is suspended (also on refresh)
+      if (req.user.is_suspended) {
+        return next(new ApiError(403, "Account suspended. Please contact support."));
+      }
+      
       setAuthTokens(res, req.user); // rotate tokens
       return next();
-    } catch {
+    } catch (refreshErr) {
+      if (refreshErr instanceof ApiError) return next(refreshErr);
       return next(new ApiError(401, "Invalid or expired refresh token"));
     }
   }

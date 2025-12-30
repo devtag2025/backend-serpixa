@@ -76,6 +76,10 @@ export const login = async (req, res, next) => {
     if (!user.is_email_verified) {
       return res.status(403).json(new ApiResponse(403, null, "Please verify your email first"));
     }
+  
+    if (user.is_suspended) {
+      return res.status(403).json(new ApiResponse(403, null, "Your account has been suspended. Please contact support."));
+    }
 
     const { accessToken } = setAuthTokens(res, user);
 

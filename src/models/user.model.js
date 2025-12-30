@@ -29,6 +29,11 @@ const UserSchema = new Schema(
     reset_password_token: { type: String },
     reset_password_expires: { type: Date },
     refresh_token_enc: { type: String },
+
+      // Suspension fields (add these)
+    is_suspended: { type: Boolean, default: false, index: true },
+    suspended_at: { type: Date, default: null },
+    suspension_reason: { type: String, default: null },
     
     // Stripe
     stripe_customer_id: { type: String, index: true },

@@ -1,6 +1,10 @@
 import { ApiResponse } from '../utils/index.js';
 import { adminService } from '../services/admin.service.js';
 
+// ============================================
+// EXISTING CONTROLLERS
+// ============================================
+
 /**
  * @desc    Get admin dashboard statistics
  * @route   GET /api/v1/admin/dashboard/stats
@@ -22,7 +26,6 @@ export const getDashboardStats = async (req, res, next) => {
  */
 export const getCreditConsumptionTrend = async (req, res, next) => {
   try {
-    // Use validatedQuery if available, otherwise fallback to req.query
     const { period = '7days' } = req.validatedQuery || req.query;
     const trendData = await adminService.getCreditConsumptionTrend(period);
     res.json(new ApiResponse(200, trendData, 'Credit trend retrieved successfully'));
@@ -38,7 +41,6 @@ export const getCreditConsumptionTrend = async (req, res, next) => {
  */
 export const getAllUsers = async (req, res, next) => {
   try {
-    // Use validatedQuery if available, otherwise fallback to req.query
     const options = req.validatedQuery || req.query;
     const result = await adminService.getAllUsers(options);
     res.json(new ApiResponse(200, result, 'Users retrieved successfully'));
@@ -71,7 +73,8 @@ export const updateUserCredits = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const credits = req.body;
-    const updatedUser = await adminService.updateUserCredits(userId, credits);
+    const adminId = req.user._id;
+    const updatedUser = await adminService.updateUserCredits(userId, credits, adminId);
     res.json(new ApiResponse(200, updatedUser, 'User credits updated successfully'));
   } catch (error) {
     next(error);
@@ -85,7 +88,6 @@ export const updateUserCredits = async (req, res, next) => {
  */
 export const getAllAudits = async (req, res, next) => {
   try {
-    // Use validatedQuery if available, otherwise fallback to req.query
     const options = req.validatedQuery || req.query;
     const result = await adminService.getAllAudits(options);
     res.json(new ApiResponse(200, result, 'Audits retrieved successfully'));
@@ -101,10 +103,162 @@ export const getAllAudits = async (req, res, next) => {
  */
 export const getAllSubscriptions = async (req, res, next) => {
   try {
-    // Use validatedQuery if available, otherwise fallback to req.query
     const options = req.validatedQuery || req.query;
     const result = await adminService.getAllSubscriptions(options);
     res.json(new ApiResponse(200, result, 'Subscriptions retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================
+// NEW CONTROLLERS
+// ============================================
+
+/**
+ * @desc    Suspend a user account
+ * @route   POST /api/v1/admin/users/:userId/suspend
+ * @access  Admin
+ */
+export const suspendUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user._id;
+    const result = await adminService.suspendUser(userId, reason, adminId);
+    res.json(new ApiResponse(200, result, 'User suspended successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reactivate a suspended user
+ * @route   POST /api/v1/admin/users/:userId/reactivate
+ * @access  Admin
+ */
+export const reactivateUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user._id;
+    const result = await adminService.reactivateUser(userId, adminId);
+    res.json(new ApiResponse(200, result, 'User reactivated successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get user activity logs
+ * @route   GET /api/v1/admin/users/:userId/activity
+ * @access  Admin
+ */
+export const getUserActivityLogs = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const options = req.validatedQuery || req.query;
+    const result = await adminService.getUserActivityLogs(userId, options);
+    res.json(new ApiResponse(200, result, 'Activity logs retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Cancel a subscription
+ * @route   POST /api/v1/admin/subscriptions/:subscriptionId/cancel
+ * @access  Admin
+ */
+export const cancelSubscription = async (req, res, next) => {
+  try {
+    const { subscriptionId } = req.params;
+    const { immediate = false } = req.body;
+    const adminId = req.user._id;
+    const result = await adminService.cancelUserSubscription(subscriptionId, adminId, immediate);
+    res.json(new ApiResponse(200, result, 'Subscription cancelled successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Process a refund
+ * @route   POST /api/v1/admin/subscriptions/:subscriptionId/refund
+ * @access  Admin
+ */
+export const processRefund = async (req, res, next) => {
+  try {
+    const { subscriptionId } = req.params;
+    const { amount, reason } = req.body;
+    const adminId = req.user._id;
+    const result = await adminService.processRefund(subscriptionId, amount, reason, adminId);
+    res.json(new ApiResponse(200, result, 'Refund processed successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get global platform analytics
+ * @route   GET /api/v1/admin/analytics
+ * @access  Admin
+ */
+export const getGlobalAnalytics = async (req, res, next) => {
+  try {
+    const result = await adminService.getGlobalAnalytics();
+    res.json(new ApiResponse(200, result, 'Analytics retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get system settings
+ * @route   GET /api/v1/admin/settings
+ * @access  Admin
+ */
+export const getSystemSettings = async (req, res, next) => {
+  try {
+    const result = await adminService.getSystemSettings();
+    res.json(new ApiResponse(200, result, 'Settings retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update a system setting
+ * @route   PATCH /api/v1/admin/settings
+ * @access  Admin
+ */
+export const updateSystemSettings = async (req, res, next) => {
+  try {
+    const { key, value } = req.body;
+    const adminId = req.user._id;
+    const result = await adminService.updateSystemSettings(key, value, adminId);
+    res.json(new ApiResponse(200, result, 'Setting updated successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Export report data
+ * @route   GET /api/v1/admin/reports/export
+ * @access  Admin
+ */
+export const exportReport = async (req, res, next) => {
+  try {
+    const { type, startDate, endDate, format = 'json' } = req.validatedQuery || req.query;
+    const result = await adminService.exportReport(type, { startDate, endDate, format });
+    
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=${type}-report-${Date.now()}.csv`);
+      return res.send(result);
+    }
+    
+    res.json(new ApiResponse(200, result, 'Report exported successfully'));
   } catch (error) {
     next(error);
   }

@@ -5,3 +5,5 @@ export { GeoAudit } from './geoAudit.model.js';
 export { Plan } from './plan.model.js';
 export { Subscription } from './subscription.model.js';
 export { AIContent } from './aiContent.model.js';
+export { Settings } from './settings.model.js';
+export { ActivityLog } from './activity.model.js';
