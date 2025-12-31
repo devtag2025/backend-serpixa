@@ -10,7 +10,7 @@ import { setAuthTokens } from '../helpers/index.js';
 
 export const signup = async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, locale } = req.body;
 
     if (!email || !password) {
       return res.status(400).json(new ApiResponse(400, null, "Email and password required"));
@@ -21,27 +21,29 @@ export const signup = async (req, res, next) => {
       return res.status(409).json(new ApiResponse(409, null, "User already exists"));
     }
 
+    // Determine locale - from body, request header, or default
+    const userLocale = locale || getLocaleFromRequest(req) || 'en';
+    const validLocales = ['en', 'fr', 'nl'];
+    const preferredLocale = validLocales.includes(userLocale) ? userLocale : 'en';
+
     const user = new User({
       email,
       password,
       name,
+      preferred_locale: preferredLocale,
     });
 
     const emailToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // Get locale from request
-    const locale = getLocaleFromRequest(req);
-
     // Best-effort email sending; don't block signup in development if email fails
     try {
       await emailService.sendEmailVerification(email, emailToken, { 
         userName: name,
-        locale: locale 
+        locale: preferredLocale  // Use user's preferred locale
       });
     } catch (err) {
       if (env.NODE_ENV === 'development') {
-        // Log and continue so local testing works even without valid email credentials
         console.error('Email verification send failed:', err.message || err);
       } else {
         throw err;
@@ -56,9 +58,10 @@ export const signup = async (req, res, next) => {
   }
 };
 
+
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, locale } = req.body;
 
     if (!email || !password) {
       return res.status(400).json(new ApiResponse(400, null, "Email and password required"));
@@ -79,6 +82,15 @@ export const login = async (req, res, next) => {
   
     if (user.is_suspended) {
       return res.status(403).json(new ApiResponse(403, null, "Your account has been suspended. Please contact support."));
+    }
+
+    // Update locale if provided in login request
+    if (locale) {
+      const validLocales = ['en', 'fr', 'nl'];
+      if (validLocales.includes(locale)) {
+        user.preferred_locale = locale;
+        await user.save();
+      }
     }
 
     const { accessToken } = setAuthTokens(res, user);
@@ -280,6 +292,24 @@ export const getClearCookieOptions = () => ({
   path: "/",
   domain: env.NODE_ENV === "production" ? ".fitnessads.ai" : undefined,
 });
+
+// update user locale preference
+export const updateLocale = async (req, res, next) => {
+  try {
+    const { locale } = req.body;
+    const validLocales = ['en', 'fr', 'nl'];
+
+    if (!locale || !validLocales.includes(locale)) {
+      return res.status(400).json(new ApiResponse(400, null, "Invalid locale. Supported: en, fr, nl"));
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { preferred_locale: locale });
+
+    res.json(new ApiResponse(200, { locale }, "Locale updated successfully"));
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const logout = async (req, res, next) => {
   try {

@@ -42,7 +42,8 @@ router.get('/audits', validate.paginationQuery, adminController.getAllAudits);
 // ============================================
 router.get('/subscriptions', validate.paginationQuery, adminController.getAllSubscriptions);
 router.post('/subscriptions/:subscriptionId/cancel', validate.subscriptionIdParam, validate.cancelSubscription, adminController.cancelSubscription);
-router.post('/subscriptions/:subscriptionId/refund',sensitiveActionLimiter, validate.subscriptionIdParam, validate.processRefund, adminController.processRefund);
+router.post('/subscriptions/:subscriptionId/refund', sensitiveActionLimiter, validate.subscriptionIdParam, validate.processRefund, adminController.processRefund);
+router.post('/subscriptions/:subscriptionId/change-plan', validate.subscriptionIdParam, validate.changeSubscriptionPlan, adminController.changeSubscriptionPlan);
 
 // ============================================
 // ANALYTICS & REPORTS

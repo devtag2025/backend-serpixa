@@ -295,6 +295,16 @@ const aiContentIdParam = validateParams(Joi.object({
   contentId: mongoId,
 }));
 
+// Admin - Change Subscription Plan
+const changeSubscriptionPlan = validateRequest(Joi.object({
+  newPlanId: Joi.string().regex(/^[a-fA-F0-9]{24}$/).required().messages({
+    'string.pattern.base': 'Invalid plan ID format',
+    'any.required': 'New plan ID is required',
+  }),
+  immediate: Joi.boolean().optional().default(true),
+  resetUsage: Joi.boolean().optional().default(false),
+}));
+
 export const validate = {
   // Auth
   registerUser,
@@ -342,4 +352,6 @@ export const validate = {
   subscriptionIdParam,
   // Admin - Export Report Query
   exportReportQuery,
+
+  changeSubscriptionPlan,
 }

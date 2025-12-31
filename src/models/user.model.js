@@ -37,6 +37,12 @@ const UserSchema = new Schema(
     
     // Stripe
     stripe_customer_id: { type: String, index: true },
+
+     preferred_locale: { 
+      type: String, 
+      enum: ['en', 'fr', 'nl'], 
+      default: 'en' 
+    },
     
     // Credits for addon purchases
     credits: {

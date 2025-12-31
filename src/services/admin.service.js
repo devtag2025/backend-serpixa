@@ -2,6 +2,7 @@ import { User, Subscription, SEOAudit, GBPAudit, GeoAudit, Plan, Settings, Activ
 import { ApiError, paginate } from '../utils/index.js';
 import Stripe from 'stripe';
 import { env } from '../config/index.js';
+import { emailService } from './email.service.js';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -457,7 +458,10 @@ export const getUserActivityLogs = async (userId, options = {}) => {
  * Cancel user subscription (admin action)
  */
 export const cancelUserSubscription = async (subscriptionId, adminId, immediate = false) => {
-  const subscription = await Subscription.findById(subscriptionId).populate('user_id', 'name email');
+  const subscription = await Subscription.findById(subscriptionId)
+    .populate('user_id', 'name email preferred_locale')  // <-- Include preferred_locale
+    .populate('plan_id', 'name');
+  
   if (!subscription) {
     throw new ApiError(404, 'Subscription not found');
   }
@@ -483,11 +487,25 @@ export const cancelUserSubscription = async (subscriptionId, adminId, immediate 
   subscription.canceled_at = new Date();
   await subscription.save();
 
+  // Log activity
   await ActivityLog.log({
     user_id: subscription.user_id._id,
     action: 'subscription_cancelled',
     details: { subscription_id: subscriptionId, immediate },
     performed_by: adminId
+  });
+
+  // Send cancellation email to user with their preferred locale
+  const user = subscription.user_id;
+  const planName = subscription.plan_id?.name || 'your plan';
+  
+  await emailService.sendSubscriptionCancelledEmail(user.email, {
+    userName: user.name,
+    planName: planName,
+    immediate: immediate,
+    endDate: immediate ? null : subscription.current_period_end,
+    cancelledByAdmin: true,
+    locale: user.preferred_locale || 'en'  // <-- Pass user's locale
   });
 
   return subscription;
@@ -497,7 +515,9 @@ export const cancelUserSubscription = async (subscriptionId, adminId, immediate 
  * Process refund for a subscription
  */
 export const processRefund = async (subscriptionId, amount, reason, adminId) => {
-  const subscription = await Subscription.findById(subscriptionId).populate('user_id', 'name email stripe_customer_id');
+  const subscription = await Subscription.findById(subscriptionId)
+    .populate('user_id', 'name email stripe_customer_id preferred_locale');  // <-- Add preferred_locale
+  
   if (!subscription) {
     throw new ApiError(404, 'Subscription not found');
   }
@@ -521,7 +541,7 @@ export const processRefund = async (subscriptionId, amount, reason, adminId) => 
 
       refund = await stripe.refunds.create({
         payment_intent: invoices.data[0].payment_intent,
-        amount: amount ? Math.round(amount * 100) : undefined, // Convert to cents if partial
+        amount: amount ? Math.round(amount * 100) : undefined,
         reason: 'requested_by_customer',
         metadata: { admin_reason: reason, admin_id: adminId.toString() }
       });
@@ -537,9 +557,10 @@ export const processRefund = async (subscriptionId, amount, reason, adminId) => 
     throw new ApiError(400, `Refund failed: ${error.message}`);
   }
 
+  // Log activity
   await ActivityLog.log({
     user_id: subscription.user_id._id,
-    action: 'subscription_cancelled',
+    action: 'refund_processed',  // <-- Changed action name for clarity
     details: { 
       subscription_id: subscriptionId, 
       refund_id: refund?.id,
@@ -547,6 +568,17 @@ export const processRefund = async (subscriptionId, amount, reason, adminId) => 
       reason 
     },
     performed_by: adminId
+  });
+
+  // Send refund email to user with their preferred locale
+  const user = subscription.user_id;
+  await emailService.sendRefundProcessedEmail(user.email, {
+    userName: user.name,
+    amount: refund.amount / 100,
+    currency: refund.currency,
+    reason: reason,
+    status: refund.status,
+    locale: user.preferred_locale || 'en'  // <-- Pass user's locale
   });
 
   return { 
@@ -807,6 +839,141 @@ const processTrendData = (rawData, startDate, period, labels) => {
   return datasets;
 };
 
+
+/**
+ * Change user's subscription plan (upgrade/downgrade)
+ * @param {string} subscriptionId - MongoDB subscription ID
+ * @param {string} newPlanId - MongoDB plan ID to switch to
+ * @param {string} adminId - Admin performing the action
+ * @param {Object} options - { immediate: boolean, resetUsage: boolean }
+ */
+export const changeUserSubscription = async (subscriptionId, newPlanId, adminId, options = {}) => {
+  const { immediate = true, resetUsage = false } = options;
+
+  // Get current subscription with user and plan details
+  const subscription = await Subscription.findById(subscriptionId)
+    .populate('user_id', 'name email preferred_locale')
+    .populate('plan_id', 'name price limits');
+
+  if (!subscription) {
+    throw new ApiError(404, 'Subscription not found');
+  }
+
+  if (!['active', 'trial', 'lifetime'].includes(subscription.status)) {
+    throw new ApiError(400, 'Can only change active subscriptions');
+  }
+
+  // Get new plan
+  const newPlan = await Plan.findById(newPlanId);
+  if (!newPlan) {
+    throw new ApiError(404, 'New plan not found');
+  }
+
+  if (newPlan.plan_type !== 'subscription') {
+    throw new ApiError(400, 'Can only switch to subscription plans, not addons');
+  }
+
+  if (!newPlan.is_active) {
+    throw new ApiError(400, 'Target plan is not active');
+  }
+
+  const currentPlan = subscription.plan_id;
+  const user = subscription.user_id;
+
+  // Check if it's the same plan
+  if (currentPlan._id.toString() === newPlanId) {
+    throw new ApiError(400, 'User is already on this plan');
+  }
+
+  // Determine if upgrade or downgrade based on price
+  const isUpgrade = newPlan.price > currentPlan.price;
+
+  // Update Stripe subscription if exists
+  if (subscription.stripe_subscription_id) {
+    try {
+      const stripeUpdate = {
+        items: [{
+          id: (await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)).items.data[0].id,
+          price: newPlan.stripe_price_id
+        }],
+        proration_behavior: immediate ? 'create_prorations' : 'none'
+      };
+
+      // If not immediate, apply at next billing cycle
+      if (!immediate) {
+        stripeUpdate.proration_behavior = 'none';
+        stripeUpdate.billing_cycle_anchor = 'unchanged';
+      }
+
+      await stripe.subscriptions.update(subscription.stripe_subscription_id, stripeUpdate);
+      console.log(`Stripe subscription updated: ${subscription.stripe_subscription_id}`);
+    } catch (error) {
+      console.error('Stripe subscription update error:', error.message);
+      throw new ApiError(500, `Failed to update Stripe subscription: ${error.message}`);
+    }
+  }
+
+  // Update subscription in database
+  subscription.plan_id = newPlanId;
+  
+  // Optionally reset usage counters (useful for upgrades)
+  if (resetUsage) {
+    subscription.usage = {
+      searches_performed: 0,
+      api_calls_made: 0,
+      seo_audits_used: 0,
+      geo_audits_used: 0,
+      gbp_audits_used: 0,
+      ai_generations_used: 0,
+      last_reset: new Date()
+    };
+  }
+
+  await subscription.save();
+
+  // Log activity
+  await ActivityLog.log({
+    user_id: user._id,
+    action: isUpgrade ? 'subscription_upgraded' : 'subscription_downgraded',
+    details: {
+      subscription_id: subscriptionId,
+      previous_plan: { id: currentPlan._id, name: currentPlan.name, price: currentPlan.price },
+      new_plan: { id: newPlan._id, name: newPlan.name, price: newPlan.price },
+      immediate,
+      resetUsage
+    },
+    performed_by: adminId
+  });
+
+  // Send plan changed email
+  await emailService.sendSubscriptionPlanChangedEmail(user.email, {
+    userName: user.name,
+    previousPlanName: currentPlan.name,
+    newPlanName: newPlan.name,
+    newPlan: newPlan,
+    isUpgrade,
+    immediate,
+    locale: user.preferred_locale || 'en'
+  });
+
+  // Return updated subscription with new plan details
+  const updatedSubscription = await Subscription.findById(subscriptionId)
+    .populate('user_id', 'name email')
+    .populate('plan_id', 'name price limits billing_period');
+
+  return {
+    message: `Subscription ${isUpgrade ? 'upgraded' : 'downgraded'} successfully`,
+    subscription: updatedSubscription,
+    change: {
+      type: isUpgrade ? 'upgrade' : 'downgrade',
+      from: currentPlan.name,
+      to: newPlan.name,
+      immediate,
+      usageReset: resetUsage
+    }
+  };
+};
+
 const maskApiKey = (key) => {
   if (!key) return null;
   if (key.length <= 8) return '****';
@@ -869,6 +1036,7 @@ export const adminService = {
   getUserActivityLogs,
   cancelUserSubscription,
   processRefund,
+  changeUserSubscription,
   getGlobalAnalytics,
   getSystemSettings,
   updateSystemSettings,

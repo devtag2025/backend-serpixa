@@ -263,3 +263,25 @@ export const exportReport = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Change user subscription plan (upgrade/downgrade)
+ * POST /api/v1/admin/subscriptions/:subscriptionId/change-plan
+ */
+export const changeSubscriptionPlan = async (req, res, next) => {
+  try {
+    const { subscriptionId } = req.params;
+    const { newPlanId, immediate = true, resetUsage = false } = req.body;
+
+    const result = await adminService.changeUserSubscription(
+      subscriptionId,
+      newPlanId,
+      req.user._id,
+      { immediate, resetUsage }
+    );
+
+    res.json(new ApiResponse(200, result, result.message));
+  } catch (error) {
+    next(error);
+  }
+};

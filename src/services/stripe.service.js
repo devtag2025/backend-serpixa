@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { User, Plan, Subscription } from '../models/index.js';
 import { env } from '../config/index.js';
+import { emailService } from './email.service.js';  // <-- ADD THIS
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -40,7 +41,6 @@ class StripeService {
 
     return { checkout_url: session.url };
   }
-
 
   async createPortal(userId) {
     const user = await User.findById(userId);
@@ -91,14 +91,12 @@ class StripeService {
   }
 
   async _upsertSubscription(userId, planId, stripeData) {
-    // Validate user exists
     const user = await User.findById(userId);
     if (!user) {
       console.error(`User not found: ${userId}`);
       throw new Error('User not found');
     }
 
-    // Get plan to access limits
     const plan = await Plan.findById(planId);
     if (!plan) {
       console.error(`Plan not found: ${planId}`);
@@ -124,28 +122,7 @@ class StripeService {
       trial_end: stripeData.trial_end ? new Date(stripeData.trial_end * 1000) : undefined
     });
 
-    // Add monthly credits to user based on plan limits (only for subscription plans)
-    if (plan.plan_type === 'subscription' && plan.limits) {
-      // Initialize credits if not exists
-      if (!user.credits) {
-        user.credits = {
-          seo_audits: 0,
-          geo_audits: 0,
-          gbp_audits: 0,
-          ai_generations: 0,
-        };
-      }
-
-      // Add monthly credits from plan limits
-      // Note: These are monthly credits that reset each billing cycle
-      // The subscription usage tracking handles the monthly limits
-      // User credits are for addon purchases (one-time credits)
-      // We don't add subscription limits as user credits, they're tracked in subscription.usage
-      
-      await user.save();
-      console.log(`Subscription created for user ${userId}, plan: ${plan.name}`);
-    }
-
+    console.log(`Subscription created for user ${userId}, plan: ${plan.name}`);
     return subscription;
   }
 
@@ -164,14 +141,19 @@ class StripeService {
 
   async _handleCheckout(session) {
     console.log("Handling checkout session:", session.id);
-    const { user_id, plan_id, price_id, plan_type } = session.metadata;
+    const { user_id, plan_id, price_id } = session.metadata;
     
     if (!user_id) {
       console.error('No user_id in checkout session metadata');
       return;
     }
 
-    // Find plan by plan_id or price_id
+    const user = await User.findById(user_id);
+    if (!user) {
+      console.error('User not found:', user_id);
+      return;
+    }
+
     let plan = null;
     if (plan_id) {
       plan = await Plan.findById(plan_id);
@@ -187,6 +169,15 @@ class StripeService {
     // Handle addon purchases (one-time payments)
     if (plan.plan_type === 'addon' || plan.billing_period === 'one_time') {
       await this._handleAddonPurchase(user_id, plan);
+      
+      const updatedUser = await User.findById(user_id);
+      await emailService.sendAddonPurchasedEmail(user.email, {
+        userName: user.name,
+        planName: plan.name,
+        credits: plan.credits,
+        totalCredits: updatedUser.credits,
+        locale: user.preferred_locale || 'en'
+      });
       return;
     }
 
@@ -199,7 +190,15 @@ class StripeService {
         stripeData = { ...stripeData, subscription: sub.id, ...sub };
       }
 
-      await this._upsertSubscription(user_id, plan._id.toString(), stripeData);
+      const subscription = await this._upsertSubscription(user_id, plan._id.toString(), stripeData);
+      
+      await emailService.sendSubscriptionActivatedEmail(user.email, {
+        userName: user.name,
+        planName: plan.name,
+        plan: plan,
+        subscription: subscription,
+        locale: user.preferred_locale || 'en'
+      });
     }
   }
 
@@ -209,14 +208,12 @@ class StripeService {
       return;
     }
 
-    // Update user credits
     const user = await User.findById(userId);
     if (!user) {
       console.error('User not found for addon purchase');
       return;
     }
 
-    // Initialize credits if not exists
     if (!user.credits) {
       user.credits = {
         seo_audits: 0,
@@ -226,7 +223,6 @@ class StripeService {
       };
     }
 
-    // Add credits from plan
     if (plan.credits.seo_audits) {
       user.credits.seo_audits = (user.credits.seo_audits || 0) + plan.credits.seo_audits;
     }
@@ -245,44 +241,125 @@ class StripeService {
   }
 
   async _handleSubscriptionUpdate(stripeSub) {
-    await Subscription.updateOne(
-      { stripe_subscription_id: stripeSub.id },
-      {
-        status: this._mapStripeStatus(stripeSub.status),
-        current_period_start: new Date(stripeSub.current_period_start * 1000),
-        current_period_end: new Date(stripeSub.current_period_end * 1000),
-        cancel_at_period_end: stripeSub.cancel_at_period_end,
-        canceled_at: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null
-      }
-    );
+    const subscription = await Subscription.findOne({ stripe_subscription_id: stripeSub.id })
+      .populate('user_id', 'name email preferred_locale')
+      .populate('plan_id', 'name');
+    
+    if (!subscription) {
+      console.error('Subscription not found for update:', stripeSub.id);
+      await Subscription.updateOne(
+        { stripe_subscription_id: stripeSub.id },
+        {
+          status: this._mapStripeStatus(stripeSub.status),
+          current_period_start: new Date(stripeSub.current_period_start * 1000),
+          current_period_end: new Date(stripeSub.current_period_end * 1000),
+          cancel_at_period_end: stripeSub.cancel_at_period_end,
+          canceled_at: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null
+        }
+      );
+      return;
+    }
+
+    const previousCancelAtPeriodEnd = subscription.cancel_at_period_end;
+    
+    subscription.status = this._mapStripeStatus(stripeSub.status);
+    subscription.current_period_start = new Date(stripeSub.current_period_start * 1000);
+    subscription.current_period_end = new Date(stripeSub.current_period_end * 1000);
+    subscription.cancel_at_period_end = stripeSub.cancel_at_period_end;
+    subscription.canceled_at = stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null;
+    await subscription.save();
+
+    const user = subscription.user_id;
+    const planName = subscription.plan_id?.name || 'your plan';
+
+    // Send cancellation email if cancel_at_period_end was just set
+    if (stripeSub.cancel_at_period_end && !previousCancelAtPeriodEnd) {
+      await emailService.sendSubscriptionCancelledEmail(user.email, {
+        userName: user.name,
+        planName: planName,
+        immediate: false,
+        endDate: subscription.current_period_end,
+        locale: user.preferred_locale || 'en'
+      });
+    }
   }
 
   async _handleSubscriptionCancel(stripeSub) {
+    const subscription = await Subscription.findOne({ stripe_subscription_id: stripeSub.id })
+      .populate('user_id', 'name email preferred_locale')
+      .populate('plan_id', 'name');
+
     await Subscription.updateOne(
       { stripe_subscription_id: stripeSub.id },
       { status: 'canceled', canceled_at: new Date() }
     );
+
+    if (subscription?.user_id) {
+      const user = subscription.user_id;
+      const planName = subscription.plan_id?.name || 'your plan';
+      
+      await emailService.sendSubscriptionCancelledEmail(user.email, {
+        userName: user.name,
+        planName: planName,
+        immediate: true,
+        endDate: null,
+        locale: user.preferred_locale || 'en'
+      });
+    }
   }
 
   async _handlePaymentSuccess(invoice) {
-    if (invoice.subscription) {
-      await Subscription.updateOne(
-        { stripe_subscription_id: invoice.subscription, status: 'past_due' },
-        { status: 'active' }
-      );
+    if (!invoice.subscription) return;
+
+    const subscription = await Subscription.findOne({ stripe_subscription_id: invoice.subscription })
+      .populate('user_id', 'name email preferred_locale')
+      .populate('plan_id', 'name');
+    
+    await Subscription.updateOne(
+      { stripe_subscription_id: invoice.subscription, status: 'past_due' },
+      { status: 'active' }
+    );
+
+    // Send renewal email only for subscription cycle renewals
+    if (subscription?.user_id && invoice.billing_reason === 'subscription_cycle') {
+      const user = subscription.user_id;
+      const planName = subscription.plan_id?.name || 'your plan';
+      
+      await emailService.sendSubscriptionRenewedEmail(user.email, {
+        userName: user.name,
+        planName: planName,
+        amount: invoice.amount_paid / 100,
+        currency: invoice.currency,
+        periodStart: invoice.period_start * 1000,
+        periodEnd: invoice.period_end * 1000,
+        locale: user.preferred_locale || 'en'
+      });
     }
   }
 
   async _handlePaymentFailed(invoice) {
-    if (invoice.subscription) {
-      await Subscription.updateOne(
-        { stripe_subscription_id: invoice.subscription },
-        { status: 'past_due' }
-      );
+    if (!invoice.subscription) return;
+
+    const subscription = await Subscription.findOne({ stripe_subscription_id: invoice.subscription })
+      .populate('user_id', 'name email preferred_locale')
+      .populate('plan_id', 'name');
+    
+    await Subscription.updateOne(
+      { stripe_subscription_id: invoice.subscription },
+      { status: 'past_due' }
+    );
+
+    if (subscription?.user_id) {
+      const user = subscription.user_id;
+      const planName = subscription.plan_id?.name || 'your plan';
+      
+      await emailService.sendPaymentFailedEmail(user.email, {
+        userName: user.name,
+        planName: planName,
+        locale: user.preferred_locale || 'en'
+      });
     }
   }
 }
 
 export const stripeService = new StripeService();
-
-
