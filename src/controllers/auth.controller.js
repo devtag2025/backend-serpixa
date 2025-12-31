@@ -328,7 +328,7 @@ export const logout = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { name, email,locale } = req.body;
     const user = await User.findById(req.user.id);
 
     if (email && email !== user.email) {
@@ -340,6 +340,12 @@ export const updateProfile = async (req, res, next) => {
 
     if (name) user.name = name;
     if (email) user.email = email;
+    if (locale) {
+      const validLocales = ['en', 'fr', 'nl'];
+      if (validLocales.includes(locale)) {
+        user.preferred_locale = locale;
+      }
+    }
     await user.save();
 
     const { password, refreshToken, ...userResponse } = user.toObject();

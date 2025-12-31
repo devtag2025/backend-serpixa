@@ -90,7 +90,8 @@ const resendVerification = validateRequest(Joi.object({
 
 const updateProfile = validateRequest(Joi.object({
   name: name.optional(),
-  email: email.optional()
+  email: Joi.string().email().optional(),
+  locale: Joi.string().valid('en', 'fr', 'nl').optional(), 
 }).min(1));
 
 const changePassword = validateRequest(Joi.object({
