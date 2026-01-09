@@ -20,11 +20,14 @@ router.use(authorize([USER_TYPES.ADMIN]));
 // DASHBOARD
 // ============================================
 router.get('/dashboard/stats', adminController.getDashboardStats);
+router.get('/dashboard/ai-content-stats', adminController.getAIContentStats);
+router.get('/dashboard/recent-activity', adminController.getDashboardRecentActivity);
 router.get('/dashboard/credit-trend', validate.creditTrendQuery, adminController.getCreditConsumptionTrend);
 
 // ============================================
 // USERS
 // ============================================
+router.get('/users/stats', adminController.getUserStats);
 router.get('/users', validate.paginationQuery, adminController.getAllUsers);
 router.get('/users/:userId', validate.userIdParam, adminController.getUserById);
 router.get('/users/:userId/activity', validate.userIdParam, validate.paginationQuery, adminController.getUserActivityLogs);
@@ -35,11 +38,13 @@ router.post('/users/:userId/reactivate', validate.userIdParam, adminController.r
 // ============================================
 // AUDITS
 // ============================================
+router.get('/audits/stats', adminController.getAuditStats);
 router.get('/audits', validate.paginationQuery, adminController.getAllAudits);
 
 // ============================================
 // SUBSCRIPTIONS & BILLING
 // ============================================
+router.get('/subscriptions/stats', adminController.getSubscriptionStats);
 router.get('/subscriptions', validate.paginationQuery, adminController.getAllSubscriptions);
 router.post('/subscriptions/:subscriptionId/cancel', validate.subscriptionIdParam, validate.cancelSubscription, adminController.cancelSubscription);
 router.post('/subscriptions/:subscriptionId/refund', sensitiveActionLimiter, validate.subscriptionIdParam, validate.processRefund, adminController.processRefund);
