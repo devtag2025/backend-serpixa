@@ -12,7 +12,7 @@ export const runAudit = async (req, res, next) => {
     const searchTerm = businessName || gbpLink;
     if (!searchTerm) {
       return res.status(400).json(
-        new ApiResponse(400, null, 'Business name or GBP link is required')
+        new ApiResponse(400, null, 'GBP link is required')
       );
     }
 

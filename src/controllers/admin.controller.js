@@ -20,6 +20,77 @@ export const getDashboardStats = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get AI content generation statistics
+ * @route   GET /api/v1/admin/dashboard/ai-content-stats
+ * @access  Admin
+ */
+export const getAIContentStats = async (req, res, next) => {
+  try {
+    const stats = await adminService.getAIContentStats();
+    res.json(new ApiResponse(200, stats, 'AI content stats retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get recent platform activity for dashboard
+ * @route   GET /api/v1/admin/dashboard/recent-activity
+ * @access  Admin
+ */
+export const getDashboardRecentActivity = async (req, res, next) => {
+  try {
+    const { limit = 15 } = req.query;
+    const activities = await adminService.getDashboardRecentActivity(parseInt(limit));
+    res.json(new ApiResponse(200, activities, 'Recent activity retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get user statistics
+ * @route   GET /api/v1/admin/users/stats
+ * @access  Admin
+ */
+export const getUserStats = async (req, res, next) => {
+  try {
+    const stats = await adminService.getUserStats();
+    res.json(new ApiResponse(200, stats, 'User stats retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get audit statistics
+ * @route   GET /api/v1/admin/audits/stats
+ * @access  Admin
+ */
+export const getAuditStats = async (req, res, next) => {
+  try {
+    const stats = await adminService.getAuditStats();
+    res.json(new ApiResponse(200, stats, 'Audit stats retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get subscription statistics
+ * @route   GET /api/v1/admin/subscriptions/stats
+ * @access  Admin
+ */
+export const getSubscriptionStats = async (req, res, next) => {
+  try {
+    const stats = await adminService.getSubscriptionStats();
+    res.json(new ApiResponse(200, stats, 'Subscription stats retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Get credit consumption trend
  * @route   GET /api/v1/admin/dashboard/credit-trend
  * @access  Admin

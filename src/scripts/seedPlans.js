@@ -68,8 +68,8 @@ const plansData = [
     is_popular: false,
   },
   {
-    name: 'Extra 10 GEO Audits',
-    description: 'One-time purchase of 10 additional GEO audits',
+    name: 'Extra 10 Local SEO Audits',
+    description: 'One-time purchase of 10 additional Local SEO audits',
     price: 500, // €5.00 in cents
     currency: 'EUR',
     billing_period: enums.BILLING_PERIODS.ONE_TIME,
@@ -81,7 +81,7 @@ const plansData = [
       gbp_audits: 0,
       ai_generations: 0,
     },
-    features: ['Additional GEO Audits'],
+    features: ['Additional Local SEO Audits'],
     is_active: true,
     sort_order: 11,
     is_popular: false,

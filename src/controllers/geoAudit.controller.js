@@ -199,7 +199,7 @@ export const downloadAuditPDF = async (req, res, next) => {
       ? audit.keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 20)
       : 'audit';
     const dateStr = new Date(audit.createdAt).toISOString().split('T')[0];
-    const filename = `geo-audit-${businessSlug}-${keywordSlug}-${dateStr}.pdf`;
+    const filename = `local-seo-audit-${businessSlug}-${keywordSlug}-${dateStr}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', pdfBuffer.byteLength);

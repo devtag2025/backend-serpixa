@@ -46,7 +46,7 @@ export const deletePlan = async (req, res, next) => {
   try {
     const { planId } = req.params;
     const plan = await planService.deletePlan(planId);
-    res.json(new ApiResponse(200, plan, "Plan deactivated successfully"));
+    res.json(new ApiResponse(200, plan, "Plan deleted successfully"));
   } catch (error) {
     next(error);
   }

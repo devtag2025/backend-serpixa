@@ -116,10 +116,12 @@ const auditIdParam = validateParams(Joi.object({
 // GBP Audit validations
 const runGBPAudit = validateRequest(Joi.object({
   businessName: Joi.string().min(2).max(200).optional(),
-  gbpLink: Joi.string().uri().optional(),
+  gbpLink: Joi.string().uri().required().messages({
+    'any.required': 'GBP link is required',
+    'string.empty': 'GBP link cannot be empty',
+    'string.uri': 'GBP link must be a valid URL',
+  }),
   locale: Joi.string().max(10).optional(),
-}).or('businessName', 'gbpLink').messages({
-  'object.missing': 'Either businessName or gbpLink is required',
 }));
 
 const gbpAuditIdParam = validateParams(Joi.object({

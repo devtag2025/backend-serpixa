@@ -1,4 +1,4 @@
-import { User, Subscription, SEOAudit, GBPAudit, GeoAudit, Plan, Settings, ActivityLog } from '../models/index.js';
+import { User, Subscription, SEOAudit, GBPAudit, GeoAudit, Plan, Settings, ActivityLog, AIContent } from '../models/index.js';
 import { ApiError, paginate } from '../utils/index.js';
 import Stripe from 'stripe';
 import { env } from '../config/index.js';
@@ -107,6 +107,310 @@ export const getDashboardStats = async () => {
         ai: aiGenerationsToday
       }
     }
+  };
+};
+
+/**
+ * Get recent platform-wide activity for dashboard
+ */
+export const getDashboardRecentActivity = async (limit = 15) => {
+  const activities = await ActivityLog.find({})
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate('user_id', 'name email')
+    .populate('performed_by', 'name email')
+    .lean();
+
+  return activities.map(activity => ({
+    id: activity._id,
+    action: activity.action,
+    userEmail: activity.user_id?.email || 'Unknown',
+    userName: activity.user_id?.name || 'Unknown',
+    performedBy: activity.performed_by?.email || null,
+    performedByName: activity.performed_by?.name || null,
+    details: activity.details || {},
+    timestamp: activity.createdAt
+  }));
+};
+
+/**
+ * Get user statistics (counts and month-over-month growth)
+ */
+export const getUserStats = async () => {
+  const now = new Date();
+
+  // Last month range
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+  const [
+    totalUsers,
+    totalUsersLastMonth,
+    activeUsers,
+    activeUsersLastMonth,
+    suspendedUsers,
+    suspendedUsersLastMonth,
+  ] = await Promise.all([
+    // Totals (only user type)
+    User.countDocuments({ user_type: 'user' }),
+    User.countDocuments({ user_type: 'user', createdAt: { $lte: lastMonthEnd } }),
+
+    // Active: not suspended and email verified
+    User.countDocuments({
+      user_type: 'user',
+      is_suspended: { $ne: true },
+      is_email_verified: true
+    }),
+    User.countDocuments({
+      user_type: 'user',
+      is_suspended: { $ne: true },
+      is_email_verified: true,
+      createdAt: { $lte: lastMonthEnd }
+    }),
+
+    // Suspended
+    User.countDocuments({ user_type: 'user', is_suspended: true }),
+    User.countDocuments({
+      user_type: 'user',
+      is_suspended: true,
+      createdAt: { $lte: lastMonthEnd }
+    }),
+  ]);
+
+  return {
+    total: {
+      count: totalUsers,
+      growth: calculatePercentageChange(totalUsersLastMonth, totalUsers),
+      comparison: 'vs last month'
+    },
+    active: {
+      count: activeUsers,
+      growth: calculatePercentageChange(activeUsersLastMonth, activeUsers),
+      comparison: 'vs last month'
+    },
+    suspended: {
+      count: suspendedUsers,
+      growth: calculatePercentageChange(suspendedUsersLastMonth, suspendedUsers),
+      comparison: 'vs last month'
+    }
+  };
+};
+
+/**
+ * Get audit statistics (counts and month-over-month growth)
+ */
+export const getAuditStats = async () => {
+  const now = new Date();
+
+  // Last month range
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+  const [
+    seoAudits,
+    seoAuditsLastMonth,
+    geoAudits,
+    geoAuditsLastMonth,
+    gbpAudits,
+    gbpAuditsLastMonth,
+  ] = await Promise.all([
+    // Current month counts
+    SEOAudit.countDocuments({}),
+    GeoAudit.countDocuments({}),
+    GBPAudit.countDocuments({}),
+    // Last month counts
+    SEOAudit.countDocuments({ createdAt: { $lte: lastMonthEnd } }),
+    GeoAudit.countDocuments({ createdAt: { $lte: lastMonthEnd } }),
+    GBPAudit.countDocuments({ createdAt: { $lte: lastMonthEnd } }),
+  ]);
+
+  // Calculate total audits (sum of all types)
+  const totalAuditsThisMonth = seoAudits + geoAudits + gbpAudits;
+  const totalAuditsLastMonthCount = seoAuditsLastMonth + geoAuditsLastMonth + gbpAuditsLastMonth;
+
+  return {
+    total: {
+      count: totalAuditsThisMonth,
+      growth: calculatePercentageChange(totalAuditsLastMonthCount, totalAuditsThisMonth),
+      comparison: 'vs last month'
+    },
+    seo: {
+      count: seoAudits,
+      growth: calculatePercentageChange(seoAuditsLastMonth, seoAudits),
+      comparison: 'vs last month'
+    },
+    geo: {
+      count: geoAudits,
+      growth: calculatePercentageChange(geoAuditsLastMonth, geoAudits),
+      comparison: 'vs last month'
+    },
+    gbp: {
+      count: gbpAudits,
+      growth: calculatePercentageChange(gbpAuditsLastMonth, gbpAudits),
+      comparison: 'vs last month'
+    }
+  };
+};
+
+/**
+ * Get subscription/billing statistics (counts and month-over-month growth)
+ */
+export const getSubscriptionStats = async () => {
+  const now = new Date();
+
+  // Last month range
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+  // Get current subscriptions with plan data
+  const currentSubscriptions = await Subscription.find({})
+    .populate('plan_id', 'price billing_period')
+    .lean();
+
+  const lastMonthSubscriptions = await Subscription.find({
+    createdAt: { $lte: lastMonthEnd }
+  })
+    .populate('plan_id', 'price billing_period')
+    .lean();
+
+  // Calculate total subscriptions
+  const totalSubscriptions = currentSubscriptions.length;
+  const totalSubscriptionsLastMonth = lastMonthSubscriptions.length;
+
+  // Calculate active subscriptions (active, trial, lifetime)
+  const activeStatuses = ['active', 'trial', 'lifetime'];
+  const activeSubscriptions = currentSubscriptions.filter(sub => 
+    activeStatuses.includes(sub.status)
+  ).length;
+  const activeSubscriptionsLastMonth = lastMonthSubscriptions.filter(sub => 
+    activeStatuses.includes(sub.status)
+  ).length;
+
+  // Calculate cancelled subscriptions
+  const cancelledSubscriptions = currentSubscriptions.filter(sub => 
+    sub.status === 'canceled'
+  ).length;
+  const cancelledSubscriptionsLastMonth = lastMonthSubscriptions.filter(sub => 
+    sub.status === 'canceled'
+  ).length;
+
+  // Calculate total revenue (sum of plan prices for active subscriptions, in cents)
+  const totalRevenue = currentSubscriptions
+    .filter(sub => activeStatuses.includes(sub.status))
+    .reduce((sum, sub) => {
+      const planPrice = sub.plan_id?.price || 0;
+      return sum + planPrice;
+    }, 0);
+
+  const totalRevenueLastMonth = lastMonthSubscriptions
+    .filter(sub => activeStatuses.includes(sub.status))
+    .reduce((sum, sub) => {
+      const planPrice = sub.plan_id?.price || 0;
+      return sum + planPrice;
+    }, 0);
+
+  return {
+    total: {
+      count: totalSubscriptions,
+      growth: calculatePercentageChange(totalSubscriptionsLastMonth, totalSubscriptions),
+      comparison: 'vs last month'
+    },
+    active: {
+      count: activeSubscriptions,
+      growth: calculatePercentageChange(activeSubscriptionsLastMonth, activeSubscriptions),
+      comparison: 'vs last month'
+    },
+    totalRevenue: {
+      count: totalRevenue, // Revenue in cents
+      growth: calculatePercentageChange(totalRevenueLastMonth, totalRevenue),
+      comparison: 'vs last month'
+    },
+    cancelled: {
+      count: cancelledSubscriptions,
+      growth: calculatePercentageChange(cancelledSubscriptionsLastMonth, cancelledSubscriptions),
+      comparison: 'vs last month'
+    }
+  };
+};
+
+/**
+ * Get AI content generation statistics (current year, monthly trend, locale distribution)
+ */
+export const getAIContentStats = async () => {
+  const now = new Date();
+  const year = now.getFullYear();
+
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+
+  const startOfMonth = new Date(year, now.getMonth(), 1);
+  const startOfLastMonth = new Date(year, now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(year, now.getMonth(), 0, 23, 59, 59, 999);
+
+  const [
+    totalGenerations,
+    thisMonth,
+    lastMonth,
+    distinctUsers,
+    localeAggregation,
+    monthlyAggregation
+  ] = await Promise.all([
+    AIContent.countDocuments({}),
+    AIContent.countDocuments({ createdAt: { $gte: startOfMonth } }),
+    AIContent.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+    AIContent.distinct('user').then((users) => users.length),
+    AIContent.aggregate([
+      { $group: { _id: '$locale', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]),
+    AIContent.aggregate([
+      { $match: { createdAt: { $gte: startOfYear, $lte: endOfYear } } },
+      {
+        $group: {
+          _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ])
+  ]);
+
+  const growth = calculatePercentageChange(lastMonth, thisMonth);
+  const avgPerUser = distinctUsers > 0 ? Number((totalGenerations / distinctUsers).toFixed(1)) : 0;
+
+  // Map locales to readable names
+  const localeNames = {
+    'en-us': 'English (US)',
+    'en-gb': 'English (UK)',
+    'fr-fr': 'French (France)',
+    'fr-be': 'French (Belgium)',
+    'nl-nl': 'Dutch (Netherlands)',
+    'nl-be': 'Dutch (Belgium)'
+  };
+
+  const localeDistribution = localeAggregation.map((item) => ({
+    locale: item._id,
+    name: localeNames[item._id] || item._id,
+    count: item.count,
+    percentage: totalGenerations > 0 ? Number(((item.count / totalGenerations) * 100).toFixed(1)) : 0
+  }));
+
+  // Monthly data for current year (fill missing months with 0)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyDataMap = new Map(
+    monthlyAggregation.map((item) => [item._id.month, item.count])
+  );
+  const monthlyData = months.map((label, idx) => ({
+    month: label,
+    generations: monthlyDataMap.get(idx + 1) || 0
+  }));
+
+  return {
+    totalGenerations,
+    thisMonth,
+    lastMonth,
+    growth,
+    avgPerUser,
+    localeDistribution,
+    monthlyData
   };
 };
 
@@ -1023,6 +1327,11 @@ const convertToCSV = (data, type) => {
 export const adminService = {
 
   getDashboardStats,
+  getAIContentStats,
+  getDashboardRecentActivity,
+  getUserStats,
+  getAuditStats,
+  getSubscriptionStats,
   getCreditConsumptionTrend,
   getAllUsers,
   getUserById,
