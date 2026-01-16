@@ -599,6 +599,8 @@ export const updateUserCredits = async (userId, credits, adminId = null) => {
 
 /**
  * Get all audits with pagination
+ * When type is 'all', combines all audit types, sorts them, and paginates the combined result
+ * When type is specific (seo, geo, gbp), returns paginated results for that type only
  */
 export const getAllAudits = async (options = {}) => {
   const {
@@ -611,55 +613,191 @@ export const getAllAudits = async (options = {}) => {
     userId = null
   } = options;
 
-  const results = { seo: null, geo: null, gbp: null };
   const baseQuery = userId ? { user: userId } : {};
   const populateOptions = [{ path: 'user', select: 'name email' }];
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+  const sortOptions = { [sort]: order === 'asc' ? 1 : -1 };
 
-  if (type === 'all' || type === 'seo') {
-    let seoQuery = { ...baseQuery };
-    if (search) {
-      seoQuery.$or = [
-        { url: { $regex: search, $options: 'i' } },
-        { keyword: { $regex: search, $options: 'i' } }
-      ];
+  // If type is specific (not 'all'), use standard pagination for that type
+  if (type !== 'all') {
+    let query = { ...baseQuery };
+    let selectFields = '';
+    let model = null;
+
+    if (type === 'seo') {
+      model = SEOAudit;
+      selectFields = 'url keyword score status createdAt user';
+      if (search) {
+        query.$or = [
+          { url: { $regex: search, $options: 'i' } },
+          { keyword: { $regex: search, $options: 'i' } }
+        ];
+      }
+    } else if (type === 'geo') {
+      model = GeoAudit;
+      selectFields = 'businessName location keyword localVisibilityScore status createdAt user';
+      if (search) {
+        query.$or = [
+          { businessName: { $regex: search, $options: 'i' } },
+          { location: { $regex: search, $options: 'i' } },
+          { keyword: { $regex: search, $options: 'i' } }
+        ];
+      }
+    } else if (type === 'gbp') {
+      model = GBPAudit;
+      selectFields = 'businessName score status createdAt user';
+      if (search) {
+        query.$or = [{ businessName: { $regex: search, $options: 'i' } }];
+      }
     }
-    results.seo = await paginate(SEOAudit, seoQuery, {
-      page, limit, sort, order,
-      select: 'url keyword score status createdAt user',
+
+    if (!model) {
+      throw new ApiError(400, 'Invalid audit type');
+    }
+
+    return await paginate(model, query, {
+      page: pageNum,
+      limit: limitNum,
+      sort,
+      order,
+      select: selectFields,
       populate: populateOptions
     });
   }
 
-  if (type === 'all' || type === 'geo') {
-    let geoQuery = { ...baseQuery };
-    if (search) {
-      geoQuery.$or = [
-        { businessName: { $regex: search, $options: 'i' } },
-        { location: { $regex: search, $options: 'i' } },
-        { keyword: { $regex: search, $options: 'i' } }
-      ];
-    }
-    results.geo = await paginate(GeoAudit, geoQuery, {
-      page, limit, sort, order,
-      select: 'businessName location keyword localVisibilityScore status createdAt user',
-      populate: populateOptions
+  // When type is 'all', combine all audit types, sort, and paginate
+  const allAudits = [];
+
+  // Fetch all SEO audits (without pagination limit to get all matching results)
+  let seoQuery = { ...baseQuery };
+  if (search) {
+    seoQuery.$or = [
+      { url: { $regex: search, $options: 'i' } },
+      { keyword: { $regex: search, $options: 'i' } }
+    ];
+  }
+  const seoAudits = await SEOAudit.find(seoQuery)
+    .select('url keyword score status createdAt user')
+    .populate(populateOptions[0])
+    .sort(sortOptions)
+    .lean();
+  
+  seoAudits.forEach(audit => {
+    allAudits.push({
+      ...audit,
+      type: 'seo'
     });
+  });
+
+  // Fetch all GEO audits
+  let geoQuery = { ...baseQuery };
+  if (search) {
+    geoQuery.$or = [
+      { businessName: { $regex: search, $options: 'i' } },
+      { location: { $regex: search, $options: 'i' } },
+      { keyword: { $regex: search, $options: 'i' } }
+    ];
+  }
+  const geoAudits = await GeoAudit.find(geoQuery)
+    .select('businessName location keyword localVisibilityScore status createdAt user')
+    .populate(populateOptions[0])
+    .sort(sortOptions)
+    .lean();
+  
+  geoAudits.forEach(audit => {
+    allAudits.push({
+      ...audit,
+      type: 'geo'
+    });
+  });
+
+  // Fetch all GBP audits
+  let gbpQuery = { ...baseQuery };
+  if (search) {
+    gbpQuery.$or = [{ businessName: { $regex: search, $options: 'i' } }];
+  }
+  const gbpAudits = await GBPAudit.find(gbpQuery)
+    .select('businessName score status createdAt user')
+    .populate(populateOptions[0])
+    .sort(sortOptions)
+    .lean();
+  
+  gbpAudits.forEach(audit => {
+    allAudits.push({
+      ...audit,
+      type: 'gbp'
+    });
+  });
+
+  // Sort combined array (in case individual sorts weren't enough for cross-type sorting)
+  allAudits.sort((a, b) => {
+    const aValue = a[sort];
+    const bValue = b[sort];
+    
+    if (aValue === undefined || bValue === undefined) return 0;
+    
+    if (order === 'asc') {
+      return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+    } else {
+      return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+    }
+  });
+
+  // Apply pagination to combined results
+  const total = allAudits.length;
+  const skip = (pageNum - 1) * limitNum;
+  const paginatedAudits = allAudits.slice(skip, skip + limitNum);
+  const totalPages = Math.ceil(total / limitNum);
+
+  return {
+    data: paginatedAudits,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      pages: totalPages,
+      hasNext: pageNum < totalPages,
+      hasPrev: pageNum > 1
+    }
+  };
+};
+
+/**
+ * Get audit by ID
+ * @param {string} auditId - The audit ID
+ * @param {string} type - The audit type ('seo', 'geo', or 'gbp')
+ * @returns {Object} The audit document with populated user
+ */
+export const getAuditById = async (auditId, type) => {
+  if (!auditId) {
+    throw new ApiError(400, 'Audit ID is required');
   }
 
-  if (type === 'all' || type === 'gbp') {
-    let gbpQuery = { ...baseQuery };
-    if (search) {
-      gbpQuery.$or = [{ businessName: { $regex: search, $options: 'i' } }];
-    }
-    results.gbp = await paginate(GBPAudit, gbpQuery, {
-      page, limit, sort, order,
-      select: 'businessName score status createdAt user',
-      populate: populateOptions
-    });
+  if (!type || !['seo', 'geo', 'gbp'].includes(type)) {
+    throw new ApiError(400, 'Valid audit type is required (seo, geo, or gbp)');
   }
 
-  if (type !== 'all') return results[type];
-  return results;
+  let audit = null;
+  const populateOptions = [{ path: 'user', select: 'name email' }];
+
+  if (type === 'seo') {
+    audit = await SEOAudit.findById(auditId).populate(populateOptions).lean();
+  } else if (type === 'geo') {
+    audit = await GeoAudit.findById(auditId).populate(populateOptions).lean();
+  } else if (type === 'gbp') {
+    audit = await GBPAudit.findById(auditId).populate(populateOptions).lean();
+  }
+
+  if (!audit) {
+    throw new ApiError(404, 'Audit not found');
+  }
+
+  // Add type field to response for consistency
+  return {
+    ...audit,
+    type
+  };
 };
 
 /**
@@ -1337,6 +1475,7 @@ export const adminService = {
   getUserById,
   updateUserCredits,
   getAllAudits,
+  getAuditById,
   getAllSubscriptions,
   
 

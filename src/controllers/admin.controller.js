@@ -168,6 +168,30 @@ export const getAllAudits = async (req, res, next) => {
 };
 
 /**
+ * @desc    Get audit by ID
+ * @route   GET /api/v1/admin/audits/:auditId
+ * @access  Admin
+ */
+export const getAuditById = async (req, res, next) => {
+  try {
+    const { auditId } = req.params;
+    const { type } = req.query;
+
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Audit type is required (query parameter: ?type=seo|geo|gbp)'
+      });
+    }
+
+    const audit = await adminService.getAuditById(auditId, type);
+    res.json(new ApiResponse(200, { audit }, 'Audit retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Get all subscriptions with pagination
  * @route   GET /api/v1/admin/subscriptions
  * @access  Admin

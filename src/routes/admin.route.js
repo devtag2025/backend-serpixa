@@ -40,6 +40,7 @@ router.post('/users/:userId/reactivate', validate.userIdParam, adminController.r
 // ============================================
 router.get('/audits/stats', adminController.getAuditStats);
 router.get('/audits', validate.paginationQuery, adminController.getAllAudits);
+router.get('/audits/:auditId', adminController.getAuditById);
 
 // ============================================
 // SUBSCRIPTIONS & BILLING
