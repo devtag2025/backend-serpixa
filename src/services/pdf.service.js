@@ -9,6 +9,27 @@ class PDFService {
     return localeConfig.language || 'en';
   }
 
+  /**
+   * Formats a date in European format (DD/MM/YYYY)
+   * @param {Date|string|number} date - Date to format
+   * @returns {string} Formatted date string in DD/MM/YYYY format
+   */
+  formatEuropeanDate(date) {
+    if (!date) return "N/A";
+    
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    if (isNaN(dateObj.getTime())) {
+      return "N/A";
+    }
+
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  }
+
   generateSEOAuditReport(audit, user) {
     const lang = this.getLanguageFromAudit(audit);
     const doc = new jsPDF();
@@ -37,7 +58,7 @@ class PDFService {
       doc.text(`${t(lang, 'pdf.seo.targetKeyword')}: ${audit.keyword}`, 20, y);
       y += 8;
     }
-    doc.text(`${t(lang, 'pdf.seo.date')}: ${new Date(audit.createdAt).toLocaleDateString()}`, 20, y);
+    doc.text(`${t(lang, 'pdf.seo.date')}: ${this.formatEuropeanDate(audit.createdAt)}`, 20, y);
     y += 8;
     doc.text(`${t(lang, 'pdf.seo.generatedFor')}: ${user.name || user.email}`, 20, y);
     y += 15;
@@ -139,7 +160,7 @@ class PDFService {
     doc.setFontSize(11);
     doc.text(`${t(lang, 'pdf.gbp.business')}: ${audit.businessName}`, 20, y);
     y += 8;
-    doc.text(`${t(lang, 'pdf.gbp.date')}: ${new Date(audit.createdAt).toLocaleDateString()}`, 20, y);
+    doc.text(`${t(lang, 'pdf.gbp.date')}: ${this.formatEuropeanDate(audit.createdAt)}`, 20, y);
     y += 8;
     doc.text(`${t(lang, 'pdf.gbp.generatedFor')}: ${user.name || user.email}`, 20, y);
     y += 15;
@@ -234,7 +255,7 @@ class PDFService {
     y += 8;
     doc.text(`${t(lang, 'pdf.geo.location')}: ${audit.location}`, 20, y);
     y += 8;
-    doc.text(`${t(lang, 'pdf.geo.date')}: ${new Date(audit.createdAt).toLocaleDateString()}`, 20, y);
+    doc.text(`${t(lang, 'pdf.geo.date')}: ${this.formatEuropeanDate(audit.createdAt)}`, 20, y);
     y += 8;
     doc.text(`${t(lang, 'pdf.geo.generatedFor')}: ${user.name || user.email}`, 20, y);
     y += 15;

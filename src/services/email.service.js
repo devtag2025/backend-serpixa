@@ -282,7 +282,7 @@ class EmailService {
   seoAuditHTML(audit, userName, lang = 'en') {
     const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
     const name = userName || 'there';
-    const viewUrl = `${env.CLIENT_URL}/dashboard/seo-audits/${audit._id}`;
+    const viewUrl = `${env.CLIENT_URL}/dashboard/seo-audit/${audit._id}`;
 
     // Get top 3 critical/high priority recommendations
     const topIssues = (audit.recommendations || [])
