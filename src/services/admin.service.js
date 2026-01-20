@@ -1,4 +1,4 @@
-import { User, Subscription, SEOAudit, GBPAudit, GeoAudit, Plan, Settings, ActivityLog, AIContent } from '../models/index.js';
+import { User, Subscription, SEOAudit, GBPAudit, GeoAudit, Plan, Settings, ActivityLog, AIContent, SupportTicket } from '../models/index.js';
 import { ApiError, paginate } from '../utils/index.js';
 import Stripe from 'stripe';
 import { env } from '../config/index.js';
@@ -821,7 +821,19 @@ export const getAllSubscriptions = async (options = {}) => {
   });
 };
 
-
+/**
+ * Get all support tickets with pagination
+ */
+export const getSupportTickets = async (options = {}) => {
+  const { page = 1, limit = 20, sort = 'createdAt', order = 'desc' } = options;
+  return paginate(SupportTicket, {}, {
+    page,
+    limit,
+    sort,
+    order,
+    populate: [{ path: 'user_id', select: 'name email' }],
+  });
+};
 
 /**
  * Suspend a user account
@@ -1477,7 +1489,7 @@ export const adminService = {
   getAllAudits,
   getAuditById,
   getAllSubscriptions,
-  
+  getSupportTickets,
 
   suspendUser,
   reactivateUser,

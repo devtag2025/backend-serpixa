@@ -8,6 +8,7 @@ import subscriptionRoutes from './subscription.route.js';
 import planRoutes from './plan.route.js';
 import dashboardRoutes from './dashboard.route.js';
 import adminRoutes from './admin.route.js';
+import supportRoutes from './support.route.js';
 const router = Router();
 
 // Note: Stripe webhook route is handled in app.js before express.json() middleware
@@ -22,6 +23,6 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/plans', planRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/admin', adminRoutes);
-
+router.use('/support', supportRoutes);
 
 export default router;

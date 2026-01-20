@@ -52,6 +52,11 @@ router.post('/subscriptions/:subscriptionId/refund', sensitiveActionLimiter, val
 router.post('/subscriptions/:subscriptionId/change-plan', validate.subscriptionIdParam, validate.changeSubscriptionPlan, adminController.changeSubscriptionPlan);
 
 // ============================================
+// SUPPORT TICKETS
+// ============================================
+router.get('/support-tickets', validate.supportTicketsQuery, adminController.getSupportTickets);
+
+// ============================================
 // ANALYTICS & REPORTS
 // ============================================
 router.get('/analytics', adminController.getGlobalAnalytics);

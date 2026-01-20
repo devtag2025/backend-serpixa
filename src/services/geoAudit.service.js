@@ -108,17 +108,11 @@ class GeoAuditService {
         payload[0].se_domain = googleDomain;
       }
 
-      Logger.log('Sending request to DataForSEO Google Maps API:', {
-        endpoint: '/v3/serp/google/maps/live/advanced',
-        keyword: keyword.trim(),
-        location_name: locationName,
-        language_name: languageName,
-        se_domain: googleDomain || 'not set',
-      });
+      Logger.log('Sending request to DataForSEO Google Maps API payload:',payload);
 
       const response = await this.client.post('/v3/serp/google/maps/live/advanced', payload);
 
-      Logger.log('DataForSEO Maps API Response Status:', response.status);
+      Logger.log('DataForSEO Maps API Response :', response);
 
       // Handle response structure
       let result;

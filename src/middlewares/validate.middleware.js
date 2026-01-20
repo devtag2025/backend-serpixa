@@ -308,6 +308,46 @@ const changeSubscriptionPlan = validateRequest(Joi.object({
   resetUsage: Joi.boolean().optional().default(false),
 }));
 
+// Support - Submit ticket
+const submitSupportRequest = validateRequest(Joi.object({
+  subject: Joi.string().min(3).max(200).required().messages({
+    'any.required': 'Subject is required',
+    'string.min': 'Subject must be at least 3 characters',
+    'string.max': 'Subject must be at most 200 characters',
+  }),
+  email: Joi.string().email().required().messages({
+    'any.required': 'Email is required',
+    'string.email': 'Please provide a valid email',
+  }),
+  message: Joi.string().min(10).max(2000).required().messages({
+    'any.required': 'Message is required',
+    'string.min': 'Message must be at least 10 characters',
+    'string.max': 'Message must be at most 2000 characters',
+  }),
+  name: Joi.string().max(100).optional().allow('', null),
+  locale: Joi.string().valid('en', 'fr', 'nl').optional(),
+}));
+
+// Admin - Support tickets list query
+const supportTicketsQuery = (req, res, next) => {
+  const schema = Joi.object({
+    page: Joi.number().integer().min(1).optional().default(1),
+    limit: Joi.number().integer().min(1).max(100).optional().default(20),
+    sort: Joi.string().optional().default('createdAt'),
+    order: Joi.string().valid('asc', 'desc').optional().default('desc'),
+  });
+  const { error, value } = schema.validate(req.query);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      error: error.details[0].message,
+    });
+  }
+  req.validatedQuery = value;
+  next();
+};
+
 export const validate = {
   // Auth
   registerUser,
@@ -357,4 +397,8 @@ export const validate = {
   exportReportQuery,
 
   changeSubscriptionPlan,
+
+  // Support
+  submitSupportRequest,
+  supportTicketsQuery,
 }

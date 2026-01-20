@@ -104,7 +104,8 @@ export const env = {
   SMTP_PASS: process.env.SMTP_PASS,
   FROM_NAME: process.env.FROM_NAME || 'Serpixa',
   FROM_EMAIL: process.env.FROM_EMAIL || 'info@serpixa.eu',
-  
+  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || process.env.FROM_EMAIL || 'info@serpixa.eu',
+
   // SendGrid Configuration
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
 

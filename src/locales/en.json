@@ -693,6 +693,14 @@
       "message": "Your account is ready. You can now create and manage SEO audits and campaigns.",
       "button": "Go to Dashboard"
     },
+    "supportTicket": {
+      "subject": "[Serpixa Support] {subject}",
+      "fromLabel": "From",
+      "emailLabel": "Email",
+      "messageLabel": "Message",
+      "dateLabel": "Date",
+      "userIdLabel": "User ID"
+    },
     "seoAudit": {
       "subject": "Your SEO Audit is Ready - {url}",
       "greeting": "Hi {name},",
