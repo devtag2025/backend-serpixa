@@ -7,3 +7,4 @@ export { Subscription } from './subscription.model.js';
 export { AIContent } from './aiContent.model.js';
 export { Settings } from './settings.model.js';
 export { ActivityLog } from './activity.model.js';
+export { SupportTicket } from './supportTicket.model.js';

@@ -84,6 +84,54 @@ class EmailService {
         return this.send(email, subject, html);
     }
 
+  /**
+   * Send support ticket to team (internal email, uses en)
+   * @param {object} data - { subject, email, message, name, userId? }
+   */
+  async sendSupportTicketToTeam(data = {}) {
+    const { subject, email, message, name, userId } = data;
+    const to = env.SUPPORT_EMAIL || env.FROM_EMAIL;
+    const t = (path, replacements = {}) => getTranslation('en', path, replacements);
+    const emailSubject = t('email.supportTicket.subject', { subject: subject || '(no subject)' });
+    const html = this.supportTicketToTeamHTML(data);
+    return this.send(to, emailSubject, html).catch((err) => {
+      console.error('Failed to send support ticket email to team:', err?.message || err);
+    });
+  }
+
+  supportTicketToTeamHTML(data = {}) {
+    const { subject, email, message, name, userId } = data;
+    const t = (path, replacements = {}) => getTranslation('en', path, replacements);
+    const fromLabel = t('email.supportTicket.fromLabel');
+    const emailLabel = t('email.supportTicket.emailLabel');
+    const messageLabel = t('email.supportTicket.messageLabel');
+    const dateLabel = t('email.supportTicket.dateLabel');
+    const userIdLabel = t('email.supportTicket.userIdLabel');
+    const displayName = name || '(not provided)';
+    const date = new Date().toISOString();
+    const userRow = userId
+      ? `<tr><td style="padding:8px 0;color:#6b7280">${userIdLabel}</td><td style="padding:8px 0;color:#111827">${userId}</td></tr>`
+      : '';
+
+    return `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <div style="background:#1f2937;color:#fff;padding:24px;border-radius:8px 8px 0 0">
+    <h1 style="margin:0;font-size:20px">[Serpixa] Support Request</h1>
+  </div>
+  <div style="background:#f8fafc;padding:24px;border-radius:0 0 8px 8px">
+    <p style="color:#111827;font-weight:600;margin-bottom:16px">${subject || '(no subject)'}</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <tr><td style="padding:8px 0;color:#6b7280">${fromLabel}</td><td style="padding:8px 0;color:#111827">${displayName}</td></tr>
+      <tr><td style="padding:8px 0;color:#6b7280">${emailLabel}</td><td style="padding:8px 0;color:#111827">${email}</td></tr>
+      ${userRow}
+      <tr><td style="padding:8px 0;color:#6b7280">${dateLabel}</td><td style="padding:8px 0;color:#111827">${date}</td></tr>
+    </table>
+    <p style="color:#6b7280;font-size:14px;margin-bottom:8px">${messageLabel}</p>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;color:#374151;white-space:pre-wrap">${(message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+  </div>
+</div>`;
+  }
+
   async send(to, subject, html, retries = 0) {
     const maxRetries = emailConfig?.settings?.maxRetries ?? 3;
     const retryDelayMs = emailConfig?.settings?.retryDelay ?? 5000;

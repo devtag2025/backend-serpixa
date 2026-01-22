@@ -693,6 +693,14 @@
       "message": "Uw account is klaar. U kunt nu SEO-audits en campagnes maken en beheren.",
       "button": "Ga naar Dashboard"
     },
+    "supportTicket": {
+      "subject": "[Serpixa Support] {subject}",
+      "fromLabel": "Van",
+      "emailLabel": "E-mail",
+      "messageLabel": "Bericht",
+      "dateLabel": "Datum",
+      "userIdLabel": "Gebruikers-ID"
+    },
     "seoAudit": {
       "subject": "Uw SEO-audit is klaar - {url}",
       "greeting": "Hallo {name},",

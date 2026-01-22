@@ -206,6 +206,21 @@ export const getAllSubscriptions = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get all support tickets with pagination
+ * @route   GET /api/v1/admin/support-tickets
+ * @access  Admin
+ */
+export const getSupportTickets = async (req, res, next) => {
+  try {
+    const options = req.validatedQuery || req.query;
+    const result = await adminService.getSupportTickets(options);
+    res.json(new ApiResponse(200, result, 'Support tickets retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ============================================
 // NEW CONTROLLERS
 // ============================================
