@@ -20,6 +20,24 @@ export const createCheckout = async (req, res, next) => {
   }
 };
 
+export const getCheckoutSession = async (req, res, next) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user._id;
+
+    if (!sessionId) {
+      return res.status(400).json(
+        new ApiResponse(400, null, "session_id is required")
+      );
+    }
+
+    const result = await stripeService.getCheckoutSession(sessionId, userId);
+    res.json(new ApiResponse(200, result, "Checkout session retrieved"));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createPortalSession = async (req, res, next) => {
   try {
     const userId = req.user._id;
