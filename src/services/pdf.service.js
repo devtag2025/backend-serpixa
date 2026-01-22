@@ -627,6 +627,199 @@ class PDFService {
   }
 
   /**
+   * Parse HTML content into structured elements for PDF rendering
+   * Excludes FAQ sections to avoid duplication
+   */
+  parseHtmlForPDF(html) {
+    if (!html) return [];
+    
+    const elements = [];
+    // Replace \n with actual newlines first
+    let processedHtml = html.replace(/\\n/g, '\n');
+    
+    // Remove FAQ sections from HTML to avoid duplication
+    // First, remove Schema.org FAQPage sections completely
+    processedHtml = processedHtml.replace(/<div[^>]*itemscope[^>]*itemtype=["']https?:\/\/schema\.org\/FAQPage["'][^>]*>[\s\S]*?<\/div>/gi, '');
+    
+    // Remove FAQ headings and all content until next major heading (H1, H2) or conclusion/CTA
+    // Look for FAQ heading (case insensitive, can be in various languages)
+    const faqKeywords = ['faq', 'frequently asked', 'questions fréquentes', 'veelgestelde vragen', 'questions', 'réponses'];
+    const faqHeadingPattern = new RegExp(`<h([1-6])[^>]*>.*?(?:${faqKeywords.join('|')}).*?<\/h[1-6]>`, 'i');
+    let faqMatch;
+    
+    while ((faqMatch = processedHtml.match(faqHeadingPattern)) !== null) {
+      const faqStartIndex = faqMatch.index;
+      const faqHeadingLevel = parseInt(faqMatch[1]);
+      
+      // Find content after FAQ heading
+      const afterFaqHeading = processedHtml.substring(faqStartIndex + faqMatch[0].length);
+      
+      // Look for next major section: H1, H2, or conclusion/CTA headings
+      const nextSectionPattern = /<h([12])[^>]*>|<h[1-6][^>]*>.*?(?:conclusion|conclu|cta|call to action|appel à l'action).*?<\/h[1-6]>/i;
+      const nextSectionMatch = afterFaqHeading.match(nextSectionPattern);
+      
+      let faqEndIndex;
+      if (nextSectionMatch) {
+        // Remove FAQ section up to next major section
+        faqEndIndex = faqStartIndex + faqMatch[0].length + nextSectionMatch.index;
+      } else {
+        // If no next section found, look for any heading of same or higher level
+        const sameLevelPattern = new RegExp(`<h([1-${faqHeadingLevel}])[^>]*>`, 'i');
+        const sameLevelMatch = afterFaqHeading.match(sameLevelPattern);
+        
+        if (sameLevelMatch) {
+          faqEndIndex = faqStartIndex + faqMatch[0].length + sameLevelMatch.index;
+        } else {
+          // Remove FAQ section to end of content
+          faqEndIndex = processedHtml.length;
+        }
+      }
+      
+      // Remove the FAQ section
+      processedHtml = processedHtml.substring(0, faqStartIndex) + processedHtml.substring(faqEndIndex);
+    }
+    
+    // Extract headings
+    const headingPattern = /<h([1-6])[^>]*>([\s\S]*?)<\/h[1-6]>/gi;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = headingPattern.exec(processedHtml)) !== null) {
+      // Skip FAQ-related headings (should already be removed, but double-check)
+      const headingText = this.stripHtml(match[2]).toLowerCase();
+      const faqKeywords = ['faq', 'frequently asked', 'questions fréquentes', 'veelgestelde vragen'];
+      if (faqKeywords.some(keyword => headingText.includes(keyword))) {
+        lastIndex = match.index + match[0].length;
+        continue;
+      }
+      
+      // Add content before heading
+      if (match.index > lastIndex) {
+        const beforeContent = processedHtml.substring(lastIndex, match.index);
+        const paragraphs = this.extractParagraphs(beforeContent);
+        elements.push(...paragraphs);
+      }
+      
+      // Add heading
+      const level = parseInt(match[1]);
+      const text = this.stripHtml(match[2]);
+      if (text.trim()) {
+        elements.push({ type: 'heading', level, text: text.trim() });
+      }
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining content
+    if (lastIndex < processedHtml.length) {
+      const remainingContent = processedHtml.substring(lastIndex);
+      const paragraphs = this.extractParagraphs(remainingContent);
+      elements.push(...paragraphs);
+    }
+    
+    return elements;
+  }
+
+  /**
+   * Extract paragraphs and lists from HTML content
+   */
+  extractParagraphs(html) {
+    const elements = [];
+    
+    // Remove script and style tags
+    let cleanHtml = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    
+    // Extract lists first
+    const listPattern = /<(ul|ol)[^>]*>([\s\S]*?)<\/\1>/gi;
+    let listMatch;
+    let lastIndex = 0;
+    
+    while ((listMatch = listPattern.exec(cleanHtml)) !== null) {
+      // Add content before list
+      if (listMatch.index > lastIndex) {
+        const beforeContent = cleanHtml.substring(lastIndex, listMatch.index);
+        const paras = this.extractSimpleParagraphs(beforeContent);
+        elements.push(...paras);
+      }
+      
+      // Extract list items
+      const listType = listMatch[1];
+      const listContent = listMatch[2];
+      const items = [];
+      const itemPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+      let itemMatch;
+      
+      while ((itemMatch = itemPattern.exec(listContent)) !== null) {
+        const itemText = this.stripHtml(itemMatch[1]).trim();
+        if (itemText) {
+          items.push(itemText);
+        }
+      }
+      
+      if (items.length > 0) {
+        elements.push({ type: 'list', ordered: listType === 'ol', items });
+      }
+      
+      lastIndex = listMatch.index + listMatch[0].length;
+    }
+    
+    // Add remaining content as paragraphs
+    if (lastIndex < cleanHtml.length) {
+      const remainingContent = cleanHtml.substring(lastIndex);
+      const paras = this.extractSimpleParagraphs(remainingContent);
+      elements.push(...paras);
+    }
+    
+    return elements;
+  }
+
+  /**
+   * Extract simple paragraphs from HTML
+   */
+  extractSimpleParagraphs(html) {
+    const elements = [];
+    
+    // Extract paragraph tags
+    const paraPattern = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+    let paraMatch;
+    let lastIndex = 0;
+    
+    while ((paraMatch = paraPattern.exec(html)) !== null) {
+      // Add content before paragraph
+      if (paraMatch.index > lastIndex) {
+        const beforeText = this.stripHtml(html.substring(lastIndex, paraMatch.index)).trim();
+        if (beforeText) {
+          elements.push({ type: 'paragraph', text: beforeText });
+        }
+      }
+      
+      // Add paragraph
+      const paraText = this.stripHtml(paraMatch[1]).trim();
+      if (paraText) {
+        elements.push({ type: 'paragraph', text: paraText });
+      }
+      
+      lastIndex = paraMatch.index + paraMatch[0].length;
+    }
+    
+    // Add remaining content
+    if (lastIndex < html.length) {
+      const remainingText = this.stripHtml(html.substring(lastIndex)).trim();
+      if (remainingText) {
+        // Split by double newlines to create paragraphs
+        const paragraphs = remainingText.split(/\n\s*\n/).filter(p => p.trim());
+        paragraphs.forEach(p => {
+          elements.push({ type: 'paragraph', text: p.trim() });
+        });
+      }
+    }
+    
+    return elements;
+  }
+
+  /**
    * Split text into lines that fit within page width
    */
   splitTextIntoLines(doc, text, maxWidth, x) {
@@ -646,45 +839,110 @@ class PDFService {
     const maxWidth = pageWidth - (margin * 2);
     let y = 20;
 
-    // Header
+    // Header with background
+    doc.setFillColor(40, 40, 40);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+    
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('AI-Generated SEO Content Report', pageWidth / 2, y, { align: 'center' });
-    y += 15;
-
+    doc.setTextColor(255, 255, 255);
+    doc.text('AI-Generated SEO Content Report', pageWidth / 2, 25, { align: 'center' });
+    
     // Branding
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(200, 200, 200);
+    doc.text('Powered by serpixa.ai', pageWidth / 2, 38, { align: 'center' });
+    
+    y = 60;
+
+    // Content Info Box
+    doc.setFillColor(248, 249, 250);
+    doc.rect(margin, y, pageWidth - (margin * 2), 50, 'F');
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.rect(margin, y, pageWidth - (margin * 2), 50, 'S');
+    
+    doc.setTextColor(0);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100);
-    doc.text('Powered by serpixa.ai', pageWidth / 2, y, { align: 'center' });
-    y += 15;
-
-    // Content Info
-    doc.setTextColor(0);
-    doc.setFontSize(11);
+    
+    const infoY = y + 8;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Topic:', margin + 5, infoY);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Topic: ${content.topic || 'N/A'}`, margin, y);
-    y += 8;
-    doc.text(`Keyword: ${content.keyword}`, margin, y);
-    y += 8;
-    doc.text(`Language: ${content.language || 'EN'}`, margin, y);
-    y += 8;
-    doc.text(`Date: ${this.formatEuropeanDate(content.createdAt)}`, margin, y);
-    y += 8;
-    doc.text(`Generated for: ${user.name || user.email}`, margin, y);
-    y += 15;
+    doc.text(content.topic || 'N/A', margin + 30, infoY);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Keyword:', margin + 5, infoY + 8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(content.keyword, margin + 30, infoY + 8);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Language:', margin + 5, infoY + 16);
+    doc.setFont('helvetica', 'normal');
+    doc.text(content.language || 'EN', margin + 30, infoY + 16);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Date:', margin + 5, infoY + 24);
+    doc.setFont('helvetica', 'normal');
+    doc.text(this.formatEuropeanDate(content.createdAt), margin + 30, infoY + 24);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Generated for:', margin + 5, infoY + 32);
+    doc.setFont('helvetica', 'normal');
+    const userText = user.name || user.email;
+    const userLines = this.splitTextIntoLines(doc, userText, maxWidth - 35, margin + 30);
+    doc.text(userLines[0], margin + 30, infoY + 32);
+    
+    y += 60;
 
-    // SEO Score Section
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, y, pageWidth - (margin * 2), 25, 'F');
+    // SEO Score Section - Simple and Clean Design
+    const seoScore = content.seoScore || 75;
+    const scoreColor = this.getScoreColor(seoScore);
+    const scoreHeight = 35;
+    
+    y = this.checkPageBreak(doc, y, scoreHeight + 10);
+    
+    // Simple container with light background
+    doc.setFillColor(248, 249, 250);
+    doc.rect(margin, y, pageWidth - (margin * 2), scoreHeight, 'F');
+    doc.setDrawColor(230, 230, 230);
+    doc.setLineWidth(0.5);
+    doc.rect(margin, y, pageWidth - (margin * 2), scoreHeight, 'S');
+    
+    // Left side - Label
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('SEO Score', margin + 10, y + 10);
-    doc.setFontSize(24);
-    doc.setTextColor(...this.getScoreColor(content.seoScore || 75));
-    doc.text(`${content.seoScore || 75}/100`, pageWidth - margin - 10, y + 15, { align: 'right' });
+    doc.setTextColor(50, 50, 50);
+    doc.text('SEO Score', margin + 12, y + 20);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120, 120, 120);
+    doc.text('Content Quality Assessment', margin + 12, y + 28);
+    
+    // Right side - Score (centered)
+    const scoreX = margin + (pageWidth - margin * 2) * 0.6;
+    const scoreWidth = (pageWidth - margin * 2) * 0.4;
+    const centerX = scoreX + scoreWidth / 2;
+    
+    // Score number - large and clear
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...scoreColor);
+    doc.text(`${seoScore}`, centerX, y + 18, { align: 'center' });
+    
+    // "/100" text
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('/100', centerX, y + 28, { align: 'center' });
+    
+    // Reset colors
     doc.setTextColor(0);
-    y += 35;
+    doc.setFont('helvetica', 'normal');
+    y += scoreHeight + 10;
 
     // Meta Information
     y = this.checkPageBreak(doc, y, 50);
@@ -703,21 +961,84 @@ class PDFService {
     // Main Content
     y = this.checkPageBreak(doc, y, 30);
     y = this.addSection(doc, 'Content', y);
+    y += 5;
     
-    // Strip HTML and extract text
-    const textContent = this.stripHtml(content.htmlContent || '');
-    const contentLines = this.splitTextIntoLines(doc, textContent, maxWidth, margin);
+    // Parse HTML into structured elements
+    const htmlElements = this.parseHtmlForPDF(content.htmlContent || '');
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0);
     
-    for (const line of contentLines) {
-      y = this.checkPageBreak(doc, y, 10);
-      if (line.trim()) {
-        doc.text(line, margin, y);
-        y += 6;
-      } else {
-        y += 3;
+    for (const element of htmlElements) {
+      if (element.type === 'heading') {
+        y = this.checkPageBreak(doc, y, 20);
+        
+        // Set heading font size based on level
+        const headingSizes = { 1: 16, 2: 14, 3: 12, 4: 11, 5: 10, 6: 10 };
+        const fontSize = headingSizes[element.level] || 10;
+        
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        
+        const headingLines = this.splitTextIntoLines(doc, element.text, maxWidth, margin);
+        for (const line of headingLines) {
+          y = this.checkPageBreak(doc, y, fontSize + 2);
+          doc.text(line, margin, y);
+          y += fontSize + 2;
+        }
+        
+        y += 3; // Extra space after heading
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0);
+        
+      } else if (element.type === 'list') {
+        y = this.checkPageBreak(doc, y, 15);
+        
+        element.items.forEach((item, index) => {
+          y = this.checkPageBreak(doc, y, 10);
+          
+          // List marker
+          const marker = element.ordered ? `${index + 1}.` : '•';
+          doc.setFont('helvetica', 'bold');
+          doc.text(marker, margin, y);
+          
+          // List item text
+          doc.setFont('helvetica', 'normal');
+          const itemLines = this.splitTextIntoLines(doc, item, maxWidth - 15, margin + 10);
+          let itemY = y;
+          
+          for (const line of itemLines) {
+            if (itemY !== y) {
+              itemY = this.checkPageBreak(doc, itemY, 8);
+            }
+            doc.text(line, margin + 10, itemY);
+            itemY += 6;
+          }
+          
+          y = itemY + 2;
+        });
+        
+        y += 3; // Extra space after list
+        
+      } else if (element.type === 'paragraph') {
+        y = this.checkPageBreak(doc, y, 12);
+        
+        // Handle paragraphs with proper line breaks
+        const paragraphText = element.text.replace(/\n/g, ' ').trim();
+        if (paragraphText) {
+          const paraLines = this.splitTextIntoLines(doc, paragraphText, maxWidth, margin);
+          
+          for (const line of paraLines) {
+            y = this.checkPageBreak(doc, y, 8);
+            doc.text(line, margin, y);
+            y += 6;
+          }
+          
+          y += 4; // Space between paragraphs
+        }
       }
     }
     
@@ -727,46 +1048,78 @@ class PDFService {
     if (content.faq && content.faq.length > 0) {
       y = this.checkPageBreak(doc, y, 40);
       y = this.addSection(doc, 'Frequently Asked Questions', y);
+      y += 5;
       
       doc.setFontSize(10);
-      for (const faq of content.faq) {
-        // Question
-        y = this.checkPageBreak(doc, y, 20);
+      for (let i = 0; i < content.faq.length; i++) {
+        const faq = content.faq[i];
+        
+        // Question with background
+        y = this.checkPageBreak(doc, y, 25);
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, y - 8, pageWidth - (margin * 2), 12, 'F');
+        
         doc.setFont('helvetica', 'bold');
-        const questionLines = this.splitTextIntoLines(doc, `Q: ${faq.question}`, maxWidth, margin);
+        doc.setFontSize(11);
+        doc.setTextColor(40, 40, 40);
+        const questionLines = this.splitTextIntoLines(doc, `Q${i + 1}: ${faq.question}`, maxWidth - 10, margin + 5);
+        let qY = y;
         for (const qLine of questionLines) {
-          y = this.checkPageBreak(doc, y, 8);
-          doc.text(qLine, margin, y);
-          y += 6;
+          if (qY !== y) {
+            qY = this.checkPageBreak(doc, qY, 8);
+            doc.setFillColor(245, 245, 245);
+            doc.rect(margin, qY - 8, pageWidth - (margin * 2), 12, 'F');
+          }
+          doc.text(qLine, margin + 5, qY);
+          qY += 6;
         }
+        y = qY + 3;
         
         // Answer
-        y += 2;
         doc.setFont('helvetica', 'normal');
-        const answerText = this.stripHtml(faq.answer || '');
-        const answerLines = this.splitTextIntoLines(doc, `A: ${answerText}`, maxWidth, margin);
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        const answerText = this.stripHtml(faq.answer || '').replace(/\n/g, ' ').trim();
+        const answerLines = this.splitTextIntoLines(doc, answerText, maxWidth - 10, margin + 5);
         for (const aLine of answerLines) {
           y = this.checkPageBreak(doc, y, 8);
-          doc.text(aLine, margin, y);
+          doc.text(aLine, margin + 5, y);
           y += 6;
         }
-        y += 5;
+        y += 8; // Space between FAQ items
       }
     }
 
     // CTA Section
     if (content.cta) {
-      y = this.checkPageBreak(doc, y, 30);
+      y = this.checkPageBreak(doc, y, 40);
       y = this.addSection(doc, 'Call to Action', y);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      const ctaText = this.stripHtml(content.cta);
-      const ctaLines = this.splitTextIntoLines(doc, ctaText, maxWidth, margin);
+      y += 5;
+      
+      // CTA box with border
+      const ctaHeight = 30;
+      y = this.checkPageBreak(doc, y, ctaHeight);
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.rect(margin, y - 5, pageWidth - (margin * 2), ctaHeight, 'S');
+      
+      doc.setFillColor(250, 250, 250);
+      doc.rect(margin + 0.5, y - 4.5, pageWidth - (margin * 2) - 1, ctaHeight - 1, 'F');
+      
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(40, 40, 40);
+      const ctaText = this.stripHtml(content.cta).replace(/\n/g, ' ').trim();
+      const ctaLines = this.splitTextIntoLines(doc, ctaText, maxWidth - 20, margin + 10);
+      
+      let ctaY = y + 8;
       for (const ctaLine of ctaLines) {
-        y = this.checkPageBreak(doc, y, 8);
-        doc.text(ctaLine, margin, y);
-        y += 6;
+        doc.text(ctaLine, margin + 10, ctaY);
+        ctaY += 7;
       }
+      
+      y = ctaY + 5;
     }
 
     // Footer

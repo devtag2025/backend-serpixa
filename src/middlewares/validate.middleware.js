@@ -138,6 +138,9 @@ const runGeoAudit = validateRequest(Joi.object({
     'any.required': 'City is required',
     'string.empty': 'City cannot be empty',
   }),
+  region: Joi.string().min(1).max(200).optional().allow('', null).messages({
+    'string.max': 'Region must be less than 200 characters',
+  }),
   country: Joi.string().min(1).max(200).required().messages({
     'any.required': 'Country is required',
     'string.empty': 'Country cannot be empty',
