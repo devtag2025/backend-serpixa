@@ -64,10 +64,12 @@ Language: English (default).
    * Generate SEO-optimized content using Claude API
    * @param {Object} params - Content generation parameters
    * @param {string} params.keyword - Target keyword (required)
+   * @param {string} params.topic - Topic/Subject (required)
+   * @param {string} params.language - Language code (NL, FR, EN) (optional, default: EN)
    * @param {string} params.locale - Language locale (optional, default: en-us)
    * @returns {Promise<Object>} Generated SEO content
    */
-  async generateSEOContent({ keyword, locale = 'en-us' }) {
+  async generateSEOContent({ keyword, topic, language = 'EN', locale = 'en-us' }) {
     if (!this.client) {
       throw new ApiError(500, 'Claude API key not configured');
     }
@@ -76,8 +78,12 @@ Language: English (default).
       throw new ApiError(400, 'Keyword is required');
     }
 
+    if (!topic) {
+      throw new ApiError(400, 'Topic is required');
+    }
+
     try {
-      const prompt = this.buildSEOPrompt(keyword, locale);
+      const prompt = this.buildSEOPrompt(keyword, topic, language, locale);
       
       const message = await this.client.messages.create({
         model: 'claude-3-haiku-20240307',  // ✅ Most likely to work
@@ -108,39 +114,81 @@ Language: English (default).
   /**
    * Build the SEO optimization prompt for Claude
    */
-buildSEOPrompt(keyword, locale) {
-  const localeInstructions = this.buildLocaleInstructions(locale);
+  buildSEOPrompt(keyword, topic, language, locale) {
+    // Map language codes to format used in prompt (FR/NL/EN)
+    const languageMap = {
+      'NL': 'NL',
+      'FR': 'FR',
+      'EN': 'EN',
+      'nl': 'NL',
+      'fr': 'FR',
+      'en': 'EN',
+      'nl-be': 'NL',
+      'nl-nl': 'NL',
+      'fr-fr': 'FR',
+      'fr-be': 'FR',
+      'en-us': 'EN',
+      'en-gb': 'EN',
+    };
+    
+    const promptLanguage = languageMap[language?.toUpperCase()] || languageMap[locale?.toLowerCase()] || 'EN';
+    const localeInstructions = this.buildLocaleInstructions(locale);
 
-  return `You are a senior SEO expert specializing in long-tail content for the web.
+    return `Create a complete HTML page optimized SIMULTANEOUSLY for:
+Google SEO (Search Engine Optimization)
+LLM comprehension (Claude, ChatGPT, Perplexity)
 
-Keyword: "${keyword}"
+TOPIC: ${topic}
+MAIN KEYWORD: ${keyword}
+in ${promptLanguage}
 
-${localeInstructions}
 
-Objective:
-Create a complete SEO page, optimized for this keyword, that can be published directly on a website.
+STRICT GUIDELINES:
 
-Constraints:
-- Minimum 1500 words
-- Clear structure with:
-  - 1x <h1> containing the keyword
-  - Several <h2> and some <h3>
-- Tone: professional, educational, value-oriented for the reader
-- Integrate the main keyword:
-  - In the H1
-  - In the introduction
-  - In at least 2-3 subtitles (H2/H3)
-  - In the conclusion
-- Also use natural semantic variants (synonyms, similar expressions)
-- Adapt the examples, references, and formulas to the market and language indicated by the locale
+📝 CONTENT:
+2500-3500 words minimum
+Natural and conversational tone
+Accessible vocabulary (high school level)
+Each technical concept simply defined
+Concrete examples in each section
+Everyday metaphors for complex concepts
+Precise statistics and data when relevant
 
-SEO Requirements:
-- Add a meta title (max 60 characters) optimized for the keyword
-- Add a meta description (max 155 characters), persuasive, with the keyword
-- Keyword density: 1-2% (natural integration)
-- Include internal linking opportunities
-- Add FAQ section (5-7 questions)
-- Include a compelling CTA
+🏗️ STRUCTURE:
+Single H1 with main keyword
+Initial summary with key points
+6-8 main sections (H2)
+FAQ with minimum 6 questions
+CTA (Call-to-Action): Create an impactful and persuasive CTA that is coherent with the generated content
+Summary conclusion
+Breadcrumb navigation included
+
+🔍 TECHNICAL SEO:
+Title tag 50-60 characters with keyword
+Meta description 150-160 characters, engaging
+Optimized URL slug (/main-keyword)
+Schema.org Article + FAQPage
+Complete Open Graph and Twitter Card
+3-5 strategic internal links
+Images with descriptive alt text
+
+🤖 LLM OPTIMIZATION:
+Boxed definitions for each concept
+Structured FAQ with natural questions
+Direct answers before elaboration
+Autonomous and quotable sections
+Comparison tables if relevant
+Visible update dates (current year)
+Boxed concrete examples
+
+💻 FORMAT:
+Complete semantic HTML5
+Inline CSS optimized for performance
+Responsive design (mobile-first)
+WCAG AA accessibility
+PageSpeed performance 90+
+
+The content must be 100% original, factual, and provide real added value. No filler. No unrealistic promises. Expert but accessible tone.
 
 Output format:
 Respond with ONLY valid JSON. The JSON MUST be properly formatted with:
@@ -162,7 +210,7 @@ Respond with ONLY valid JSON. The JSON MUST be properly formatted with:
   "cta": "...",
   "seoScore": 75,
   "keywordDensity": "1.5%",
-  "wordCount": 1500
+  "wordCount": 2500
 }
 
 CRITICAL RULES:
@@ -170,8 +218,11 @@ CRITICAL RULES:
 2. The htmlContent field must be a SINGLE LINE string with \\n for newlines
 3. Do NOT format the HTML with actual newlines - use \\n escape sequence
 4. Do NOT wrap the JSON in code blocks
-5. Make sure all quotes inside strings are escaped with backslash`;
-}
+5. Make sure all quotes inside strings are escaped with backslash
+6. Ensure word count is between 2500-3500 words
+7. Include Schema.org markup, Open Graph, and Twitter Card tags in the HTML
+8. Include breadcrumb navigation in the HTML`;
+  }
 
   /**
    * Parse Claude's response into structured SEO content

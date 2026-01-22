@@ -20,6 +20,16 @@ const AIContentSchema = new Schema(
       required: true,
       index: true,
     },
+    topic: {
+      type: String,
+      required: true,
+    },
+    language: {
+      type: String,
+      required: true,
+      enum: ['NL', 'FR', 'EN'],
+      default: 'EN',
+    },
     locale: {
       type: String,
       required: true,

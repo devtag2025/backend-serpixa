@@ -1,5 +1,5 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
-import { claudeService } from '../services/index.js';
+import { claudeService, pdfService } from '../services/index.js';
 import { User } from '../models/index.js';
 import { AIContent } from '../models/index.js';
 
@@ -8,7 +8,7 @@ import { AIContent } from '../models/index.js';
  */
 export const optimizeContent = async (req, res, next) => {
   try {
-    const { keyword, locale = 'en-us' } = req.body;
+    const { keyword, topic, language, locale = 'en-us' } = req.body;
     const userId = req.user._id;
     const { creditInfo } = req; // From credit middleware
 
@@ -17,6 +17,21 @@ export const optimizeContent = async (req, res, next) => {
       return res.status(400).json(
         new ApiResponse(400, null, 'Keyword is required')
       );
+    }
+
+    // Validate topic
+    if (!topic || topic.trim().length === 0) {
+      return res.status(400).json(
+        new ApiResponse(400, null, 'Topic is required')
+      );
+    }
+
+    // Validate and normalize language (NL, FR, EN)
+    const supportedLanguages = ['NL', 'FR', 'EN', 'nl', 'fr', 'en'];
+    const normalizedLanguage = language ? language.toUpperCase() : null;
+    
+    if (normalizedLanguage && !supportedLanguages.includes(normalizedLanguage)) {
+      console.warn(`Unsupported language: ${language}. Using EN as default.`);
     }
 
     // Validate locale (optional)
@@ -30,6 +45,8 @@ export const optimizeContent = async (req, res, next) => {
     // Generate SEO content using Claude
     const optimizedContent = await claudeService.generateSEOContent({
       keyword: keyword.trim(),
+      topic: topic.trim(),
+      language: normalizedLanguage || 'EN',
       locale: normalizedLocale
     });
 
@@ -55,6 +72,8 @@ export const optimizeContent = async (req, res, next) => {
     const aiContent = await AIContent.create({
       user: userId,
       keyword: keyword.trim(),
+      topic: topic.trim(),
+      language: normalizedLanguage || 'EN',
       locale: normalizedLocale,
       metaTitle: optimizedContent.metaTitle,
       metaDescription: optimizedContent.metaDescription,
@@ -74,6 +93,8 @@ export const optimizeContent = async (req, res, next) => {
           content: aiContent,
           input: {
             keyword: keyword.trim(),
+            topic: topic.trim(),
+            language: normalizedLanguage || 'EN',
             locale: normalizedLocale
           }
         },
@@ -165,9 +186,51 @@ export const deleteContent = async (req, res, next) => {
   }
 };
 
+/**
+ * Download AI content PDF
+ */
+export const downloadContentPDF = async (req, res, next) => {
+  try {
+    const { contentId } = req.params;
+    const userId = req.user._id;
+    const { view } = req.query;
+
+    const content = await AIContent.findOne({ _id: contentId, user: userId }).lean();
+
+    if (!content) {
+      throw new ApiError(404, 'Content not found');
+    }
+
+    const pdfBuffer = pdfService.generateAIContentReport(content, req.user);
+
+    const keywordSlug = content.keyword
+      ? content.keyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 20)
+      : 'content';
+    const topicSlug = content.topic
+      ? content.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 20)
+      : 'topic';
+    const dateStr = new Date(content.createdAt).toISOString().split('T')[0];
+    const filename = `ai-content-${topicSlug}-${keywordSlug}-${dateStr}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', pdfBuffer.byteLength);
+
+    const disposition = view === 'true' ? 'inline' : 'attachment';
+    res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    res.send(Buffer.from(pdfBuffer));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const claudeController = {
   optimizeContent,
   getContentById,
   getUserContent,
   deleteContent,
+  downloadContentPDF,
 };

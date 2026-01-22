@@ -32,42 +32,25 @@ class GeoAuditService {
    * Run geo audit using Google Maps API
    * @param {string} keyword - Search keyword
    * @param {string} city - City name
+   * @param {string} region - Region/State name (optional)
    * @param {string} country - Country name
    * @param {string} googleDomain - Google domain (e.g., 'google.be', 'google.fr')
    * @param {string} language - Language code (e.g., 'fr', 'en', 'nl')
    * @param {string} locale - Locale code (e.g., 'fr-be', 'en', 'nl-nl')
    * @returns {Promise<Object>} Audit result with local visibility score, competitors, and recommendations
    */
-  async runGeoAudit(keyword, city, country, googleDomain = null, language = null, locale = DEFAULT_LOCALE) {
+  async runGeoAudit(keyword, city, region = null, country, googleDomain = null, language = null, locale = DEFAULT_LOCALE) {
     try {
       // Get language name for DataForSEO API
       const languageName = language ? getLanguageName(language) : 'English';
       
-      // Construct location_name as "City,Country" (no space after comma as per DataForSEO format)
-      const locationName = `${city},${country}`;
-
-      // Auto-detect googleDomain from country if not provided
-      let finalGoogleDomain = googleDomain;
-      if (!finalGoogleDomain && country) {
-        const countryLower = country.toLowerCase();
-        const domainMap = {
-          'belgium': 'google.be',
-          'france': 'google.fr',
-          'netherlands': 'google.nl',
-          'germany': 'google.de',
-          'spain': 'google.es',
-          'italy': 'google.it',
-          'united kingdom': 'google.co.uk',
-          'uk': 'google.co.uk',
-          'united states': 'google.com',
-          'us': 'google.com',
-          'usa': 'google.com',
-        };
-        finalGoogleDomain = domainMap[countryLower] || 'google.com';
-      }
+      // Construct location_name as "City,Region,Country" or "City,Country" (no space after comma as per DataForSEO format)
+      const locationName = region 
+        ? `${city},${region},${country}`
+        : `${city},${country}`;
 
       // Fetch data from Google Maps API
-      const mapsData = await this.fetchMapsData(keyword, locationName, languageName, finalGoogleDomain);
+      const mapsData = await this.fetchMapsData(keyword, locationName, languageName, googleDomain);
 
       // Extract language code from locale for translations
       const localeConfig = getLocaleConfig(locale);
@@ -83,9 +66,9 @@ class GeoAuditService {
 
   /**
    * Fetch data from DataForSEO Google Maps API
-   * Uses only the 4 required parameters: keyword, location_name, language_name, se_domain
+   * Passes through DataForSEO responses transparently
    * @param {string} keyword - Search keyword
-   * @param {string} locationName - Location in format "City,Country" (e.g., "Brussels,Belgium")
+   * @param {string} locationName - Location in format "City,Region,Country" or "City,Country" (e.g., "Amsterdam,North Holland,Netherlands")
    * @param {string} languageName - Language name (e.g., "French", "English")
    * @param {string} googleDomain - Google domain (e.g., "google.be", "google.fr") - optional
    * @returns {Promise<Object>} Maps API response data
@@ -95,106 +78,83 @@ class GeoAuditService {
       throw new ApiError(500, 'DataForSEO credentials not configured');
     }
 
-    try {
-      // Build payload with only the 4 required parameters
-      const payload = [{
-        keyword: keyword.trim(),
-        location_name: locationName,
-        language_name: languageName,
-      }];
+    // Build payload
+    const payload = [{
+      keyword: keyword.trim(),
+      location_name: locationName,
+      language_name: languageName,
+    }];
 
-      // Add se_domain only if provided (optional)
-      if (googleDomain && googleDomain !== 'google.com') {
-        payload[0].se_domain = googleDomain;
-      }
-
-      Logger.log('Sending request to DataForSEO Google Maps API:', {
-        endpoint: '/v3/serp/google/maps/live/advanced',
-        keyword: keyword.trim(),
-        location_name: locationName,
-        language_name: languageName,
-        se_domain: googleDomain || 'not set',
-      });
-
-      const response = await this.client.post('/v3/serp/google/maps/live/advanced', payload);
-
-      Logger.log('DataForSEO Maps API Response Status:', response.status);
-
-      // Handle response structure
-      let result;
-      if (Array.isArray(response.data)) {
-        if (response.data.length === 0) {
-          throw new ApiError(502, 'No Maps data received');
-        }
-        result = response.data[0];
-      } else if (response.data?.status_code !== undefined) {
-        result = response.data;
-      } else {
-        Logger.error('Unexpected Maps API response structure:', typeof response.data);
-        throw new ApiError(502, 'Unexpected API response structure');
-      }
-
-      // Check for API errors
-      if (result.status_code !== 20000) {
-        throw new ApiError(502, result.status_message || 'DataForSEO Maps API error');
-      }
-
-      const task = result.tasks?.[0];
-      if (!task || task.status_code !== 20000) {
-        const errorMsg = task?.status_message || 'Maps data fetch failed';
-        Logger.error('DataForSEO Maps task error:', errorMsg, 'Code:', task?.status_code);
-        
-        // Provide helpful error messages
-        if (errorMsg.includes('location_name') || errorMsg.includes('Invalid Field')) {
-          throw new ApiError(400, `Invalid location: "${locationName}". Please use format "City,Country" (e.g., "Brussels,Belgium", "Paris,France"). Error: ${errorMsg}`);
-        }
-        
-        throw new ApiError(502, errorMsg);
-      }
-
-      // Extract result data
-      let mapsData;
-      if (Array.isArray(task.result)) {
-        mapsData = task.result[0];
-      } else if (task.result) {
-        mapsData = task.result;
-      } else {
-        throw new ApiError(502, 'No Maps result data found');
-      }
-
-
-      // Extract business listings from maps results
-      const items = mapsData?.items || [];
-      const businessItems = items.filter(item => 
-        item.type === 'maps_results' || 
-        item.type === 'local_pack' ||
-        item.type === 'map' ||
-        (item.title && (item.rating || item.reviews_count))
-      );
-
-      Logger.log('Business items found:', businessItems.length);
-
-      return {
-        items: businessItems,
-        keyword: keyword,
-        location: locationName,
-        language: languageName,
-        google_domain: googleDomain,
-      };
-    } catch (error) {
-      if (error instanceof ApiError) throw error;
-
-      if (error.response) {
-        const statusCode = error.response.status;
-        if (statusCode === 401) {
-          Logger.error('DataForSEO authentication failed. Please check your credentials.');
-          throw new ApiError(401, 'DataForSEO authentication failed. Please check your credentials in .env file');
-        }
-        throw new ApiError(statusCode, error.response.data?.message || 'Maps API request failed');
-      }
-
-      throw new ApiError(502, `Maps data fetch failed: ${error.message}`);
+    // Add se_domain only if provided (optional)
+    if (googleDomain && googleDomain !== 'google.com') {
+      payload[0].se_domain = googleDomain;
     }
+
+    Logger.log('Sending request to DataForSEO Google Maps API:', {
+      endpoint: '/v3/serp/google/maps/live/advanced',
+      keyword: keyword.trim(),
+      location_name: locationName,
+      language_name: languageName,
+      se_domain: googleDomain || 'not set',
+    });
+
+    const response = await this.client.post('/v3/serp/google/maps/live/advanced', payload);
+
+    Logger.log('DataForSEO Maps API Response Status:', response.status);
+
+    // Handle response structure - pass through DataForSEO response
+    let result;
+    if (Array.isArray(response.data)) {
+      if (response.data.length === 0) {
+        throw new ApiError(502, 'No Maps data received from DataForSEO');
+      }
+      result = response.data[0];
+    } else if (response.data?.status_code !== undefined) {
+      result = response.data;
+    } else {
+      throw new ApiError(502, 'Unexpected DataForSEO API response structure');
+    }
+
+    // Check for API errors - pass through DataForSEO error messages
+    if (result.status_code !== 20000) {
+      throw new ApiError(502, `DataForSEO API error: ${result.status_message || 'Unknown error'} (Code: ${result.status_code})`);
+    }
+
+    const task = result.tasks?.[0];
+    if (!task || task.status_code !== 20000) {
+      const errorMsg = task?.status_message || 'DataForSEO task failed';
+      const errorCode = task?.status_code || 'unknown';
+      throw new ApiError(502, `DataForSEO task error: ${errorMsg} (Code: ${errorCode})`);
+    }
+
+    // Extract result data - pass through DataForSEO structure
+    let mapsData;
+    if (Array.isArray(task.result)) {
+      mapsData = task.result[0];
+    } else if (task.result) {
+      mapsData = task.result;
+    } else {
+      throw new ApiError(502, 'DataForSEO returned no result data');
+    }
+
+    // Extract business listings from maps results
+    const items = mapsData?.items || [];
+    const businessItems = items.filter(item => 
+      item.type === 'maps_results' || 
+      item.type === 'local_pack' ||
+      item.type === 'map' ||
+      (item.title && (item.rating || item.reviews_count))
+    );
+
+    Logger.log('Business items found:', businessItems.length);
+
+    return {
+      items: businessItems,
+      keyword: keyword,
+      location: locationName,
+      language: languageName,
+      google_domain: googleDomain,
+    };
   }
 
   /**

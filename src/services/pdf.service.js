@@ -605,6 +605,175 @@ class PDFService {
 
     return currentY;
   }
+
+  /**
+   * Strip HTML tags and extract text content
+   */
+  stripHtml(html) {
+    if (!html) return '';
+    return html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/\n\s*\n/g, '\n')
+      .trim();
+  }
+
+  /**
+   * Split text into lines that fit within page width
+   */
+  splitTextIntoLines(doc, text, maxWidth, x) {
+    const lines = doc.splitTextToSize(text, maxWidth);
+    return lines || [text];
+  }
+
+  /**
+   * Generate AI Content PDF Report
+   */
+  generateAIContentReport(content, user) {
+    const lang = this.getLanguageFromAudit(content);
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - (margin * 2);
+    let y = 20;
+
+    // Header
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AI-Generated SEO Content Report', pageWidth / 2, y, { align: 'center' });
+    y += 15;
+
+    // Branding
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text('Powered by serpixa.ai', pageWidth / 2, y, { align: 'center' });
+    y += 15;
+
+    // Content Info
+    doc.setTextColor(0);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Topic: ${content.topic || 'N/A'}`, margin, y);
+    y += 8;
+    doc.text(`Keyword: ${content.keyword}`, margin, y);
+    y += 8;
+    doc.text(`Language: ${content.language || 'EN'}`, margin, y);
+    y += 8;
+    doc.text(`Date: ${this.formatEuropeanDate(content.createdAt)}`, margin, y);
+    y += 8;
+    doc.text(`Generated for: ${user.name || user.email}`, margin, y);
+    y += 15;
+
+    // SEO Score Section
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, y, pageWidth - (margin * 2), 25, 'F');
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SEO Score', margin + 10, y + 10);
+    doc.setFontSize(24);
+    doc.setTextColor(...this.getScoreColor(content.seoScore || 75));
+    doc.text(`${content.seoScore || 75}/100`, pageWidth - margin - 10, y + 15, { align: 'right' });
+    doc.setTextColor(0);
+    y += 35;
+
+    // Meta Information
+    y = this.checkPageBreak(doc, y, 50);
+    y = this.addSection(doc, 'Meta Information', y);
+    y = this.addInfoLine(doc, 'Meta Title', content.metaTitle || 'N/A', y);
+    y = this.addInfoLine(doc, 'Meta Description', content.metaDescription || 'N/A', y);
+    y += 5;
+
+    // Content Stats
+    y = this.checkPageBreak(doc, y, 30);
+    y = this.addSection(doc, 'Content Statistics', y);
+    y = this.addLine(doc, `Word Count: ${content.wordCount || 0}`, y);
+    y = this.addLine(doc, `Keyword Density: ${content.keywordDensity || 'N/A'}`, y);
+    y += 10;
+
+    // Main Content
+    y = this.checkPageBreak(doc, y, 30);
+    y = this.addSection(doc, 'Content', y);
+    
+    // Strip HTML and extract text
+    const textContent = this.stripHtml(content.htmlContent || '');
+    const contentLines = this.splitTextIntoLines(doc, textContent, maxWidth, margin);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    for (const line of contentLines) {
+      y = this.checkPageBreak(doc, y, 10);
+      if (line.trim()) {
+        doc.text(line, margin, y);
+        y += 6;
+      } else {
+        y += 3;
+      }
+    }
+    
+    y += 10;
+
+    // FAQ Section
+    if (content.faq && content.faq.length > 0) {
+      y = this.checkPageBreak(doc, y, 40);
+      y = this.addSection(doc, 'Frequently Asked Questions', y);
+      
+      doc.setFontSize(10);
+      for (const faq of content.faq) {
+        // Question
+        y = this.checkPageBreak(doc, y, 20);
+        doc.setFont('helvetica', 'bold');
+        const questionLines = this.splitTextIntoLines(doc, `Q: ${faq.question}`, maxWidth, margin);
+        for (const qLine of questionLines) {
+          y = this.checkPageBreak(doc, y, 8);
+          doc.text(qLine, margin, y);
+          y += 6;
+        }
+        
+        // Answer
+        y += 2;
+        doc.setFont('helvetica', 'normal');
+        const answerText = this.stripHtml(faq.answer || '');
+        const answerLines = this.splitTextIntoLines(doc, `A: ${answerText}`, maxWidth, margin);
+        for (const aLine of answerLines) {
+          y = this.checkPageBreak(doc, y, 8);
+          doc.text(aLine, margin, y);
+          y += 6;
+        }
+        y += 5;
+      }
+    }
+
+    // CTA Section
+    if (content.cta) {
+      y = this.checkPageBreak(doc, y, 30);
+      y = this.addSection(doc, 'Call to Action', y);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const ctaText = this.stripHtml(content.cta);
+      const ctaLines = this.splitTextIntoLines(doc, ctaText, maxWidth, margin);
+      for (const ctaLine of ctaLines) {
+        y = this.checkPageBreak(doc, y, 8);
+        doc.text(ctaLine, margin, y);
+        y += 6;
+      }
+    }
+
+    // Footer
+    this.addFooter(doc, lang);
+
+    return doc.output('arraybuffer');
+  }
 }
 
 export const pdfService = new PDFService();

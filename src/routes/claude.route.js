@@ -34,4 +34,11 @@ router.delete(
   claudeController.deleteContent
 );
 
+// PDF download/view - supports ?view=true to open in browser
+router.get(
+  '/content/:contentId/pdf',
+  validate.aiContentIdParam,
+  claudeController.downloadContentPDF
+);
+
 export default router;
