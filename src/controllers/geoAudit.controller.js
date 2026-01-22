@@ -8,7 +8,7 @@ import { emailService, geoAuditService, pdfService } from '../services/index.js'
 
 export const runAudit = async (req, res, next) => {
   try {
-    const { keyword, city, country, googleDomain, language, businessName, locale } = req.body;
+    const { keyword, city, region, country, googleDomain, language, businessName, locale } = req.body;
     const userId = req.user._id;
     const { creditInfo } = req;
 
@@ -35,6 +35,7 @@ export const runAudit = async (req, res, next) => {
     const auditResult = await geoAuditService.runGeoAudit(
       keyword,
       city,
+      region || null,
       country,
       googleDomain || null,
       language || null,
