@@ -54,6 +54,69 @@ class StripeService {
     return { portal_url: session.url };
   }
 
+  /**
+   * Retrieve checkout session details by session ID
+   * Used to display what was purchased on the success page
+   */
+  async getCheckoutSession(sessionId, userId) {
+    if (!sessionId) {
+      throw new Error('Session ID is required');
+    }
+
+    try {
+      // Retrieve the checkout session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      // Verify the session belongs to the user (security check)
+      const user = await User.findById(userId);
+      if (!user || session.customer !== user.stripe_customer_id) {
+        // If user doesn't have a stripe_customer_id yet, check metadata
+        if (session.metadata?.user_id !== userId.toString()) {
+          throw new Error('Session not found or access denied');
+        }
+      }
+
+      // Get plan details from metadata or database
+      const { plan_id, plan_type, plan_name, price_id } = session.metadata || {};
+      
+      let planDetails = null;
+      if (plan_id) {
+        const plan = await Plan.findById(plan_id);
+        if (plan) {
+          planDetails = {
+            id: plan._id,
+            name: plan.name,
+            description: plan.description,
+            plan_type: plan.plan_type,
+            price: plan.price,
+            currency: plan.currency,
+            billing_period: plan.billing_period,
+            credits: plan.credits,
+            limits: plan.limits,
+          };
+        }
+      }
+
+      return {
+        session_id: session.id,
+        status: session.status,
+        payment_status: session.payment_status,
+        plan_type: plan_type || planDetails?.plan_type || 'subscription',
+        plan_name: plan_name || planDetails?.name || 'Unknown Plan',
+        plan: planDetails,
+        amount_total: session.amount_total,
+        currency: session.currency,
+        created: session.created,
+      };
+    } catch (error) {
+      console.error('Error retrieving checkout session:', error);
+      if (error.type === 'StripeInvalidRequestError') {
+        throw new Error('Invalid or expired session');
+      }
+      throw error;
+    }
+  }
+
   async processWebhook(rawBody, signature) {
     const event = stripe.webhooks.constructEvent(rawBody, signature, env.STRIPE_WEBHOOK_SECRET);
 

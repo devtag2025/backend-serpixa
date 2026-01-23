@@ -7,4 +7,5 @@ export { pdfService } from './pdf.service.js';
 
 export { stripeService } from './stripe.service.js';
 export { planService } from './plan.service.js';
-export {adminService } from './admin.service.js';
+export { adminService } from './admin.service.js';
+export { createSupportTicket } from './support.service.js';

@@ -19,6 +19,9 @@ router.get('/credits', subscriptionController.getCredits);
 // Create checkout session
 router.post('/checkout', validate.createCheckout, subscriptionController.createCheckout);
 
+// Get checkout session details (for success page)
+router.get('/checkout/:sessionId', subscriptionController.getCheckoutSession);
+
 // Create customer portal session
 router.post('/portal', subscriptionController.createPortalSession);
 

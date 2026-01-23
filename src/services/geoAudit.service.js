@@ -240,7 +240,7 @@ class GeoAuditService {
       keyword,
       location,
       localVisibilityScore,
-      competitors,
+      competitors: competitors.slice(0, 10), // Only return top 10 competitors
       recommendations,
       napIssues,
       citationIssues,
