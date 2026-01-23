@@ -121,12 +121,11 @@ export const verifyEmail = async (req, res, next) => {
     user.email_verification_expires = undefined;
     await user.save();
 
-    // Send welcome email after successful verification
-    const locale = getLocaleFromRequest(req);
+    // Send welcome email after successful verification using user's preferred locale
     try {
       await emailService.sendWelcomeEmail(user.email, {
         userName: user.name,
-        locale: locale
+        locale: user.preferred_locale || 'en' // Use user's preferred_locale from user model
       });
     } catch (err) {
       // Don't fail verification if welcome email fails
