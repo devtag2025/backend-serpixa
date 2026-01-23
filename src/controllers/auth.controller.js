@@ -61,7 +61,7 @@ export const signup = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password, locale } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json(new ApiResponse(400, null, "Email and password required"));
@@ -84,14 +84,8 @@ export const login = async (req, res, next) => {
       return res.status(403).json(new ApiResponse(403, null, "Your account has been suspended. Please contact support."));
     }
 
-    // Update locale if provided in login request
-    if (locale) {
-      const validLocales = ['en', 'fr', 'nl'];
-      if (validLocales.includes(locale)) {
-        user.preferred_locale = locale;
-        await user.save();
-      }
-    }
+    // Use user's preferred_locale from user model (no need to update from request)
+    // The preferred_locale is set during signup and can be updated via profile update
 
     const { accessToken } = setAuthTokens(res, user);
 
@@ -121,12 +115,11 @@ export const verifyEmail = async (req, res, next) => {
     user.email_verification_expires = undefined;
     await user.save();
 
-    // Send welcome email after successful verification
-    const locale = getLocaleFromRequest(req);
+    // Send welcome email after successful verification using user's preferred locale
     try {
       await emailService.sendWelcomeEmail(user.email, {
         userName: user.name,
-        locale: locale
+        locale: user.preferred_locale || 'en' // Use user's preferred_locale from user model
       });
     } catch (err) {
       // Don't fail verification if welcome email fails

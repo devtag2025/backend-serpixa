@@ -76,11 +76,24 @@ class EmailService {
     }
 
     async sendWelcomeEmail(email, data = {}) {
-        const locale = this.getLocale(data);
-        const t = (path, replacements = {}) => getTranslation(locale, path, replacements);
+        // Get locale from data, or use user's preferred_locale if available
+        let locale = data.locale || data.preferred_locale || DEFAULT_LOCALE;
+        
+        // Handle simple locale format (en, fr, nl) - convert to language code directly
+        // getLanguageFromLocale expects full locale format (en-us, fr-fr, etc.)
+        // For simple format, use it directly as language code
+        let lang;
+        if (['en', 'fr', 'nl'].includes(locale.toLowerCase())) {
+            lang = locale.toLowerCase();
+        } else {
+            // For full locale format, use getLanguageFromLocale
+            lang = this.getLanguageFromLocale(locale);
+        }
+        
+        const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
         
         const subject = t('email.welcome.subject');
-        const html = this.welcomeHTML(data, locale);
+        const html = this.welcomeHTML(data, lang);
         return this.send(email, subject, html);
     }
 
@@ -213,10 +226,10 @@ class EmailService {
 </div>`;
   }
 
-  welcomeHTML(data = {}, locale = 'en') {
+  welcomeHTML(data = {}, lang = 'en') {
     const name = data.userName || "there";
     const dashboardUrl = `${env.CLIENT_URL}/dashboard`;
-    const t = (path, replacements = {}) => getTranslation(locale, path, replacements);
+    const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
 
     const greeting = t('email.welcome.greeting', { name });
     const message = t('email.welcome.message');
