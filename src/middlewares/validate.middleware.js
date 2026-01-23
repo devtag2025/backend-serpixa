@@ -294,6 +294,13 @@ const generateAIContent = validateRequest(Joi.object({
     'any.required': 'Keyword is required',
     'string.empty': 'Keyword cannot be empty',
   }),
+  topic: Joi.string().min(1).max(200).required().messages({
+    'any.required': 'Topic is required',
+    'string.empty': 'Topic cannot be empty',
+  }),
+  language: Joi.string().valid('en', 'fr', 'nl', 'EN', 'FR', 'NL').optional().messages({
+    'any.only': 'Language must be one of: en, fr, nl',
+  }),
   locale: Joi.string().valid('en-us', 'en-gb', 'fr-fr', 'fr-be', 'nl-nl', 'nl-be').optional(),
 }));
 

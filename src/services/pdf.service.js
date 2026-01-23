@@ -1798,12 +1798,46 @@ class PDFService {
     doc.setFont('helvetica', 'normal');
     y += scoreHeight + 10;
 
-    // Meta Information
-    y = this.checkPageBreak(doc, y, 50);
+    // Meta Information - Enhanced with full text display
+    y = this.checkPageBreak(doc, y, 60);
     y = this.addSection(doc, 'Meta Information', y);
-    y = this.addInfoLine(doc, 'Meta Title', content.metaTitle || 'N/A', y);
-    y = this.addInfoLine(doc, 'Meta Description', content.metaDescription || 'N/A', y);
     y += 5;
+    
+    // Meta Title with full text wrapping
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(40, 40, 40);
+    doc.text('Meta Title:', margin, y);
+    
+    doc.setFont('helvetica', 'normal');
+    const metaTitle = content.metaTitle || 'N/A';
+    const titleLines = this.splitTextIntoLines(doc, metaTitle, maxWidth - 30, margin + 30);
+    let titleY = y;
+    for (const line of titleLines) {
+      if (titleY !== y) {
+        titleY = this.checkPageBreak(doc, titleY, 8);
+      }
+      doc.text(line, margin + 30, titleY);
+      titleY += 6;
+    }
+    y = titleY + 8;
+    
+    // Meta Description with full text wrapping
+    doc.setFont('helvetica', 'bold');
+    doc.text('Meta Description:', margin, y);
+    
+    doc.setFont('helvetica', 'normal');
+    const metaDescription = content.metaDescription || 'N/A';
+    const descLines = this.splitTextIntoLines(doc, metaDescription, maxWidth - 30, margin + 30);
+    let descY = y;
+    for (const line of descLines) {
+      if (descY !== y) {
+        descY = this.checkPageBreak(doc, descY, 8);
+      }
+      doc.text(line, margin + 30, descY);
+      descY += 6;
+    }
+    y = descY + 10;
 
     // Content Stats
     y = this.checkPageBreak(doc, y, 30);

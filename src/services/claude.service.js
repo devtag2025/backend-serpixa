@@ -135,14 +135,23 @@ Language: English (default).
     const promptLanguage = languageMap[language?.toUpperCase()] || languageMap[locale?.toLowerCase()] || 'EN';
     const localeInstructions = this.buildLocaleInstructions(locale);
 
+    // Build language-specific instruction
+    const languageInstruction = promptLanguage === 'NL' 
+      ? '⚠️ CRITICAL: Write ALL content in DUTCH (Nederlands). This includes:\n- All HTML content (headings, paragraphs, lists)\n- Meta title and meta description\n- FAQ questions and answers\n- CTA (Call-to-Action)\n- All text elements\n\nDO NOT write in English. Everything must be in Dutch.'
+      : promptLanguage === 'FR'
+      ? '⚠️ CRITICAL: Write ALL content in FRENCH (Français). This includes:\n- All HTML content (headings, paragraphs, lists)\n- Meta title and meta description\n- FAQ questions and answers\n- CTA (Call-to-Action)\n- All text elements\n\nDO NOT write in English. Everything must be in French.'
+      : 'Write ALL content in ENGLISH. This includes all HTML content, meta tags, FAQ, and CTA.';
+
     return `Create a complete HTML page optimized SIMULTANEOUSLY for:
 Google SEO (Search Engine Optimization)
 LLM comprehension (Claude, ChatGPT, Perplexity)
 
 TOPIC: ${topic}
 MAIN KEYWORD: ${keyword}
-in ${promptLanguage}
 
+🌍 LANGUAGE REQUIREMENT:
+${languageInstruction}
+${localeInstructions}
 
 STRICT GUIDELINES:
 
@@ -235,21 +244,22 @@ Respond with ONLY valid JSON. The JSON MUST be properly formatted with:
 }
 
 CRITICAL RULES:
-1. Your response must start with { and end with }
-2. The htmlContent field must be a SINGLE LINE string with \\n for newlines
-3. Do NOT format the HTML with actual newlines - use \\n escape sequence
-4. Do NOT wrap the JSON in code blocks
-5. Make sure all quotes inside strings are escaped with backslash
-6. Ensure word count is between 2500-3500 words
-7. Include Schema.org markup, Open Graph, and Twitter Card tags in the HTML
-8. Include breadcrumb navigation in the HTML
-9. FAQ ARRAY IS MANDATORY AND REQUIRED: You MUST include the "faq" array in your JSON response with at least 6 FAQ items. DO NOT put FAQ only in HTML - it MUST be in the JSON "faq" array. Each FAQ item must have both "question" and "answer" fields as separate JSON objects. Example:
+1. ⚠️ LANGUAGE: ${promptLanguage === 'NL' ? 'ALL content MUST be in DUTCH (Nederlands).' : promptLanguage === 'FR' ? 'ALL content MUST be in FRENCH (Français).' : 'ALL content MUST be in ENGLISH.'} This includes metaTitle, metaDescription, htmlContent, FAQ questions/answers, and CTA. DO NOT write in any other language.
+2. Your response must start with { and end with }
+3. The htmlContent field must be a SINGLE LINE string with \\n for newlines
+4. Do NOT format the HTML with actual newlines - use \\n escape sequence
+5. Do NOT wrap the JSON in code blocks
+6. Make sure all quotes inside strings are escaped with backslash
+7. Ensure word count is between 2500-3500 words
+8. Include Schema.org markup, Open Graph, and Twitter Card tags in the HTML
+9. Include breadcrumb navigation in the HTML
+10. FAQ ARRAY IS MANDATORY AND REQUIRED: You MUST include the "faq" array in your JSON response with at least 6 FAQ items. DO NOT put FAQ only in HTML - it MUST be in the JSON "faq" array. Each FAQ item must have both "question" and "answer" fields as separate JSON objects. ${promptLanguage === 'NL' ? 'All FAQ questions and answers must be in DUTCH.' : promptLanguage === 'FR' ? 'All FAQ questions and answers must be in FRENCH.' : 'All FAQ questions and answers must be in ENGLISH.'} Example:
    "faq": [
-     {"question": "Question 1?", "answer": "Answer 1"},
-     {"question": "Question 2?", "answer": "Answer 2"}
+     {"question": "${promptLanguage === 'NL' ? 'Wat is het hoofdonderwerp?' : promptLanguage === 'FR' ? 'Quel est le sujet principal?' : 'What is the main topic?'}", "answer": "${promptLanguage === 'NL' ? 'Het antwoord dat het onderwerp uitlegt...' : promptLanguage === 'FR' ? 'La réponse expliquant le sujet...' : 'The answer explaining the topic...'}"},
+     {"question": "${promptLanguage === 'NL' ? 'Waarom is dit belangrijk?' : promptLanguage === 'FR' ? 'Pourquoi est-ce important?' : 'Why is this important?'}", "answer": "${promptLanguage === 'NL' ? 'Het antwoord dat het belang uitlegt...' : promptLanguage === 'FR' ? 'La réponse expliquant l\'importance...' : 'The answer explaining importance...'}"}
    ]
-10. FAQ questions should be related to the topic "${topic}" and keyword "${keyword}". Make them useful and searchable.
-11. IMPORTANT: The FAQ must appear BOTH in the HTML content (for Schema.org) AND in the JSON "faq" array. Do not skip the JSON array.`;
+11. FAQ questions should be related to the topic "${topic}" and keyword "${keyword}". Make them useful and searchable. ${promptLanguage === 'NL' ? 'Write all FAQ questions and answers in DUTCH.' : promptLanguage === 'FR' ? 'Write all FAQ questions and answers in FRENCH.' : 'Write all FAQ questions and answers in ENGLISH.'}
+12. IMPORTANT: The FAQ must appear BOTH in the HTML content (for Schema.org) AND in the JSON "faq" array. Do not skip the JSON array.`;
   }
 
   /**
