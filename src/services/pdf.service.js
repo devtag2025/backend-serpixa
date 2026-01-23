@@ -1706,7 +1706,7 @@ class PDFService {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(200, 200, 200);
-    doc.text('Powered by serpixa.ai', pageWidth / 2, 38, { align: 'center' });
+    doc.text('Powered by serpixa.eu', pageWidth / 2, 38, { align: 'center' });
     
     y = 60;
 
