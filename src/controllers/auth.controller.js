@@ -61,7 +61,7 @@ export const signup = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password, locale } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json(new ApiResponse(400, null, "Email and password required"));
@@ -84,14 +84,8 @@ export const login = async (req, res, next) => {
       return res.status(403).json(new ApiResponse(403, null, "Your account has been suspended. Please contact support."));
     }
 
-    // Update locale if provided in login request
-    if (locale) {
-      const validLocales = ['en', 'fr', 'nl'];
-      if (validLocales.includes(locale)) {
-        user.preferred_locale = locale;
-        await user.save();
-      }
-    }
+    // Use user's preferred_locale from user model (no need to update from request)
+    // The preferred_locale is set during signup and can be updated via profile update
 
     const { accessToken } = setAuthTokens(res, user);
 
