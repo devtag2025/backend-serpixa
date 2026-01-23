@@ -8,7 +8,7 @@ import { AIContent } from '../models/index.js';
  */
 export const optimizeContent = async (req, res, next) => {
   try {
-    const { keyword, topic, language, locale = 'en-us' } = req.body;
+    const { keyword, topic, language, locale } = req.body;
     const userId = req.user._id;
     const { creditInfo } = req; // From credit middleware
 
@@ -34,12 +34,28 @@ export const optimizeContent = async (req, res, next) => {
       console.warn(`Unsupported language: ${language}. Using EN as default.`);
     }
 
-    // Validate locale (optional)
+    // Derive locale from language if locale is not provided
+    let finalLocale = locale;
+    if (!finalLocale && normalizedLanguage) {
+      // Map language to default locale
+      const languageToLocaleMap = {
+        'NL': 'nl-nl',
+        'FR': 'fr-fr',
+        'EN': 'en-us',
+      };
+      finalLocale = languageToLocaleMap[normalizedLanguage] || 'en-us';
+    } else if (!finalLocale) {
+      finalLocale = 'en-us'; // Default fallback
+    }
+
+    // Validate locale
     const supportedLocales = ['fr-fr', 'fr-be', 'nl-be', 'nl-nl', 'en-us', 'en-gb'];
-    const normalizedLocale = locale.toLowerCase();
+    let normalizedLocale = finalLocale.toLowerCase();
     
     if (!supportedLocales.includes(normalizedLocale)) {
-      console.warn(`Unsupported locale: ${locale}. Using default (en-us).`);
+      console.warn(`Unsupported locale: ${finalLocale}. Using default (en-us).`);
+      finalLocale = 'en-us';
+      normalizedLocale = 'en-us';
     }
 
     // Generate SEO content using Claude
