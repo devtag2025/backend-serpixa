@@ -310,8 +310,21 @@ class PDFService {
         };
         const priority = priorityColors[rec.priority] || priorityColors.medium;
         
-        // Recommendation card
-        const cardHeight = 28 + (Math.ceil(rec.action.length / 80) * 5);
+        // Calculate text wrapping first to determine card height
+        const badgeWidth = 28;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        const issueLines = doc.splitTextToSize(rec.issue, maxWidth - badgeWidth - 20);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const actionLines = doc.splitTextToSize(rec.action, maxWidth - 25);
+        
+        // Calculate card height based on both issue and action text
+        const issueHeight = issueLines.length * 5; // ~5pt per line for font size 10
+        const actionHeight = Math.min(actionLines.length, 2) * 5; // Max 2 lines for action
+        const cardHeight = Math.max(28, 12 + issueHeight + actionHeight + 8); // 12 for top padding, 8 for bottom
+        
         doc.setFillColor(255, 255, 255);
         doc.rect(margin, y, maxWidth, cardHeight, 'F');
         doc.setDrawColor(235, 235, 235);
@@ -324,26 +337,25 @@ class PDFService {
         
         // Priority badge (compact)
         doc.setFillColor(...priority.bg);
-        const badgeWidth = 28;
         doc.rect(margin + maxWidth - badgeWidth - 5, y + 5, badgeWidth, 9, 'F');
         doc.setFontSize(6);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...priority.text);
         doc.text(priority.label.toUpperCase(), margin + maxWidth - badgeWidth / 2 - 5, y + 11, { align: 'center' });
         
-        // Issue title
+        // Issue title (no truncation - use text wrapping)
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(40, 40, 40);
-        const issueText = rec.issue.length > 70 ? rec.issue.substring(0, 67) + '...' : rec.issue;
-        doc.text(issueText, margin + 10, y + 12);
+        let issueY = y + 12;
+        doc.text(issueLines, margin + 10, issueY);
         
-        // Action text
+        // Action text (positioned after issue title)
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 100, 100);
-        const actionLines = doc.splitTextToSize(rec.action, maxWidth - 25);
-        doc.text(actionLines.slice(0, 2), margin + 10, y + 20);
+        const actionY = issueY + (issueLines.length * 5) + 3;
+        doc.text(actionLines.slice(0, 2), margin + 10, actionY);
         
         y += cardHeight + 8;
       }
