@@ -129,7 +129,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
   <div style="background:#1f2937;color:#fff;padding:24px;border-radius:8px 8px 0 0">
-    <h1 style="margin:0;font-size:20px">[Serpixa] Support Request</h1>
+    <h1 style="margin:0;font-size:20px;color:#ffffff">[Serpixa] Support Request</h1>
   </div>
   <div style="background:#f8fafc;padding:24px;border-radius:0 0 8px 8px">
     <p style="color:#111827;font-weight:600;margin-bottom:16px">${subject || '(no subject)'}</p>
@@ -186,7 +186,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
   <div style="background:#1f2937;color:#fff;padding:24px;border-radius:8px 8px 0 0">
-    <h1 style="margin:0;font-size:20px">${title}</h1>
+    <h1 style="margin:0;font-size:20px;color:#ffffff">${title}</h1>
   </div>
   <div style="background:#f8fafc;padding:24px;border-radius:0 0 8px 8px">
     <p style="color:#111827">${greeting}</p>
@@ -213,7 +213,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
   <div style="background:#2563eb;color:#fff;padding:24px;border-radius:8px 8px 0 0">
-    <h1 style="margin:0;font-size:20px">${title}</h1>
+    <h1 style="margin:0;font-size:20px;color:#ffffff">${title}</h1>
   </div>
   <div style="background:#f8fafc;padding:24px;border-radius:0 0 8px 8px">
     <p style="color:#111827">${greeting}</p>
@@ -239,7 +239,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
   <div style="background:#111827;color:#fff;padding:24px;border-radius:8px 8px 0 0">
-    <h1 style="margin:0;font-size:20px">${title}</h1>
+    <h1 style="margin:0;font-size:20px;color:#ffffff">${title}</h1>
   </div>
   <div style="background:#f8fafc;padding:24px;border-radius:0 0 8px 8px">
     <p style="color:#111827">${greeting}</p>
@@ -359,8 +359,8 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
 <div style="background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-  <h1 style="margin:0 0 8px 0;font-size:24px">📊 ${t('email.seoAudit.subject', { url: '' }).replace(' - ', '')}</h1>
-  <p style="margin:0;opacity:0.9;font-size:14px">${audit.url}</p>
+  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">📊 ${t('email.seoAudit.subject', { url: '' }).replace(' - ', '')}</h1>
+  <p style="margin:0;opacity:0.9;font-size:14px;color:#ffffff">${audit.url}</p>
 </div>
 
 <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -401,7 +401,7 @@ class EmailService {
   gbpAuditHTML(audit, userName, lang = 'en') {
     const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
     const name = userName || 'there';
-    const viewUrl = `${env.CLIENT_URL}/dashboard/gbp-audits/${audit._id}`;
+    const viewUrl = `${env.CLIENT_URL}/dashboard/gbp-audit/${audit._id}`;
     const isFound = audit.status === 'completed';
 
     const topIssues = (audit.recommendations || [])
@@ -419,8 +419,8 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
 <div style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-  <h1 style="margin:0 0 8px 0;font-size:24px">🏢 ${t('email.gbpAudit.subject', { businessName: '' }).replace(' - ', '')}</h1>
-  <p style="margin:0;opacity:0.9;font-size:14px">${audit.businessName}</p>
+  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">🏢 ${t('email.gbpAudit.subject', { businessName: '' }).replace(' - ', '')}</h1>
+  <p style="margin:0;opacity:0.9;font-size:14px;color:#ffffff">${audit.businessName}</p>
 </div>
 
 <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -462,7 +462,7 @@ class EmailService {
   geoAuditHTML(audit, userName, lang = 'en') {
     const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
     const name = userName || 'there';
-    const viewUrl = `${env.CLIENT_URL}/dashboard/geo-audits/${audit._id}`;
+    const viewUrl = `${env.CLIENT_URL}/dashboard/local-seo/${audit._id}`;
     const location = audit.location || 'your area';
 
     const topIssues = (audit.recommendations || [])
@@ -480,8 +480,8 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
 <div style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-  <h1 style="margin:0 0 8px 0;font-size:24px">📍 ${t('email.geoAudit.subject', { keyword: '' }).replace(' - ', '')}</h1>
-  <p style="margin:0;opacity:0.9;font-size:14px">"${audit.keyword}" in ${location}</p>
+  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">📍 ${t('email.geoAudit.subject', { keyword: '' }).replace(' - ', '')}</h1>
+  <p style="margin:0;opacity:0.9;font-size:14px;color:#ffffff">"${audit.keyword}" in ${location}</p>
 </div>
 
 <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -668,7 +668,7 @@ class EmailService {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:48px;margin-bottom:8px">🎉</div>
-    <h1 style="margin:0 0 8px 0;font-size:24px">${t('email.subscription.activated.subject', { planName })}</h1>
+    <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.activated.subject', { planName })}</h1>
   </div>
 
   <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -725,7 +725,7 @@ class EmailService {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#2563eb 0%,#3b82f6 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:48px;margin-bottom:8px">✅</div>
-    <h1 style="margin:0 0 8px 0;font-size:24px">${t('email.subscription.renewed.subject', { planName })}</h1>
+    <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.renewed.subject', { planName })}</h1>
   </div>
 
   <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -789,7 +789,7 @@ class EmailService {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#6b7280 0%,#9ca3af 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:48px;margin-bottom:8px">😢</div>
-    <h1 style="margin:0 0 8px 0;font-size:24px">${t('email.subscription.cancelled.subject')}</h1>
+    <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.cancelled.subject')}</h1>
   </div>
 
   <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -837,7 +837,7 @@ class EmailService {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:48px;margin-bottom:8px">💰</div>
-    <h1 style="margin:0 0 8px 0;font-size:24px">${t('email.subscription.refunded.subject', { amount: formattedAmount, currency: currency?.toUpperCase() || 'USD' })}</h1>
+    <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.refunded.subject', { amount: formattedAmount, currency: currency?.toUpperCase() || 'USD' })}</h1>
   </div>
 
   <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -888,7 +888,7 @@ class EmailService {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:48px;margin-bottom:8px">⚠️</div>
-    <h1 style="margin:0 0 8px 0;font-size:24px">${t('email.subscription.paymentFailed.subject')}</h1>
+    <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.paymentFailed.subject')}</h1>
   </div>
 
   <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -929,7 +929,7 @@ class EmailService {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:48px;margin-bottom:8px">🎁</div>
-    <h1 style="margin:0 0 8px 0;font-size:24px">${t('email.subscription.addonPurchased.subject', { planName })}</h1>
+    <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.addonPurchased.subject', { planName })}</h1>
   </div>
 
   <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
@@ -1002,7 +1002,7 @@ class EmailService {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:${headerColor};color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:48px;margin-bottom:8px">${emoji}</div>
-    <h1 style="margin:0 0 8px 0;font-size:24px">${t('email.subscription.planChanged.subject', { newPlanName })}</h1>
+    <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.planChanged.subject', { newPlanName })}</h1>
   </div>
 
   <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
