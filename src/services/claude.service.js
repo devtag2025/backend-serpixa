@@ -86,8 +86,8 @@ Language: English (default).
       const prompt = this.buildSEOPrompt(keyword, topic, language, locale);
       
       const message = await this.client.messages.create({
-        model: 'claude-3-haiku-20240307',  // ✅ Most likely to work
-        max_tokens: 4096,
+        model: 'claude-sonnet-4-20250514',  // ✅ Most likely to work
+        max_tokens: 16000,  // Increased for Sonnet's more detailed responses
         messages: [
           {
             role: 'user',

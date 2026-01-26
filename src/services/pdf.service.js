@@ -1098,7 +1098,7 @@ class PDFService {
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text(`${t(lang, 'pdf.seo.page')} ${i} ${t(lang, 'pdf.seo.of')} ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-      doc.text('serpixa.ai', pageWidth - 20, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
+      // doc.text('serpixa.ai', pageWidth - 20, doc.internal.pageSize.getHeight() - 10, { align: 'right' });
     }
   }
 
