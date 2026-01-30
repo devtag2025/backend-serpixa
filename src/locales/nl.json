@@ -388,6 +388,46 @@
       "missingCategory": {
         "issue": "Sommige concurrenten missen categorie informatie",
         "action": "Zorg ervoor dat uw bedrijfscategorie correct is ingesteld in uw Google Bedrijfsprofiel"
+      },
+      "top3CompetitorsHaveWebsite": {
+        "issue": "Alle top 3 concurrenten hebben websites vermeld ({percentage}% totaal) - Website is cruciaal voor top rankings",
+        "action": "KRITIEK: Voeg uw website URL onmiddellijk toe aan Google Bedrijfsprofiel. Optimaliseer vervolgens uw website: 1) Maak locatiespecifieke landingspagina's met lokale content, 2) Voeg NAP toe in footer/header, 3) Include Schema.org LocalBusiness gestructureerde data, 4) Voeg lokale trefwoorden natuurlijk toe in content, 5) Zorg voor mobile-first design. Top 3 rankings vereisen een goed geoptimaliseerde website."
+      },
+      "localContentRequired": {
+        "issue": "Om in de top 10 te ranken, heeft uw website lokale content nodig die '{keyword}' target",
+        "action": "Maak locatiespecifieke content op uw website: 1) Voeg een toegewijde pagina toe voor '{keyword}' met 1000+ woorden, 2) Include lokale bezienswaardigheden, wijken en gebiedsreferenties, 3) Voeg klantentestimonials toe van lokale klanten, 4) Maak blogposts over lokale evenementen/gemeenschapsbetrokkenheid, 5) Include locatie in title tags en meta descriptions. Lokale content signaleert relevantie aan Google."
+      },
+      "gbpOptimizationRequired": {
+        "issue": "Google Bedrijfsprofiel optimalisatie is cruciaal voor top 10 rankings",
+        "action": "Volledig en optimaliseer uw Google Bedrijfsprofiel: 1) Voeg alle bedrijfsinformatie toe (uren, attributen, diensten), 2) Upload 10+ hoogwaardige foto's, 3) Schrijf een overtuigende 750+ karakter beschrijving met lokale trefwoorden, 4) Post wekelijkse updates, 5) Reageer op alle reviews binnen 24 uur, 6) Voeg Q&A sectie toe met veelgestelde vragen. Een compleet GBP profiel verbetert lokale rankings aanzienlijk."
+      },
+      "top3RatingTarget": {
+        "issue": "Top 3 concurrenten hebben gemiddeld {avgRating}/5 beoordeling - U heeft {targetRating}+ nodig om te concurreren",
+        "action": "Om top 3 te bereiken, behaal {targetRating}+ beoordeling: 1) Lever consistent uitzonderlijke service, 2) Implementeer review aanvraagsysteem (email, SMS, persoonlijk), 3) Reageer professioneel op alle reviews, 4) Adresseer negatieve feedback onmiddellijk, 5) Train personeel op klantenservice excellentie. Hoogst beoordeelde bedrijven ranken hoger."
+      },
+      "top3ReviewTarget": {
+        "issue": "Top 3 concurrenten hebben gemiddeld {targetReviews} reviews - U heeft {targetReviews}+ reviews nodig om te concurreren",
+        "action": "Bouw {targetReviews}+ reviews op om te concurreren: 1) Stel geautomatiseerd review aanvraagsysteem op, 2) Stuur follow-up emails 3-5 dagen na service, 3) Maak QR codes die linken naar review pagina, 4) Train personeel om tevreden klanten te vragen, 5) Bied incentives aan personeel (niet klanten) voor review generatie. Review volume is een belangrijke ranking factor."
+      },
+      "top3NAPComplete": {
+        "issue": "Top 3 concurrenten hebben compleet NAP (Naam, Adres, Telefoon) - Match deze standaard",
+        "action": "Zorg ervoor dat uw NAP compleet en identiek is overal: 1) Google Bedrijfsprofiel, 2) Uw website footer/header, 3) 30+ lokale directories (Yelp, Gouden Gids, branchespecifieke sites), 4) Social media profielen. Gebruik exact hetzelfde formaat (spatiëring, interpunctie, afkortingen). NAP consistentie is cruciaal voor lokale ranking."
+      },
+      "buildLocalCitations": {
+        "issue": "Bouw {count} lokale citaties op om lokale zichtbaarheid te verbeteren",
+        "action": "Maak vermeldingen op {count} lokale directories: 1) Grote platforms (Google, Yelp, Gouden Gids, Bing Places), 2) Branchespecifieke directories, 3) Lokale kamer van koophandel, 4) Lokale bedrijfsverenigingen, 5) Review sites (TripAdvisor, Trustpilot). Zorg voor NAP consistentie overal. Citaties bouwen vertrouwen op en verbeteren rankings."
+      },
+      "localSeoElements": {
+        "issue": "Uw website heeft lokale SEO elementen nodig om in de top 10 te ranken",
+        "action": "Voeg lokale SEO elementen toe aan uw website: 1) Locatiespecifieke landingspagina's (één per servicegebied), 2) NAP in footer op elke pagina, 3) Schema.org LocalBusiness gestructureerde data, 4) Lokale trefwoorden in title tags en meta descriptions, 5) Klantentestimonials met locatievermeldingen, 6) Google Maps embed op contactpagina. Deze signalen helpen Google uw lokale relevantie te begrijpen."
+      },
+      "freshContentRequired": {
+        "issue": "Regelmatig bijgewerkte content signaleert actief bedrijf aan Google",
+        "action": "Maak maandelijks verse lokale content: 1) Blogposts over lokale evenementen, gemeenschapsbetrokkenheid of gebiedsspecifieke onderwerpen, 2) Update servicepagina's met lokale casestudies, 3) Voeg seizoensgebonden content toe relevant voor uw locatie, 4) Deel lokaal nieuws of partnerschappen. Verse content verbetert rankings en toont Google dat uw bedrijf actief is."
+      },
+      "localBacklinksRequired": {
+        "issue": "Bouw {count} lokale backlinks op om lokale autoriteit te versterken",
+        "action": "Verkrijg {count} lokale backlinks: 1) Partner met lokale bedrijven voor cross-promotie, 2) Sponsor lokale evenementen of goede doelen, 3) Wordt gefeatured in lokaal nieuws/media, 4) Word lid van lokale bedrijfsverenigingen, 5) Gastpost op lokale blogs, 6) Wordt vermeld op lokale resource pagina's. Lokale backlinks signaleren autoriteit en verbeteren rankings."
       }
     },
     "napIssues": {
@@ -841,6 +881,22 @@
         "viewDashboardButton": "Ga naar Dashboard",
         "footer": "Als u vragen heeft over deze wijziging, neem contact op met ons team."
       }
+    },
+    "aiContent": {
+      "subject": "Uw AI-inhoud is klaar - {keyword}",
+      "greeting": "Hallo {name},",
+      "intro": "Uw SEO-geoptimaliseerde inhoud voor zoekwoord \"{keyword}\" over onderwerp \"{topic}\" is succesvol gegenereerd!",
+      "seoScoreLabel": "SEO-score",
+      "wordCountLabel": "Aantal woorden",
+      "faqCountLabel": "FAQ's",
+      "viewButton": "Bekijk inhoud",
+      "footer": "Deze inhoud is gegenereerd door Serpixa AI. Voor vragen, neem contact op met ons team.",
+      "errorSubject": "Inhoud genereren mislukt - {keyword}",
+      "errorGreeting": "Hallo {name},",
+      "errorIntro": "We hebben een probleem ondervonden bij het genereren van inhoud voor zoekwoord \"{keyword}\" over onderwerp \"{topic}\".",
+      "unknownError": "Er is een onbekende fout opgetreden tijdens het genereren van inhoud.",
+      "tryAgainButton": "Opnieuw proberen",
+      "errorFooter": "Als dit probleem aanhoudt, neem dan contact op met ons team voor hulp."
     }
   }
 }

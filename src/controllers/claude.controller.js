@@ -1,95 +1,80 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
-import { claudeService, pdfService } from '../services/index.js';
+import { claudeService, pdfService, emailService } from '../services/index.js';
 import { User } from '../models/index.js';
 import { AIContent } from '../models/index.js';
 
 /**
  * Generate AI-powered SEO content optimization
  */
-export const optimizeContent = async (req, res, next) => {
+export const optimizeContent = async (req, res) => {
   try {
     const { keyword, topic, language, locale } = req.body;
-    const userId = req.user._id;
-    const { creditInfo } = req; // From credit middleware
+    const userId = req.user?._id;
+    const { creditInfo } = req;
 
-    // Validate keyword
-    if (!keyword || keyword.trim().length === 0) {
-      return res.status(400).json(
-        new ApiResponse(400, null, 'Keyword is required')
-      );
+    if (!keyword?.trim()) {
+      return res.status(400).json(new ApiResponse(400, null, "Keyword is required"));
     }
 
-    // Validate topic
-    if (!topic || topic.trim().length === 0) {
-      return res.status(400).json(
-        new ApiResponse(400, null, 'Topic is required')
-      );
+    if (!topic?.trim()) {
+      return res.status(400).json(new ApiResponse(400, null, "Topic is required"));
     }
 
-    // Validate and normalize language (NL, FR, EN)
-    const supportedLanguages = ['NL', 'FR', 'EN', 'nl', 'fr', 'en'];
-    const normalizedLanguage = language ? language.toUpperCase() : null;
-    
-    if (normalizedLanguage && !supportedLanguages.includes(normalizedLanguage)) {
-      console.warn(`Unsupported language: ${language}. Using EN as default.`);
-    }
+    const normalizedLanguage = (language || "EN").toUpperCase();
+    const supportedLanguages = ["NL", "FR", "EN"];
 
-    // Derive locale from language if locale is not provided
-    let finalLocale = locale;
-    if (!finalLocale && normalizedLanguage) {
-      // Map language to default locale
-      const languageToLocaleMap = {
-        'NL': 'nl-nl',
-        'FR': 'fr-fr',
-        'EN': 'en-us',
-      };
-      finalLocale = languageToLocaleMap[normalizedLanguage] || 'en-us';
-    } else if (!finalLocale) {
-      finalLocale = 'en-us'; // Default fallback
-    }
+    const finalLanguage = supportedLanguages.includes(normalizedLanguage)
+      ? normalizedLanguage
+      : "EN";
 
-    // Validate locale
-    const supportedLocales = ['fr-fr', 'fr-be', 'nl-be', 'nl-nl', 'en-us', 'en-gb'];
-    let normalizedLocale = finalLocale.toLowerCase();
-    
+    const languageToLocaleMap = {
+      NL: "nl-nl",
+      FR: "fr-fr",
+      EN: "en-us",
+    };
+
+    let normalizedLocale = (locale || languageToLocaleMap[finalLanguage] || "en-us").toLowerCase();
+
+    const supportedLocales = ["fr-fr", "fr-be", "nl-be", "nl-nl", "en-us", "en-gb"];
+
     if (!supportedLocales.includes(normalizedLocale)) {
-      console.warn(`Unsupported locale: ${finalLocale}. Using default (en-us).`);
-      finalLocale = 'en-us';
-      normalizedLocale = 'en-us';
+      normalizedLocale = "en-us";
     }
 
-    // Generate SEO content using Claude
-    const optimizedContent = await claudeService.generateSEOContent({
-      keyword: keyword.trim(),
-      topic: topic.trim(),
-      language: normalizedLanguage || 'EN',
-      locale: normalizedLocale
-    });
+    // ================= Credits =================
 
-    // Decrement credits after successful generation
     if (creditInfo) {
       const { subscription, userCredits } = creditInfo;
-      
-      // Try to use subscription credits first, then addon credits
-      if (subscription && subscription.usage?.ai_generations_used < (subscription.plan_id?.limits?.ai_generations || 0)) {
-        // Use subscription credit
-        await subscription.incrementUsage('ai_generations', 1);
+
+      if (
+        subscription &&
+        subscription.usage?.ai_generations_used <
+          (subscription.plan_id?.limits?.ai_generations || 0)
+      ) {
+        await subscription.incrementUsage("ai_generations", 1);
       } else if (userCredits > 0) {
-        // Use addon credit
         const user = await User.findById(userId);
-        if (user && user.credits?.ai_generations > 0) {
-          user.credits.ai_generations = Math.max(0, user.credits.ai_generations - 1);
+        if (user?.credits?.ai_generations > 0) {
+          user.credits.ai_generations -= 1;
           await user.save();
         }
       }
     }
 
-    // Save content to database
+    // ================= AI =================
+
+    const optimizedContent = await claudeService.generateSEOContent({
+      keyword: keyword.trim(),
+      topic: topic.trim(),
+      language: finalLanguage,
+      locale: normalizedLocale,
+    });
+
     const aiContent = await AIContent.create({
       user: userId,
       keyword: keyword.trim(),
       topic: topic.trim(),
-      language: normalizedLanguage || 'EN',
+      language: finalLanguage,
       locale: normalizedLocale,
       metaTitle: optimizedContent.metaTitle,
       metaDescription: optimizedContent.metaDescription,
@@ -97,12 +82,29 @@ export const optimizeContent = async (req, res, next) => {
       faq: optimizedContent.faq || [],
       cta: optimizedContent.cta || null,
       seoScore: optimizedContent.seoScore || 75,
-      keywordDensity: optimizedContent.keywordDensity || 'N/A',
+      keywordDensity: optimizedContent.keywordDensity || "N/A",
       wordCount: optimizedContent.wordCount || 0,
-      status: 'completed',
+      status: "completed",
     });
 
-    res.status(201).json(
+    // Fire-and-forget email
+    (async () => {
+      try {
+        const user = await User.findById(userId);
+        if (user?.email) {
+          await emailService.sendAIContentEmail(user.email, {
+            content: aiContent,
+            userName: user.name || user.email.split("@")[0],
+            keyword: keyword.trim(),
+            topic: topic.trim(),
+          });
+        }
+      } catch (err) {
+        console.error("Email failed:", err);
+      }
+    })();
+
+    return res.status(201).json(
       new ApiResponse(
         201,
         {
@@ -110,17 +112,22 @@ export const optimizeContent = async (req, res, next) => {
           input: {
             keyword: keyword.trim(),
             topic: topic.trim(),
-            language: normalizedLanguage || 'EN',
-            locale: normalizedLocale
-          }
+            language: finalLanguage,
+            locale: normalizedLocale,
+          },
         },
-        'SEO content generated successfully'
+        "SEO content generated successfully"
       )
     );
   } catch (error) {
-    next(error);
+    console.error("optimizeContent error:", error);
+
+    return res.status(500).json(
+      new ApiResponse(500, null, "Internal server error")
+    );
   }
 };
+
 
 /**
  * Get AI content by ID

@@ -5,25 +5,28 @@ import { DEFAULT_LOCALE } from '../config/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
-    const { businessName, gbpLink, locale } = req.body;
+    const { businessName, gbpLink, locale, location } = req.body;
     const userId = req.user._id;
     const { creditInfo } = req;
 
-    const searchTerm = businessName || gbpLink;
-    if (!searchTerm) {
+    // Business name is REQUIRED for search to work properly
+    if (!businessName || businessName.trim().length === 0) {
       return res.status(400).json(
-        new ApiResponse(400, null, 'GBP link is required')
+        new ApiResponse(400, null, 'Business name is required for GBP audit')
       );
     }
 
+    // Run audit with business name, optional GBP link for place_id extraction, and location
     const auditResult = await gbpService.runAudit(
-      searchTerm,
-      locale || DEFAULT_LOCALE
+      businessName.trim(),
+      gbpLink || null,
+      locale || DEFAULT_LOCALE,
+      location || null  // Allow explicit location override (e.g., "Belgium", "France")
     );
 
     const audit = await GBPAudit.create({
       user: userId,
-      businessName: searchTerm,
+      businessName: businessName.trim(),
       gbpLink: gbpLink || null,
       locale: locale || DEFAULT_LOCALE,
       placeId: auditResult.placeId || null,

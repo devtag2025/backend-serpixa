@@ -11,7 +11,7 @@ class GBPService {
     this.baseURL = env.DATAFORSEO_API_URL || 'https://sandbox.dataforseo.com';
 
     if (!this.login || !this.password) {
-      Logger.error('DataForSEO credentials not configured for GBP service');
+      Logger.error('DataForSEO credentials not configured for GBP service'); 
     }
 
     this.client = axios.create({
@@ -27,16 +27,50 @@ class GBPService {
     });
   }
 
-  async runAudit(businessName, locale = DEFAULT_LOCALE) {
+  /**
+   * Run GBP audit
+   * @param {string} businessName - Business name (REQUIRED for search)
+   * @param {string} gbpLink - GBP link/URL (optional, used to extract place_id)
+   * @param {string} locale - Locale code (e.g., 'fr_be', 'nl_be')
+   * @param {string} locationOverride - Explicit location/country (e.g., 'Belgium', 'France')
+   */
+  async runAudit(businessName, gbpLink = null, locale = DEFAULT_LOCALE, locationOverride = null) {
     try {
       const localeConfig = getLocaleConfig(locale);
       const lang = localeConfig.language || 'en';
 
-      const gbpData = await this.fetchGBPData(
+      // Try to extract place_id from GBP link
+      const placeId = gbpLink ? this.extractPlaceIdFromUrl(gbpLink) : null;
+
+      // Determine location: use override if provided, otherwise use locale config
+      const location = locationOverride || localeConfig.locationName;
+
+      Logger.log('GBP Audit request:', {
         businessName,
-        localeConfig.locationName,
-        localeConfig.languageCode
-      );
+        gbpLink,
+        placeId,
+        location,
+        languageCode: localeConfig.languageCode,
+      });
+
+      let gbpData = null;
+
+      // Strategy 1: If we have a place_id, try direct lookup first (most accurate)
+      if (placeId) {
+        gbpData = await this.fetchGBPDataByPlaceId(placeId, location, localeConfig.languageCode);
+      }
+
+      // Strategy 2: If no place_id or place_id lookup failed, search by business name + location
+      if (!gbpData && businessName) {
+        gbpData = await this.fetchGBPDataByKeyword(
+          businessName,
+          location,
+          localeConfig.languageCode
+        );
+      }
+
+      // Note: Photo count is now extracted from total_photos field in my_business_info response
+      // No extra API call needed!
 
       return this.transformResult(gbpData, businessName, lang);
     } catch (error) {
@@ -45,15 +79,121 @@ class GBPService {
     }
   }
 
-  async fetchGBPData(businessName, location, languageCode) {
+  /**
+   * Extract place_id from various GBP URL formats
+   * Examples:
+   * - https://www.google.com/maps/place/.../@...!3m1!4b1!4m5!3m4!1s0x...!8m2!3d...!4d...
+   * - https://maps.google.com/?cid=12345678901234567890
+   * - https://g.page/business-name
+   * - https://www.google.com/maps?cid=12345678901234567890
+   */
+  extractPlaceIdFromUrl(url) {
+    if (!url) return null;
+
+    try {
+      // Pattern 1: place_id in URL (1s0x...)
+      const placeIdMatch = url.match(/!1s(0x[a-fA-F0-9]+:[a-fA-F0-9]+)/);
+      if (placeIdMatch) {
+        return placeIdMatch[1];
+      }
+
+      // Pattern 2: CID (Customer ID) - can be converted to place_id lookup
+      const cidMatch = url.match(/[?&]cid=(\d+)/);
+      if (cidMatch) {
+        // Return CID prefixed so we know to handle it differently
+        return `cid:${cidMatch[1]}`;
+      }
+
+      // Pattern 3: data=... containing place info
+      const dataMatch = url.match(/data=[^&]+/);
+      if (dataMatch) {
+        const placeMatch = dataMatch[0].match(/!1s([^!]+)/);
+        if (placeMatch) {
+          return placeMatch[1];
+        }
+      }
+
+      // Pattern 4: ChIJ... style place_id
+      const chijMatch = url.match(/(ChIJ[a-zA-Z0-9_-]+)/);
+      if (chijMatch) {
+        return chijMatch[1];
+      }
+
+      return null;
+    } catch (error) {
+      Logger.warn('Failed to extract place_id from URL:', url, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch GBP data using place_id (most accurate method)
+   */
+  async fetchGBPDataByPlaceId(placeId, location, languageCode) {
     if (!this.login || !this.password) {
       throw new ApiError(500, 'DataForSEO credentials not configured');
     }
 
     try {
+      // Handle CID (Customer ID) differently - need to use it as keyword
+      const isCid = placeId.startsWith('cid:');
+      
+      const payload = isCid 
+        ? [{
+            keyword: placeId.replace('cid:', ''),
+            location_name: location,
+            language_code: languageCode,
+          }]
+       : [{
+            place_id: placeId,
+            location_name: location,
+            language_code: languageCode,
+          }]; 
+
+      Logger.log('Fetching GBP data by place_id:', { placeId, location, languageCode });
+
+      const response = await this.client.post('/v3/business_data/google/my_business_info/live', payload);
+
+      const result = response.data;
+
+      if (result.status_code !== 20000) {
+        Logger.warn('GBP place_id lookup failed:', result.status_message);
+        return null; // Fall back to keyword search
+      }
+
+      const task = result.tasks?.[0];
+      if (!task || task.status_code !== 20000) {
+        Logger.warn('GBP place_id task failed:', task?.status_message);
+        return null; // Fall back to keyword search
+      }
+
+      const items = task.result?.[0]?.items || [];
+      if (items.length > 0) {
+        Logger.log('GBP place_id lookup successful');
+        return items[0];
+      }
+
+      return null;
+    } catch (error) {
+      Logger.warn('GBP place_id fetch error:', error.message);
+      return null; // Fall back to keyword search
+    }
+  }
+
+  /**
+   * Fetch GBP data using keyword search (fallback method)
+   */
+  async fetchGBPDataByKeyword(businessName, location, languageCode) {
+    if (!this.login || !this.password) {
+      throw new ApiError(500, 'DataForSEO credentials not configured');
+    }
+
+    try {
+      Logger.log('Fetching GBP data by keyword:', { businessName, location, languageCode });
+
       const response = await this.client.post('/v3/business_data/google/my_business_info/live', [
         {
-          keyword: businessName,
+          keyword: businessName.trim(),
           location_name: location,
           language_code: languageCode,
         },
@@ -117,6 +257,7 @@ class GBPService {
     }
 
     const businessInfo = this.buildBusinessInfo(data, lang);
+    
     const checklist = this.generateChecklist(businessInfo, lang);
     const score = this.calculateScore(checklist);
     const profileStrength = this.getProfileStrength(score);
@@ -143,41 +284,243 @@ class GBPService {
     const photoCount = this.countPhotos(data);
     const descriptionLength = data.description?.length || 0;
 
+    // Extract hours from various possible field names
+    const hours = this.extractHours(data);
+
+    // Extract rating - can be in different formats
+    const rating = this.extractRating(data);
+    const reviewCount = this.extractReviewCount(data);
+
+    // Extract attributes from various possible locations
+    const attributes = this.extractAttributes(data);
+
+    Logger.log('Building business info:', {
+      name: data.title,
+      hasHours: !!hours,
+      hoursData: hours,
+      photoCount,
+      rating,
+      reviewCount,
+    });
+
     return {
-      name: data.title || null,
+      name: data.title || data.name || null,
       nameLabel: t(lang, 'gbp.labels.name'),
-      address: data.address || null,
+      address: data.address || data.address_str || null,
       addressLabel: t(lang, 'gbp.labels.address'),
-      addressComponents: data.address_info || null,
-      phone: data.phone || null,
+      addressComponents: data.address_info || data.address_details || null,
+      phone: data.phone || data.phone_number || null,
       phoneLabel: t(lang, 'gbp.labels.phone'),
-      website: data.url || null,
+      website: data.url || data.website || data.domain || null,
       websiteLabel: t(lang, 'gbp.labels.website'),
-      category: data.category || null,
+      category: data.category || data.main_category || null,
       categoryLabel: t(lang, 'gbp.labels.category'),
-      additionalCategories: data.additional_categories || [],
-      description: data.description || null,
+      additionalCategories: data.additional_categories || data.categories || [],
+      description: data.description || data.snippet || null,
       descriptionLength,
-      hours: data.work_hours || null,
-      rating: data.rating?.value || null,
+      hours,
+      rating,
       ratingLabel: t(lang, 'gbp.labels.rating'),
-      reviewCount: data.rating?.votes_count || 0,
+      reviewCount,
       reviewsLabel: t(lang, 'gbp.labels.reviews'),
-      priceLevel: data.price_level || null,
-      attributes: data.attributes?.available_attributes || null,
+      priceLevel: data.price_level || data.price || null,
+      attributes,
       photos: photoCount,
-      latitude: data.latitude || null,
-      longitude: data.longitude || null,
-      placeId: data.place_id || null,
-      isVerified: data.is_claimed || null,
+      latitude: data.latitude || data.location?.latitude || null,
+      longitude: data.longitude || data.location?.longitude || null,
+      placeId: data.place_id || data.cid || null,
+      isVerified: data.is_claimed ?? data.is_verified ?? null,
     };
   }
 
+  /**
+   * Extract opening hours from various DataForSEO field names
+   */
+  extractHours(data) {
+    // Try various field names that DataForSEO might use
+    const possibleFields = [
+      'work_hours',
+      'work_time',
+      'working_hours',
+      'opening_hours',
+      'hours',
+      'business_hours',
+    ];
+ 
+    for (const field of possibleFields) {
+      if (data[field]) {
+        const hours = data[field];
+        
+        // Check if it's a valid hours object
+        if (typeof hours === 'object' && Object.keys(hours).length > 0) {
+          Logger.log(`Hours found in field: ${field}`, hours);
+          return hours;
+        }
+        
+        // Some responses have hours as an array
+        if (Array.isArray(hours) && hours.length > 0) {
+          Logger.log(`Hours found as array in field: ${field}`, hours);
+          return hours;
+        }
+      }
+    }
+
+    // Check nested structures
+    if (data.current_opening_hours) {
+      Logger.log('Hours found in current_opening_hours');
+      return data.current_opening_hours;
+    }
+
+    if (data.regular_opening_hours) {
+      Logger.log('Hours found in regular_opening_hours');
+      return data.regular_opening_hours;
+    }
+
+    Logger.log('No hours found in data. Available keys:', Object.keys(data));
+    return null;
+  }
+
+  /**
+   * Extract rating from various formats
+   */
+  extractRating(data) {
+    // Object format: { value: 4.5, votes_count: 100 }
+    if (data.rating?.value !== undefined) {
+      return data.rating.value;
+    }
+
+    // Direct number format
+    if (typeof data.rating === 'number') {
+      return data.rating;
+    }
+
+    // Alternative field names
+    if (typeof data.rating_value === 'number') {
+      return data.rating_value;
+    }
+
+    if (data.average_rating !== undefined) {
+      return data.average_rating;
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract review count from various formats
+   */
+  extractReviewCount(data) {
+    // Object format: { value: 4.5, votes_count: 100 }
+    if (data.rating?.votes_count !== undefined) {
+      return data.rating.votes_count;
+    }
+
+    // Direct field
+    if (typeof data.reviews_count === 'number') {
+      return data.reviews_count;
+    }
+
+    if (typeof data.review_count === 'number') {
+      return data.review_count;
+    }
+
+    if (typeof data.total_reviews === 'number') {
+      return data.total_reviews;
+    }
+
+    // In rating object with different name
+    if (data.rating?.reviews_count !== undefined) {
+      return data.rating.reviews_count;
+    }
+
+    return 0;
+  }
+
+  /**
+   * Extract attributes from various locations
+   */
+  extractAttributes(data) {
+    // Try different field paths
+    if (data.attributes?.available_attributes) {
+      return data.attributes.available_attributes;
+    }
+
+    if (data.attributes && typeof data.attributes === 'object') {
+      // If attributes is directly an object/array of attributes
+      if (Array.isArray(data.attributes)) {
+        return data.attributes;
+      }
+      return Object.values(data.attributes).flat();
+    }
+
+    if (data.business_attributes) {
+      return data.business_attributes;
+    }
+
+    if (data.features) {
+      return data.features;
+    }
+
+    return null;
+  }
+
+  /**
+   * Count photos from various DataForSEO response fields
+   * DataForSEO returns total_photos in my_business_info response
+   */
   countPhotos(data) {
     let count = 0;
-    if (data.main_image) count += 1;
-    if (data.photos && Array.isArray(data.photos)) count += data.photos.length;
-    if (data.photos_count) count = Math.max(count, data.photos_count);
+
+    // Check total_photos field FIRST (this is the correct field from DataForSEO docs!)
+    if (typeof data.total_photos === 'number') {
+      count = data.total_photos;
+      console.log('[GBP Photos] Found total_photos:', count);
+      return count;
+    }
+
+    // Check photos_count field (alternative name)
+    if (typeof data.photos_count === 'number') {
+      count = data.photos_count;
+    }
+
+    // Check media_count (alternative field name)
+    if (typeof data.media_count === 'number') {
+      count = Math.max(count, data.media_count);
+    }
+
+    // Check photos array
+    if (data.photos && Array.isArray(data.photos)) {
+      count = Math.max(count, data.photos.length);
+    }
+
+    // Check local_business_links for photo count
+    if (data.local_business_links) {
+      const photoLink = data.local_business_links.find(
+        (link) => link.type === 'photos' || link.title?.toLowerCase().includes('photo')
+      );
+      if (photoLink && typeof photoLink.count === 'number') {
+        count = Math.max(count, photoLink.count);
+      }
+    }
+
+    // Add main_image if present and count is still 0
+    if (count === 0 && data.main_image) {
+      count = 1;
+    }
+
+    // Check snippet_photos (some responses have this)
+    if (data.snippet_photos && Array.isArray(data.snippet_photos)) {
+      count = Math.max(count, data.snippet_photos.length);
+    }
+
+    console.log('[GBP Photos] Photo count detected:', count, 'from fields:', {
+      total_photos: data.total_photos,
+      photos_count: data.photos_count,
+      media_count: data.media_count,
+      photos_array: data.photos?.length,
+      main_image: !!data.main_image,
+    });
+
     return count;
   }
 

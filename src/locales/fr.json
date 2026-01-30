@@ -388,6 +388,46 @@
       "missingCategory": {
         "issue": "Certains concurrents manquent d'informations de catégorie",
         "action": "Assurez-vous que la catégorie de votre entreprise est correctement définie dans votre Google Business Profile"
+      },
+      "top3CompetitorsHaveWebsite": {
+        "issue": "Les 3 meilleurs concurrents ont des sites web listés ({percentage}% au total) - Le site web est essentiel pour les meilleurs classements",
+        "action": "CRITIQUE : Ajoutez l'URL de votre site web à Google Business Profile immédiatement. Ensuite, optimisez votre site web : 1) Créez des pages de destination spécifiques à la localisation avec du contenu local, 2) Ajoutez NAP dans le pied de page/en-tête, 3) Incluez les données structurées Schema.org LocalBusiness, 4) Ajoutez des mots-clés locaux naturellement dans le contenu, 5) Assurez-vous d'un design mobile-first. Les classements dans le top 3 nécessitent un site web bien optimisé."
+      },
+      "localContentRequired": {
+        "issue": "Pour figurer dans le top 10, votre site web a besoin de contenu local ciblant '{keyword}'",
+        "action": "Créez du contenu spécifique à la localisation sur votre site web : 1) Ajoutez une page dédiée pour '{keyword}' avec 1000+ mots, 2) Incluez des points de repère locaux, des quartiers et des références de zone, 3) Ajoutez des témoignages clients de clients locaux, 4) Créez des articles de blog sur les événements locaux/l'implication communautaire, 5) Incluez la localisation dans les balises title et les meta descriptions. Le contenu local signale la pertinence à Google."
+      },
+      "gbpOptimizationRequired": {
+        "issue": "L'optimisation du Google Business Profile est essentielle pour les classements dans le top 10",
+        "action": "Complétez et optimisez votre Google Business Profile : 1) Ajoutez toutes les informations de l'entreprise (heures, attributs, services), 2) Téléchargez 10+ photos de haute qualité, 3) Rédigez une description convaincante de 750+ caractères avec des mots-clés locaux, 4) Publiez des mises à jour hebdomadaires, 5) Répondez à tous les avis dans les 24 heures, 6) Ajoutez une section Q&R avec des questions courantes. Un profil GBP complet améliore considérablement les classements locaux."
+      },
+      "top3RatingTarget": {
+        "issue": "Les 3 meilleurs concurrents ont une note moyenne de {avgRating}/5 - Vous avez besoin de {targetRating}+ pour concurrencer",
+        "action": "Pour atteindre le top 3, obtenez une note de {targetRating}+ : 1) Offrez un service exceptionnel de manière constante, 2) Mettez en place un système de demande d'avis (email, SMS, en personne), 3) Répondez à tous les avis professionnellement, 4) Traitez les commentaires négatifs immédiatement, 5) Formez le personnel à l'excellence du service client. Les entreprises les mieux notées se classent plus haut."
+      },
+      "top3ReviewTarget": {
+        "issue": "Les 3 meilleurs concurrents ont en moyenne {targetReviews} avis - Vous avez besoin de {targetReviews}+ avis pour concurrencer",
+        "action": "Construisez {targetReviews}+ avis pour concurrencer : 1) Configurez un système automatisé de demande d'avis, 2) Envoyez des emails de suivi 3-5 jours après le service, 3) Créez des codes QR liés à la page d'avis, 4) Formez le personnel à demander aux clients satisfaits, 5) Offrez des incitations au personnel (pas aux clients) pour la génération d'avis. Le volume d'avis est un facteur de classement majeur."
+      },
+      "top3NAPComplete": {
+        "issue": "Les 3 meilleurs concurrents ont un NAP complet (Nom, Adresse, Téléphone) - Respectez cette norme",
+        "action": "Assurez-vous que votre NAP est complet et identique partout : 1) Google Business Profile, 2) Le pied de page/en-tête de votre site web, 3) 30+ annuaires locaux (Yelp, Pages Jaunes, sites industriels), 4) Profils de réseaux sociaux. Utilisez exactement le même format (espacement, ponctuation, abréviations). La cohérence NAP est essentielle pour le classement local."
+      },
+      "buildLocalCitations": {
+        "issue": "Construisez {count} citations locales pour améliorer la visibilité locale",
+        "action": "Créez des listes sur {count} annuaires locaux : 1) Plateformes majeures (Google, Yelp, Pages Jaunes, Bing Places), 2) Annuaires spécifiques à l'industrie, 3) Chambre de commerce locale, 4) Associations commerciales locales, 5) Sites d'avis (TripAdvisor, Trustpilot). Assurez la cohérence NAP sur tous. Les citations renforcent la confiance et améliorent les classements."
+      },
+      "localSeoElements": {
+        "issue": "Votre site web a besoin d'éléments SEO locaux pour figurer dans le top 10",
+        "action": "Ajoutez des éléments SEO locaux à votre site web : 1) Pages de destination spécifiques à la localisation (une par zone de service), 2) NAP dans le pied de page sur chaque page, 3) Données structurées Schema.org LocalBusiness, 4) Mots-clés locaux dans les balises title et meta descriptions, 5) Témoignages clients avec mentions de localisation, 6) Intégration Google Maps sur la page de contact. Ces signaux aident Google à comprendre votre pertinence locale."
+      },
+      "freshContentRequired": {
+        "issue": "Le contenu régulièrement mis à jour signale une entreprise active à Google",
+        "action": "Créez du contenu local frais mensuellement : 1) Articles de blog sur les événements locaux, l'implication communautaire ou des sujets spécifiques à la zone, 2) Mettez à jour les pages de service avec des études de cas locales, 3) Ajoutez du contenu saisonnier pertinent pour votre localisation, 4) Partagez des nouvelles locales ou des partenariats. Le contenu frais améliore les classements et montre à Google que votre entreprise est active."
+      },
+      "localBacklinksRequired": {
+        "issue": "Construisez {count} backlinks locaux pour renforcer l'autorité locale",
+        "action": "Acquérez {count} backlinks locaux : 1) Partenariat avec des entreprises locales pour la promotion croisée, 2) Parrainez des événements locaux ou des œuvres caritatives, 3) Obtenez une couverture dans les médias locaux, 4) Rejoignez des associations commerciales locales, 5) Publiez des articles invités sur des blogs locaux, 6) Faites-vous lister dans des pages de ressources locales. Les backlinks locaux signalent l'autorité et améliorent les classements."
       }
     },
     "napIssues": {
@@ -841,6 +881,22 @@
         "viewDashboardButton": "Voir le tableau de bord",
         "footer": "Si vous avez des questions sur ce changement, contactez notre équipe."
       }
+    },
+    "aiContent": {
+      "subject": "Votre contenu IA est prêt - {keyword}",
+      "greeting": "Bonjour {name},",
+      "intro": "Votre contenu optimisé SEO pour le mot-clé \"{keyword}\" sur le sujet \"{topic}\" a été généré avec succès !",
+      "seoScoreLabel": "Score SEO",
+      "wordCountLabel": "Nombre de mots",
+      "faqCountLabel": "FAQ",
+      "viewButton": "Voir le contenu",
+      "footer": "Ce contenu a été généré par Serpixa IA. Pour toute question, contactez notre équipe.",
+      "errorSubject": "Échec de la génération de contenu - {keyword}",
+      "errorGreeting": "Bonjour {name},",
+      "errorIntro": "Nous avons rencontré un problème lors de la génération du contenu pour le mot-clé \"{keyword}\" sur le sujet \"{topic}\".",
+      "unknownError": "Une erreur inconnue s'est produite lors de la génération du contenu.",
+      "tryAgainButton": "Réessayer",
+      "errorFooter": "Si ce problème persiste, veuillez contacter notre équipe pour obtenir de l'aide."
     }
   }
 }
