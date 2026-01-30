@@ -135,6 +135,12 @@ Language: English (default).
     const promptLanguage = languageMap[language?.toUpperCase()] || languageMap[locale?.toLowerCase()] || 'EN';
     const localeInstructions = this.buildLocaleInstructions(locale);
 
+    // Get current date information
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.toLocaleString('en-US', { month: 'long' });
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+
     // Build language-specific instruction
     const languageInstruction = promptLanguage === 'NL' 
       ? '⚠️ CRITICAL: Write ALL content in DUTCH (Nederlands). This includes:\n- All HTML content (headings, paragraphs, lists)\n- Meta title and meta description\n- FAQ questions and answers\n- CTA (Call-to-Action)\n- All text elements\n\nDO NOT write in English. Everything must be in Dutch.'
@@ -145,6 +151,16 @@ Language: English (default).
     return `Create a complete HTML page optimized SIMULTANEOUSLY for:
 Google SEO (Search Engine Optimization)
 LLM comprehension (Claude, ChatGPT, Perplexity)
+
+📅 IMPORTANT - CURRENT DATE: ${currentDate}
+📅 CURRENT YEAR: ${currentYear}
+📅 CURRENT MONTH: ${currentMonth}
+
+⚠️ CRITICAL DATE REQUIREMENT:
+- Use ${currentYear} as the current year in ALL content (NOT 2024 or any other year)
+- Any "last updated" dates should use ${currentMonth} ${currentYear}
+- Any trend references should be "${currentYear} trends" not "2024 trends"
+- Any guide titles should include ${currentYear} if year is relevant
 
 TOPIC: ${topic}
 MAIN KEYWORD: ${keyword}
@@ -188,7 +204,7 @@ Structured FAQ with natural questions
 Direct answers before elaboration
 Autonomous and quotable sections
 Comparison tables if relevant
-Visible update dates (current year)
+Visible update dates (use ${currentYear} - e.g., "Updated ${currentMonth} ${currentYear}")
 Boxed concrete examples
 
 💻 FORMAT:

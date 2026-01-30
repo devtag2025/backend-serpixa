@@ -38,15 +38,18 @@ const AIContentSchema = new Schema(
     },
     metaTitle: {
       type: String,
-      required: true,
+      required: false,
+      default: '',
     },
     metaDescription: {
       type: String,
-      required: true,
+      required: false,
+      default: '',
     },
     htmlContent: {
       type: String,
-      required: true,
+      required: false,
+      default: '',
     },
     faq: {
       type: [FAQSchema],
@@ -72,8 +75,8 @@ const AIContentSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['completed', 'failed'],
-      default: 'completed',
+      enum: ['processing', 'completed', 'failed'],
+      default: 'processing',
     },
     error_message: {
       type: String,

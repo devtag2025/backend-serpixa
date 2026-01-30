@@ -158,22 +158,73 @@ class DataForSEOService {
 
       const organicResults = serpData?.items || [];
 
+      const normalizedKeyword = keyword.trim().toLowerCase();
+
       const competitors = organicResults
         .filter((item) => item.type === 'organic')
         .slice(0, 10)
-        .map((item, index) => ({
-          position: index + 1,
-          title: item.title || '',
-          url: item.url || '',
-          domain: item.domain || '',
-          description: item.description || '',
-          breadcrumb: item.breadcrumb || '',
-        }));
+        .map((item, index) => {
+          const title = item.title || '';
+          const description = item.description || '';
 
-      // Calculate competitor average word count (if available)
+          // Very rough content length estimate from snippet (no extra API calls)
+          const estimatedWordCount =
+            (description.split(/\s+/).filter(Boolean).length || 0) * 15;
+
+          const keywordInTitle = title.toLowerCase().includes(normalizedKeyword);
+
+          const pageType = this.classifyPageType(item.url || '', title);
+
+          return {
+            position: index + 1,
+            title,
+            url: item.url || '',
+            domain: item.domain || '',
+            description,
+            breadcrumb: item.breadcrumb || '',
+            estimatedWordCount,
+            keywordInTitle,
+            pageType,
+          };
+        });
+
+      // Build simple SERP benchmark for this keyword (Top 10)
+      const wordCounts = competitors.map((c) => c.estimatedWordCount || 0);
       const avgWordCount = Math.round(
-        competitors.reduce((sum, c) => sum + (c.description?.split(' ').length || 0) * 15, 0) / Math.max(competitors.length, 1)
+        wordCounts.reduce((sum, v) => sum + v, 0) / Math.max(wordCounts.length, 1)
       );
+
+      const sortedWordCounts = [...wordCounts].sort((a, b) => a - b);
+      const medianWordCount =
+        sortedWordCounts.length === 0
+          ? 0
+          : sortedWordCounts.length % 2 === 1
+          ? sortedWordCounts[(sortedWordCounts.length - 1) / 2]
+          : Math.round(
+              (sortedWordCounts[sortedWordCounts.length / 2 - 1] +
+                sortedWordCounts[sortedWordCounts.length / 2]) /
+                2
+            );
+
+      const titleWithKeywordCount = competitors.filter(
+        (c) => c.keywordInTitle
+      ).length;
+
+      const percentTitleHasKeyword =
+        competitors.length === 0
+          ? 0
+          : titleWithKeywordCount / competitors.length;
+
+      // Very rough dominant page type in Top 10
+      const pageTypeCounts = competitors.reduce((acc, c) => {
+        if (!c.pageType) return acc;
+        acc[c.pageType] = (acc[c.pageType] || 0) + 1;
+        return acc;
+      }, {});
+
+      const dominantPageType =
+        Object.entries(pageTypeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
+        null;
 
       return {
         keyword,
@@ -182,11 +233,17 @@ class DataForSEOService {
         device,
         competitors,
         totalResults: competitors.length,
-        avgCompetitorWordCount: Math.max(avgWordCount, 1200), // Minimum estimate
+        avgCompetitorWordCount: Math.max(avgWordCount, 1200), // Minimum estimate (kept for backwards compat)
         searchInfo: {
           seResultsCount: serpData?.se_results_count || 0,
           checkUrl: serpData?.check_url || '',
           datetime: serpData?.datetime || new Date().toISOString(),
+        },
+        benchmark: {
+          avgWordCount,
+          medianWordCount,
+          percentTitleHasKeyword,
+          dominantPageType,
         },
       };
     } catch (error) {
@@ -230,29 +287,52 @@ class DataForSEOService {
 
     const pageData = data.items?.[0] || {};
     const meta = pageData.meta || {};
-    const onPage = pageData.onpage_score || 0;
 
     // Build comprehensive checks with translated labels
     const checks = this.buildChecks(pageData, meta, lang);
-    const keywordAnalysis = keyword ? this.analyzeKeyword(keyword, meta, pageData, serpData, lang) : null;
-    const recommendations = this.generateEnhancedRecommendations(checks, keywordAnalysis, keyword, serpData, pageData, meta, lang);
+    const keywordAnalysis = keyword
+      ? this.analyzeKeyword(keyword, meta, pageData, serpData, lang)
+      : null;
+
+    // Compute new SEO score based on SERP benchmark, content & technical health
+    const scoring = this.computeSEOScore({
+      pageData,
+      meta,
+      keywordAnalysis,
+      serpData,
+      checks,
+    });
+
+    const recommendations = this.generateEnhancedRecommendations(
+      checks,
+      keywordAnalysis,
+      keyword,
+      serpData,
+      pageData,
+      meta,
+      lang
+    );
 
     return {
       url,
       keyword,
-      score: Math.round(onPage * 100) / 100,
+      score: Math.round(scoring.total * 100) / 100,
       checks,
       keywordAnalysis,
       recommendations,
       competitors: serpData?.competitors || [],
-      serpInfo: serpData ? {
-        location: serpData.location,
-        language: serpData.language,
-        device: serpData.device,
-        totalResults: serpData.totalResults,
-        avgCompetitorWordCount: serpData.avgCompetitorWordCount,
-        searchInfo: serpData.searchInfo,
-      } : null,
+      serpInfo: serpData
+        ? {
+            location: serpData.location,
+            language: serpData.language,
+            device: serpData.device,
+            totalResults: serpData.totalResults,
+            avgCompetitorWordCount: serpData.avgCompetitorWordCount,
+            benchmark: serpData.benchmark || null,
+            searchInfo: serpData.searchInfo,
+            componentScores: scoring.components,
+          }
+        : null,
       raw: data,
     };
   }
@@ -278,7 +358,10 @@ class DataForSEOService {
     const h2Count = meta.htags?.h2?.length || 0;
     const h3Count = meta.htags?.h3?.length || 0;
     const wordCount = meta.content?.plain_text_word_count || 0;
-    const loadTime = pageData.page_timing?.time_to_interactive || null;
+    // DataForSEO returns timing values in milliseconds – convert to seconds
+    const rawLoadTime = pageData.page_timing?.time_to_interactive;
+    const loadTime =
+      typeof rawLoadTime === 'number' ? rawLoadTime / 1000 : null;
 
     // Calculate status based on best practices
     const getTitleStatus = () => {
@@ -400,30 +483,36 @@ class DataForSEOService {
   }
 
   analyzeKeyword(keyword, meta, pageData, serpData = null, lang = 'en') {
-    const keywordLower = keyword.toLowerCase();
-    const title = (meta.title || '').toLowerCase();
-    const description = (meta.description || '').toLowerCase();
-    const h1Values = (meta.htags?.h1 || []).map(h => h.toLowerCase());
-    const h2Values = (meta.htags?.h2 || []).map(h => h.toLowerCase());
-    const plainText = (meta.content?.plain_text_content || '').toLowerCase();
+    // Normalize keyword and content (lowercase + remove accents) to reduce false negatives
+    const keywordNorm = this.normalizeForSearch(keyword);
+    const title = this.normalizeForSearch(meta.title || '');
+    const description = this.normalizeForSearch(meta.description || '');
+    const h1Values = (meta.htags?.h1 || []).map((h) => this.normalizeForSearch(h));
+    const h2Values = (meta.htags?.h2 || []).map((h) => this.normalizeForSearch(h));
+    const plainText = this.normalizeForSearch(
+      meta.content?.plain_text_content || ''
+    );
     const url = (pageData.url || '').toLowerCase();
 
     // Count keyword occurrences
-    const keywordCount = (plainText.match(new RegExp(this.escapeRegex(keywordLower), 'g')) || []).length;
+    const keywordPattern = new RegExp(this.escapeRegex(keywordNorm), 'g');
+    const keywordCount = (plainText.match(keywordPattern) || []).length;
     const wordCount = meta.content?.plain_text_word_count || 1;
     const density = ((keywordCount / wordCount) * 100);
 
     // Check positions
-    const inTitle = title.includes(keywordLower);
-    const inDescription = description.includes(keywordLower);
-    const inH1 = h1Values.some(h => h.includes(keywordLower));
-    const inH2 = h2Values.some(h => h.includes(keywordLower));
-    const inContent = plainText.includes(keywordLower);
-    const inUrl = url.includes(keywordLower.replace(/\s+/g, '-')) || url.includes(keywordLower.replace(/\s+/g, ''));
+    const inTitle = title.includes(keywordNorm);
+    const inDescription = description.includes(keywordNorm);
+    const inH1 = h1Values.some((h) => h.includes(keywordNorm));
+    const inH2 = h2Values.some((h) => h.includes(keywordNorm));
+    const inContent = plainText.includes(keywordNorm);
+    const inUrl =
+      url.includes(keywordNorm.replace(/\s+/g, '-')) ||
+      url.includes(keywordNorm.replace(/\s+/g, ''));
 
     // Check if keyword is in first 100 words
     const first100Words = plainText.split(/\s+/).slice(0, 100).join(' ');
-    const inFirst100Words = first100Words.includes(keywordLower);
+    const inFirst100Words = first100Words.includes(keywordNorm);
 
     // Density analysis
     const densityOptimal = density >= 1 && density <= 2;
@@ -479,6 +568,198 @@ class DataForSEOService {
 
   escapeRegex(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  normalizeForSearch(str) {
+    return (str || '')
+      .toString()
+      .toLowerCase()
+      // Remove accents/diacritics
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      // Collapse whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  classifyPageType(url, title) {
+    const u = (url || '').toLowerCase();
+    const t = (title || '').toLowerCase();
+
+    if (u.includes('/blog/') || u.includes('/news/') || t.includes('blog')) {
+      return 'blog';
+    }
+    if (
+      u.includes('/category/') ||
+      u.includes('/categories/') ||
+      u.includes('/collection/') ||
+      t.includes('category')
+    ) {
+      return 'category';
+    }
+    if (
+      u.includes('/product/') ||
+      u.includes('/services/') ||
+      u.includes('/service/') ||
+      t.includes('pricing')
+    ) {
+      return 'landing';
+    }
+    return 'other';
+  }
+
+  /**
+   * Compute overall SEO score using SERP benchmark, content/structure and technical health.
+   * Returns total (0-100) and component scores so UI can explain the result.
+   */
+  computeSEOScore({ pageData, meta, keywordAnalysis, serpData, checks }) {
+    const wordCount = meta.content?.plain_text_word_count || 0;
+
+    const benchmark = serpData?.benchmark || null;
+
+    // --- SERP Competitiveness (0-100) ---
+    let serpSimilarity = 0;
+    if (benchmark) {
+      const medianWC = benchmark.medianWordCount || benchmark.avgWordCount || 0;
+
+      // Content length vs SERP median
+      let lengthScore = 0;
+      if (medianWC > 0) {
+        const ratio = wordCount / medianWC;
+        if (ratio >= 1) {
+          lengthScore = 100;
+        } else if (ratio >= 0.7) {
+          // Between 70% and 100% of median → 60–100
+          lengthScore = 60 + ((ratio - 0.7) / 0.3) * 40;
+        } else {
+          // Below 70% → up to 60 but strongly penalized
+          lengthScore = Math.max(10, (ratio / 0.7) * 60);
+        }
+      }
+
+      // Keyword usage in key elements vs SERP
+      let keywordScore = 0;
+      if (keywordAnalysis) {
+        const serpTitleRate = benchmark.percentTitleHasKeyword || 0;
+        // If most competitors have keyword in title, missing it is a strong penalty
+        if (serpTitleRate >= 0.7) {
+          keywordScore = keywordAnalysis.inTitle ? 100 : 25;
+        } else {
+          keywordScore = keywordAnalysis.inTitle ? 100 : 60;
+        }
+
+        // Bonus for keyword also appearing in H1 and first 100 words
+        if (keywordAnalysis.inH1) keywordScore += 10;
+        if (keywordAnalysis.inFirst100Words) keywordScore += 10;
+        keywordScore = Math.min(keywordScore, 100);
+      }
+
+      // Heading structure vs simple best practice (we don't have SERP headings)
+      const h2Count = checks.h2?.count || 0;
+      const h3Count = checks.h3?.count || 0;
+      let structureScore = 0;
+      if (h2Count >= 4 && h3Count >= 2) structureScore = 100;
+      else if (h2Count >= 2) structureScore = 70;
+      else if (h2Count > 0) structureScore = 50;
+      else structureScore = 20;
+
+      // Very rough page type alignment
+      let pageTypeScore = 70;
+      const dominantType = benchmark.dominantPageType;
+      const pageType = this.classifyPageType(pageData.url || '', meta.title || '');
+      if (dominantType && pageType) {
+        pageTypeScore = dominantType === pageType ? 100 : 60;
+      }
+
+      serpSimilarity =
+        (lengthScore * 0.5 +
+          keywordScore * 0.25 +
+          structureScore * 0.15 +
+          pageTypeScore * 0.1);
+    }
+
+    serpSimilarity = Math.max(0, Math.min(100, serpSimilarity));
+
+    // --- Content & Structure Quality (0-100) ---
+    let contentQuality = 0;
+    const h2Count = checks.h2?.count || 0;
+    const h3Count = checks.h3?.count || 0;
+
+    // Base on word count alone if no SERP data
+    let baseContentScore = 50;
+    if (wordCount >= 2000) baseContentScore = 95;
+    else if (wordCount >= 1500) baseContentScore = 85;
+    else if (wordCount >= 800) baseContentScore = 70;
+    else if (wordCount >= 400) baseContentScore = 50;
+    else baseContentScore = 30;
+
+    // Heading richness
+    let headingScore = 50;
+    if (h2Count >= 6) headingScore = 95;
+    else if (h2Count >= 3) headingScore = 80;
+    else if (h2Count >= 1) headingScore = 60;
+    else headingScore = 30;
+
+    // Keyword placement
+    let keywordPlacementScore = 50;
+    if (keywordAnalysis) {
+      let pts = 0;
+      if (keywordAnalysis.inTitle) pts += 30;
+      if (keywordAnalysis.inH1) pts += 25;
+      if (keywordAnalysis.inDescription) pts += 15;
+      if (keywordAnalysis.inContent) pts += 20;
+      if (keywordAnalysis.inFirst100Words) pts += 10;
+      keywordPlacementScore = Math.min(pts, 100);
+    }
+
+    contentQuality =
+      baseContentScore * 0.4 +
+      headingScore * 0.3 +
+      keywordPlacementScore * 0.3;
+
+    contentQuality = Math.max(0, Math.min(100, contentQuality));
+
+    // --- Technical On‑Page Health (0-100) ---
+    const rawOnPageScore = pageData.onpage_score || 0; // 0–1 from DataForSEO
+    let onPageHealth = Math.max(0, Math.min(100, rawOnPageScore * 100));
+
+    // Adjust for critical technical issues
+    if (checks.links?.broken > 0) {
+      onPageHealth -= 15;
+    }
+    if (!checks.canonical?.exists) {
+      onPageHealth -= 10;
+    }
+    if (checks.loadTime?.value && checks.loadTime.value > 5) {
+      onPageHealth -= 10;
+    }
+    onPageHealth = Math.max(0, Math.min(100, onPageHealth));
+
+    // --- Final weighted SEO score ---
+    // SERP competitiveness: 45%, Content & structure: 35%, Technical: 20%
+    let total =
+      serpSimilarity * 0.45 + contentQuality * 0.35 + onPageHealth * 0.2;
+
+    // Important rule: if content is far below SERP standard, cap the total score
+    if (benchmark && benchmark.medianWordCount > 0) {
+      const ratio = wordCount / benchmark.medianWordCount;
+      if (ratio < 0.5) {
+        total = Math.min(total, 55);
+      } else if (ratio < 0.7) {
+        total = Math.min(total, 70);
+      }
+    }
+
+    total = Math.max(0, Math.min(100, total));
+
+    return {
+      total,
+      components: {
+        serpSimilarity: Math.round(serpSimilarity),
+        contentQuality: Math.round(contentQuality),
+        onPageHealth: Math.round(onPageHealth),
+      },
+    };
   }
 
   generateEnhancedRecommendations(checks, keywordAnalysis, keyword, serpData, pageData, meta, lang) {

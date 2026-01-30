@@ -388,6 +388,46 @@
       "missingCategory": {
         "issue": "Some competitors are missing category information",
         "action": "Ensure your business category is properly set in your Google Business Profile"
+      },
+      "top3CompetitorsHaveWebsite": {
+        "issue": "All top 3 competitors have websites listed ({percentage}% overall) - Website is critical for top rankings",
+        "action": "CRITICAL: Add your website URL to Google Business Profile immediately. Then optimize your website: 1) Create location-specific landing pages with local content, 2) Add NAP in footer/header, 3) Include Schema.org LocalBusiness structured data, 4) Add local keywords naturally in content, 5) Ensure mobile-first design. Top 3 rankings require a well-optimized website."
+      },
+      "localContentRequired": {
+        "issue": "To rank in top 10, your website needs local content targeting '{keyword}'",
+        "action": "Create location-specific content on your website: 1) Add a dedicated page for '{keyword}' with 1000+ words, 2) Include local landmarks, neighborhoods, and area references, 3) Add customer testimonials from local clients, 4) Create blog posts about local events/community involvement, 5) Include location in title tags and meta descriptions. Local content signals relevance to Google."
+      },
+      "gbpOptimizationRequired": {
+        "issue": "Google Business Profile optimization is critical for top 10 rankings",
+        "action": "Complete and optimize your Google Business Profile: 1) Add all business information (hours, attributes, services), 2) Upload 10+ high-quality photos, 3) Write a compelling 750+ character description with local keywords, 4) Post updates weekly, 5) Respond to all reviews within 24 hours, 6) Add Q&A section with common questions. A complete GBP profile significantly improves local rankings."
+      },
+      "top3RatingTarget": {
+        "issue": "Top 3 competitors average {avgRating}/5 rating - You need {targetRating}+ to compete",
+        "action": "To reach top 3, achieve {targetRating}+ rating: 1) Deliver exceptional service consistently, 2) Implement review request system (email, SMS, in-person), 3) Respond to all reviews professionally, 4) Address negative feedback immediately, 5) Train staff on customer service excellence. Top-rated businesses rank higher."
+      },
+      "top3ReviewTarget": {
+        "issue": "Top 3 competitors average {targetReviews} reviews - You need {targetReviews}+ reviews to compete",
+        "action": "Build {targetReviews}+ reviews to compete: 1) Set up automated review request system, 2) Send follow-up emails 3-5 days after service, 3) Create QR codes linking to review page, 4) Train staff to ask satisfied customers, 5) Offer incentives to staff (not customers) for review generation. Review volume is a major ranking factor."
+      },
+      "top3NAPComplete": {
+        "issue": "Top 3 competitors have complete NAP (Name, Address, Phone) - Match this standard",
+        "action": "Ensure your NAP is complete and identical everywhere: 1) Google Business Profile, 2) Your website footer/header, 3) 30+ local directories (Yelp, Yellow Pages, industry sites), 4) Social media profiles. Use exact same format (spacing, punctuation, abbreviations). NAP consistency is critical for local ranking."
+      },
+      "buildLocalCitations": {
+        "issue": "Build {count} local citations to improve local visibility",
+        "action": "Create listings on {count} local directories: 1) Major platforms (Google, Yelp, Yellow Pages, Bing Places), 2) Industry-specific directories, 3) Local chamber of commerce, 4) Local business associations, 5) Review sites (TripAdvisor, Trustpilot). Ensure NAP consistency across all. Citations build trust and improve rankings."
+      },
+      "localSeoElements": {
+        "issue": "Your website needs local SEO elements to rank in top 10",
+        "action": "Add local SEO elements to your website: 1) Location-specific landing pages (one per service area), 2) NAP in footer on every page, 3) Schema.org LocalBusiness structured data, 4) Local keywords in title tags and meta descriptions, 5) Customer testimonials with location mentions, 6) Google Maps embed on contact page. These signals help Google understand your local relevance."
+      },
+      "freshContentRequired": {
+        "issue": "Regularly updated content signals active business to Google",
+        "action": "Create fresh local content monthly: 1) Blog posts about local events, community involvement, or area-specific topics, 2) Update service pages with local case studies, 3) Add seasonal content relevant to your location, 4) Share local news or partnerships. Fresh content improves rankings and shows Google your business is active."
+      },
+      "localBacklinksRequired": {
+        "issue": "Build {count} local backlinks to strengthen local authority",
+        "action": "Acquire {count} local backlinks: 1) Partner with local businesses for cross-promotion, 2) Sponsor local events or charities, 3) Get featured in local news/media, 4) Join local business associations, 5) Guest post on local blogs, 6) Get listed in local resource pages. Local backlinks signal authority and improve rankings."
       }
     },
     "napIssues": {
@@ -841,6 +881,22 @@
         "viewDashboardButton": "View Dashboard",
         "footer": "If you have questions about this change, please contact our support team."
       }
+    },
+    "aiContent": {
+      "subject": "Your AI Content is Ready - {keyword}",
+      "greeting": "Hi {name},",
+      "intro": "Your SEO-optimized content for keyword \"{keyword}\" on topic \"{topic}\" has been successfully generated!",
+      "seoScoreLabel": "SEO Score",
+      "wordCountLabel": "Word Count",
+      "faqCountLabel": "FAQs",
+      "viewButton": "View Content",
+      "footer": "This content was generated by Serpixa AI. For questions, contact our support team.",
+      "errorSubject": "Content Generation Failed - {keyword}",
+      "errorGreeting": "Hi {name},",
+      "errorIntro": "We encountered an issue while generating content for keyword \"{keyword}\" on topic \"{topic}\".",
+      "unknownError": "An unknown error occurred during content generation.",
+      "tryAgainButton": "Try Again",
+      "errorFooter": "If this issue persists, please contact our support team for assistance."
     }
   }
 }

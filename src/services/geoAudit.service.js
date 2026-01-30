@@ -29,7 +29,7 @@ class GeoAuditService {
   }
 
   /**
-   * Run geo audit using Google Maps API
+   * Run geo audit using Google Local Finder API
    * @param {string} keyword - Search keyword
    * @param {string} city - City name
    * @param {string} region - Region/State name (optional)
@@ -37,7 +37,7 @@ class GeoAuditService {
    * @param {string} googleDomain - Google domain (e.g., 'google.be', 'google.fr')
    * @param {string} language - Language code (e.g., 'fr', 'en', 'nl')
    * @param {string} locale - Locale code (e.g., 'fr-be', 'en', 'nl-nl')
-   * @returns {Promise<Object>} Audit result with local visibility score, competitors, and recommendations
+   * @returns {Promise<Object>} Audit result with local visibility score, competitors, and actionable recommendations
    */
   async runGeoAudit(keyword, city, region = null, country, googleDomain = null, language = null, locale = DEFAULT_LOCALE) {
     try {
@@ -49,15 +49,15 @@ class GeoAuditService {
         ? `${city},${region},${country}`
         : `${city},${country}`;
 
-      // Fetch data from Google Maps API
-      const mapsData = await this.fetchMapsData(keyword, locationName, languageName, googleDomain);
+      // Fetch data from Google Local Finder API
+      const localFinderData = await this.fetchMapsData(keyword, locationName, languageName, googleDomain);
 
       // Extract language code from locale for translations
       const localeConfig = getLocaleConfig(locale);
       const lang = localeConfig.language || 'en';
 
-      // Transform and return results (no business name needed)
-      return this.transformMapsResult(mapsData, keyword, locationName, lang);
+      // Transform and return results with actionable recommendations
+      return this.transformMapsResult(localFinderData, keyword, locationName, lang);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(502, `Geo audit failed: ${error.message}`);
@@ -65,24 +65,25 @@ class GeoAuditService {
   }
 
   /**
-   * Fetch data from DataForSEO Google Maps API
+   * Fetch data from DataForSEO Google Local Finder API
    * Passes through DataForSEO responses transparently
    * @param {string} keyword - Search keyword
    * @param {string} locationName - Location in format "City,Region,Country" or "City,Country" (e.g., "Amsterdam,North Holland,Netherlands")
    * @param {string} languageName - Language name (e.g., "French", "English")
    * @param {string} googleDomain - Google domain (e.g., "google.be", "google.fr") - optional
-   * @returns {Promise<Object>} Maps API response data
+   * @returns {Promise<Object>} Local Finder API response data
    */
   async fetchMapsData(keyword, locationName, languageName, googleDomain = null) {
     if (!this.login || !this.password) {
       throw new ApiError(500, 'DataForSEO credentials not configured');
     }
 
-    // Build payload
+    // Build payload for Local Finder API
     const payload = [{
       keyword: keyword.trim(),
       location_name: locationName,
       language_name: languageName,
+      depth: 10, // Get top 10 results
     }];
 
     // Add se_domain only if provided (optional)
@@ -90,23 +91,23 @@ class GeoAuditService {
       payload[0].se_domain = googleDomain;
     }
 
-    Logger.log('Sending request to DataForSEO Google Maps API:', {
-      endpoint: '/v3/serp/google/maps/live/advanced',
+    Logger.log('Sending request to DataForSEO Google Local Finder API:', {
+      endpoint: '/v3/serp/google/local_finder/live/advanced',
       keyword: keyword.trim(),
       location_name: locationName,
       language_name: languageName,
       se_domain: googleDomain || 'not set',
     });
 
-    const response = await this.client.post('/v3/serp/google/maps/live/advanced', payload);
+    const response = await this.client.post('/v3/serp/google/local_finder/live/advanced', payload);
 
-    Logger.log('DataForSEO Maps API Response Status:', response.status);
+    Logger.log('DataForSEO Local Finder API Response Status:', response.status);
 
     // Handle response structure - pass through DataForSEO response
     let result;
     if (Array.isArray(response.data)) {
       if (response.data.length === 0) {
-        throw new ApiError(502, 'No Maps data received from DataForSEO');
+        throw new ApiError(502, 'No Local Finder data received from DataForSEO');
       }
       result = response.data[0];
     } else if (response.data?.status_code !== undefined) {
@@ -128,22 +129,22 @@ class GeoAuditService {
     }
 
     // Extract result data - pass through DataForSEO structure
-    let mapsData;
+    let localFinderData;
     if (Array.isArray(task.result)) {
-      mapsData = task.result[0];
+      localFinderData = task.result[0];
     } else if (task.result) {
-      mapsData = task.result;
+      localFinderData = task.result;
     } else {
       throw new ApiError(502, 'DataForSEO returned no result data');
     }
 
-    // Extract business listings from maps results
-    const items = mapsData?.items || [];
+    // Extract business listings from Local Finder results
+    // Local Finder API returns items in a different structure
+    const items = localFinderData?.items || [];
     const businessItems = items.filter(item => 
-      item.type === 'maps_results' || 
+      item.type === 'local_finder' ||
       item.type === 'local_pack' ||
-      item.type === 'map' ||
-      (item.title && (item.rating || item.reviews_count))
+      (item.title && (item.rating || item.reviews_count || item.rating?.value))
     );
 
     Logger.log('Business items found:', businessItems.length);
@@ -154,13 +155,14 @@ class GeoAuditService {
       location: locationName,
       language: languageName,
       google_domain: googleDomain,
+      raw: localFinderData, // Keep raw data for analysis
     };
   }
 
   /**
-   * Transform Maps API response into audit result
-   * Returns: local visibility score, competitors, and recommendations
-   * No business info required - score is based on competitors analysis
+   * Transform Local Finder API response into audit result
+   * Returns: local visibility score, competitors, and actionable recommendations for website/page improvements
+   * Recommendations tell users what to do to rank in top 10
    * @param {string} lang - Language code for translations (e.g., 'en', 'fr', 'nl')
    */
   transformMapsResult(data, keyword, location, lang = 'en') {
@@ -189,37 +191,37 @@ class GeoAuditService {
       };
     }
 
-    // Extract competitors from maps results
+    // Extract competitors from Local Finder results
     const competitors = [];
     data.items.forEach((item, index) => {
-      // Handle items that may have nested items array
+      // Handle Local Finder API structure - items may be nested or flat
       if (item.items && Array.isArray(item.items)) {
         item.items.forEach((nestedItem) => {
           competitors.push({
             position: competitors.length + 1,
-            name: nestedItem.title || nestedItem.name || '',
-            rating: nestedItem.rating?.value || nestedItem.rating || null,
-            reviews: nestedItem.reviews_count || nestedItem.reviews || 0,
-            distance: nestedItem.distance || null,
-            address: nestedItem.address || nestedItem.address_lines?.join(', ') || '',
-            phone: nestedItem.phone || null,
-            website: nestedItem.website || null,
-            category: nestedItem.category || nestedItem.type || null,
-            placeId: nestedItem.place_id || null,
+            name: nestedItem.title || nestedItem.name || nestedItem.business_title || '',
+            rating: nestedItem.rating?.value || nestedItem.rating || nestedItem.rating_value || null,
+            reviews: nestedItem.reviews_count || nestedItem.reviews || nestedItem.review_count || 0,
+            distance: nestedItem.distance || nestedItem.distance_text || null,
+            address: nestedItem.address || nestedItem.address_lines?.join(', ') || nestedItem.address_text || '',
+            phone: nestedItem.phone || nestedItem.phone_number || null,
+            website: nestedItem.website || nestedItem.website_url || null,
+            category: nestedItem.category || nestedItem.type || nestedItem.category_name || null,
+            placeId: nestedItem.place_id || nestedItem.google_place_id || null,
           });
         });
       } else {
         competitors.push({
           position: competitors.length + 1,
-          name: item.title || item.name || '',
-          rating: item.rating?.value || item.rating || null,
-          reviews: item.reviews_count || item.reviews || 0,
-          distance: item.distance || null,
-          address: item.address || item.address_lines?.join(', ') || '',
-          phone: item.phone || null,
-          website: item.website || null,
-          category: item.category || item.type || null,
-          placeId: item.place_id || null,
+          name: item.title || item.name || item.business_title || '',
+          rating: item.rating?.value || item.rating || item.rating_value || null,
+          reviews: item.reviews_count || item.reviews || item.review_count || 0,
+          distance: item.distance || item.distance_text || null,
+          address: item.address || item.address_lines?.join(', ') || item.address_text || '',
+          phone: item.phone || item.phone_number || null,
+          website: item.website || item.website_url || null,
+          category: item.category || item.type || item.category_name || null,
+          placeId: item.place_id || item.google_place_id || null,
         });
       }
     });
@@ -298,8 +300,8 @@ class GeoAuditService {
   }
 
   /**
-   * Generate recommendations for citation and NAP improvement
-   * Based on competitors analysis
+   * Generate actionable recommendations for website/page improvements
+   * Based on competitors analysis - tells users what to do to rank in top 10
    * @param {string} lang - Language code for translations (e.g., 'en', 'fr', 'nl')
    */
   generateRecommendations(competitors, lang = 'en') {
@@ -309,28 +311,65 @@ class GeoAuditService {
       return recommendations;
     }
 
-    // Helper to add recommendation with translations
-    const addRec = (priority, issueKey, actionKey, vars = {}) => {
+    // Helper to add recommendation with enhanced structure (like SEO Audit)
+    const addRec = (priority, category, issueKey, actionKey, vars = {}, impact = null, effort = null) => {
       const issue = t(lang, `geo.recommendations.${issueKey}.issue`, vars);
       const action = t(lang, `geo.recommendations.${issueKey}.action`, vars);
       if (issue && action && !issue.includes('.issue')) {
+        // Auto-determine impact and effort if not provided
+        const autoImpact = impact || (priority === 'critical' || priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low');
+        const autoEffort = effort || (['website', 'content', 'citations'].includes(category) ? 'moderate' : 'easy');
+        
         recommendations.push({
           priority,
+          category,
           issue,
           action,
+          impact: autoImpact,
+          effort: autoEffort,
         });
       }
     };
+
+    // === CRITICAL: Website Optimization ===
+    const competitorsWithWebsite = competitors.filter(c => c.website).length;
+    const websitePercentage = (competitorsWithWebsite / competitors.length) * 100;
+    const top3Competitors = competitors.slice(0, 3);
+    const top3WithWebsite = top3Competitors.filter(c => c.website).length;
+
+    if (top3WithWebsite === 3 && websitePercentage >= 80) {
+      addRec('critical', 'website', 'topCompetitorsHaveWebsite', 'topCompetitorsHaveWebsite', 
+        { percentage: Math.round(websitePercentage) }, 'high', 'moderate');
+    } else if (websitePercentage < 50) {
+      addRec('high', 'website', 'missingWebsite', 'missingWebsite', 
+        { percentage: Math.round(100 - websitePercentage) }, 'high', 'moderate');
+    }
+
+    // === CRITICAL: Local Content on Website ===
+    addRec('critical', 'content', 'localContentRequired', 'localContentRequired', 
+      { keyword: competitors[0]?.name || 'your business' }, 'high', 'moderate');
+
+    // === CRITICAL: Google Business Profile Optimization ===
+    addRec('critical', 'gbp', 'gbpOptimizationRequired', 'gbpOptimizationRequired', {}, 'high', 'easy');
 
     // Analyze competitor ratings
     const ratings = competitors.filter(c => c.rating).map(c => c.rating);
     if (ratings.length > 0) {
       const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+      const top3AvgRating = top3Competitors
+        .filter(c => c.rating)
+        .map(c => c.rating)
+        .reduce((sum, r) => sum + r, 0) / Math.max(top3Competitors.filter(c => c.rating).length, 1);
 
       if (avgRating >= 4.5) {
-        addRec('high', 'highCompetition', 'highCompetition', { avgRating: avgRating.toFixed(1) });
-      } else if (avgRating < 3.5) {
-        addRec('medium', 'marketOpportunity', 'marketOpportunity', { avgRating: avgRating.toFixed(1) });
+        addRec('high', 'reviews', 'highCompetition', 'highCompetition', 
+          { avgRating: avgRating.toFixed(1) }, 'high', 'moderate');
+      }
+
+      // Target rating for top 3
+      if (top3AvgRating >= 4.5) {
+        addRec('critical', 'reviews', 'top3RatingTarget', 'top3RatingTarget', 
+          { targetRating: '4.5+', avgRating: top3AvgRating.toFixed(1) }, 'high', 'moderate');
       }
     }
 
@@ -338,35 +377,53 @@ class GeoAuditService {
     const reviews = competitors.filter(c => c.reviews).map(c => c.reviews);
     if (reviews.length > 0) {
       const avgReviews = reviews.reduce((sum, r) => sum + r, 0) / reviews.length;
+      const top3AvgReviews = top3Competitors
+        .filter(c => c.reviews)
+        .map(c => c.reviews)
+        .reduce((sum, r) => sum + r, 0) / Math.max(top3Competitors.filter(c => c.reviews).length, 1);
 
-      if (avgReviews > 50) {
-        addRec('high', 'competitiveMarket', 'competitiveMarket', { avgReviews: Math.round(avgReviews) });
+      if (top3AvgReviews > 50) {
+        addRec('critical', 'reviews', 'top3ReviewTarget', 'top3ReviewTarget', 
+          { targetReviews: Math.round(top3AvgReviews), avgReviews: Math.round(avgReviews) }, 'high', 'moderate');
+      } else if (avgReviews > 50) {
+        addRec('high', 'reviews', 'competitiveMarket', 'competitiveMarket', 
+          { avgReviews: Math.round(avgReviews) }, 'high', 'moderate');
       }
     }
 
-    // Analyze NAP completeness
+    // === HIGH PRIORITY: NAP Consistency ===
     const competitorsWithNAP = competitors.filter(c => c.name && c.address && c.phone).length;
     const napCompleteness = (competitorsWithNAP / competitors.length) * 100;
+    const top3WithNAP = top3Competitors.filter(c => c.name && c.address && c.phone).length;
 
-    if (napCompleteness < 80) {
-      addRec('medium', 'napIncomplete', 'napIncomplete', { percentage: Math.round(100 - napCompleteness) });
-    } else {
-      addRec('high', 'napComplete', 'napComplete');
+    if (top3WithNAP === 3) {
+      addRec('high', 'citations', 'top3NAPComplete', 'top3NAPComplete', {}, 'high', 'easy');
+    } else if (napCompleteness < 80) {
+      addRec('high', 'citations', 'napIncomplete', 'napIncomplete', 
+        { percentage: Math.round(100 - napCompleteness) }, 'high', 'easy');
     }
 
-    // Analyze website presence
-    const competitorsWithWebsite = competitors.filter(c => c.website).length;
-    const websitePercentage = (competitorsWithWebsite / competitors.length) * 100;
+    // === HIGH PRIORITY: Local Citations ===
+    addRec('high', 'citations', 'buildLocalCitations', 'buildLocalCitations', 
+      { count: '30+' }, 'high', 'moderate');
 
-    if (websitePercentage > 70) {
-      addRec('high', 'competitorsHaveWebsite', 'competitorsHaveWebsite', { percentage: Math.round(websitePercentage) });
-    }
+    // === HIGH PRIORITY: Website Local SEO Elements ===
+    addRec('high', 'website', 'localSeoElements', 'localSeoElements', {}, 'high', 'moderate');
 
-    // Analyze category consistency
+    // === MEDIUM PRIORITY: Category Optimization ===
     const competitorsWithCategory = competitors.filter(c => c.category).length;
-    if (competitorsWithCategory < competitors.length * 0.8) {
-      addRec('medium', 'missingCategory', 'missingCategory');
+    const categoryPercentage = (competitorsWithCategory / competitors.length) * 100;
+    if (categoryPercentage < 80) {
+      addRec('medium', 'gbp', 'missingCategory', 'missingCategory', 
+        { percentage: Math.round(100 - categoryPercentage) }, 'medium', 'easy');
     }
+
+    // === MEDIUM PRIORITY: Content Freshness ===
+    addRec('medium', 'content', 'freshContentRequired', 'freshContentRequired', {}, 'medium', 'moderate');
+
+    // === MEDIUM PRIORITY: Local Backlinks ===
+    addRec('medium', 'backlinks', 'localBacklinksRequired', 'localBacklinksRequired', 
+      { count: '10+' }, 'medium', 'difficult');
 
     return recommendations;
   }

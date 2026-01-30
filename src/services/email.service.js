@@ -968,7 +968,126 @@ class EmailService {
   </div>
 </div>`;
   }
- /**
+  /**
+   * Send AI Content completion email
+   */
+  async sendAIContentEmail(email, data = {}) {
+    const { content, userName } = data;
+    const locale = content?.locale || DEFAULT_LOCALE;
+    const lang = this.getLanguageFromLocale(locale);
+    const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
+
+    const subject = t('email.aiContent.subject', { keyword: content.keyword });
+    const html = this.aiContentHTML(content, userName, lang);
+
+    return this.send(email, subject, html).catch(err => {
+      console.error('Failed to send AI content email:', err.message);
+    });
+  }
+
+  /**
+   * Send AI Content error email
+   */
+  async sendAIContentErrorEmail(email, data = {}) {
+    const { userName, keyword, topic, error } = data;
+    const lang = 'en'; // Default to English for error emails
+    const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
+
+    const subject = t('email.aiContent.errorSubject', { keyword });
+    const html = this.aiContentErrorHTML({ userName, keyword, topic, error }, lang);
+
+    return this.send(email, subject, html).catch(err => {
+      console.error('Failed to send AI content error email:', err.message);
+    });
+  }
+
+  /**
+   * AI Content Email HTML Template
+   */
+  aiContentHTML(content, userName, lang = 'en') {
+    const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
+    const name = userName || 'there';
+    const viewUrl = `${env.CLIENT_URL}/dashboard/ai-content/${content._id}`;
+
+    const scoreColor = content.seoScore >= 80 ? '#059669' : content.seoScore >= 50 ? '#d97706' : '#dc2626';
+
+    return `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
+<div style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
+  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">✨ ${t('email.aiContent.subject', { keyword: content.keyword })}</h1>
+  <p style="margin:0;opacity:0.9;font-size:14px;color:#ffffff">${content.topic}</p>
+</div>
+
+<div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
+  <p style="color:#111827;font-size:16px;margin-bottom:24px">${t('email.aiContent.greeting', { name })}</p>
+  <p style="color:#374151;margin-bottom:24px">${t('email.aiContent.intro', { keyword: content.keyword, topic: content.topic })}</p>
+  
+  <!-- Score Card -->
+  <div style="background:#f8fafc;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;border:1px solid #e5e7eb">
+    <p style="margin:0 0 8px 0;color:#6b7280;font-size:14px;text-transform:uppercase;letter-spacing:1px">${t('email.aiContent.seoScoreLabel')}</p>
+    <p style="margin:0;font-size:48px;font-weight:bold;color:${scoreColor}">${content.seoScore}<span style="font-size:24px;color:#9ca3af">/100</span></p>
+  </div>
+
+  <!-- Content Stats -->
+  <div style="display:flex;gap:16px;margin-bottom:24px">
+    <div style="flex:1;background:#f8fafc;border-radius:12px;padding:20px;text-align:center;border:1px solid #e5e7eb">
+      <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase">${t('email.aiContent.wordCountLabel')}</p>
+      <p style="margin:0;font-size:36px;font-weight:bold;color:#6366f1">${content.wordCount || 0}</p>
+    </div>
+    <div style="flex:1;background:#f8fafc;border-radius:12px;padding:20px;text-align:center;border:1px solid #e5e7eb">
+      <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase">${t('email.aiContent.faqCountLabel')}</p>
+      <p style="margin:0;font-size:36px;font-weight:bold;color:#6366f1">${(content.faq || []).length}</p>
+    </div>
+  </div>
+  
+  <!-- CTA Button -->
+  <p style="text-align:center;margin:32px 0">
+    <a href="${viewUrl}" style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;box-shadow:0 4px 6px rgba(124,58,237,0.25)">${t('email.aiContent.viewButton')}</a>
+  </p>
+  
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
+  <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0">${t('email.aiContent.footer')}</p>
+</div>
+</div>`;
+  }
+
+  /**
+   * AI Content Error Email HTML Template
+   */
+  aiContentErrorHTML(data, lang = 'en') {
+    const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
+    const { userName, keyword, topic, error } = data;
+    const name = userName || 'there';
+    const dashboardUrl = `${env.CLIENT_URL}/dashboard/ai-content`;
+
+    return `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
+<div style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
+  <div style="font-size:48px;margin-bottom:8px">⚠️</div>
+  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.aiContent.errorSubject', { keyword })}</h1>
+</div>
+
+<div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
+  <p style="color:#111827;font-size:16px;margin-bottom:16px">${t('email.aiContent.errorGreeting', { name })}</p>
+  <p style="color:#374151;margin-bottom:16px">${t('email.aiContent.errorIntro', { keyword, topic })}</p>
+  
+  <!-- Error Details -->
+  <div style="background:#fef2f2;border-radius:8px;padding:16px;margin-bottom:24px;border-left:4px solid #dc2626">
+    <p style="margin:0;color:#991b1b;font-weight:500">${error || t('email.aiContent.unknownError')}</p>
+  </div>
+  
+  <!-- CTA Button -->
+  <p style="text-align:center;margin:32px 0">
+    <a href="${dashboardUrl}" style="background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;box-shadow:0 4px 6px rgba(220,38,38,0.25)">${t('email.aiContent.tryAgainButton')}</a>
+  </p>
+  
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
+  <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0">${t('email.aiContent.errorFooter')}</p>
+</div>
+</div>`;
+  }
+
+  /**
    * Subscription Plan Changed Email HTML
    */
   subscriptionPlanChangedHTML(data, locale = 'en') {
