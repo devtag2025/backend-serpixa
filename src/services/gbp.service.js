@@ -36,7 +36,16 @@ class GBPService {
    */
   async runAudit(businessName, gbpLink = null, locale = DEFAULT_LOCALE, locationOverride = null) {
     try {
+      console.log('[GBP Service] 🌍 runAudit called with:');
+      console.log('[GBP Service]   businessName:', businessName);
+      console.log('[GBP Service]   gbpLink:', gbpLink);
+      console.log('[GBP Service]   locale:', locale);
+      console.log('[GBP Service]   locationOverride:', locationOverride);
+      console.log('[GBP Service]   DEFAULT_LOCALE:', DEFAULT_LOCALE);
+
       const localeConfig = getLocaleConfig(locale);
+      console.log('[GBP Service] 🔧 Resolved localeConfig:', JSON.stringify(localeConfig, null, 2));
+      
       const lang = localeConfig.language || 'en';
 
       // Try to extract place_id from GBP link
@@ -44,6 +53,7 @@ class GBPService {
 
       // Determine location: use override if provided, otherwise use locale config
       const location = locationOverride || localeConfig.locationName;
+      console.log('[GBP Service] 📍 Final location to use:', location);
 
       Logger.log('GBP Audit request:', {
         businessName,
@@ -189,36 +199,68 @@ class GBPService {
     }
 
     try {
-      Logger.log('Fetching GBP data by keyword:', { businessName, location, languageCode });
-
-      const response = await this.client.post('/v3/business_data/google/my_business_info/live', [
+      const payload = [
         {
           keyword: businessName.trim(),
           location_name: location,
           language_code: languageCode,
         },
-      ]);
+      ];
+
+      console.log('[GBP Service] 📡 Fetching GBP data by keyword...');
+      console.log('[GBP Service] Payload:', JSON.stringify(payload, null, 2));
+      console.log('[GBP Service] API URL:', this.baseURL + '/v3/business_data/google/my_business_info/live');
+
+      const response = await this.client.post('/v3/business_data/google/my_business_info/live', payload);
 
       const result = response.data;
 
+      console.log('[GBP Service] API Response status_code:', result.status_code);
+      console.log('[GBP Service] API Response status_message:', result.status_message);
+
       if (result.status_code !== 20000) {
-        Logger.error('GBP API error:', result.status_message);
+        console.error('[GBP Service] ❌ API error:', result.status_message);
         throw new ApiError(502, result.status_message || 'GBP API error');
       }
 
       const task = result.tasks?.[0];
-      if (!task || task.status_code !== 20000) {
-        Logger.error('GBP task error:', task?.status_message);
+      console.log('[GBP Service] Task status_code:', task?.status_code);
+      console.log('[GBP Service] Task status_message:', task?.status_message);
+      
+      // Handle "No Search Results" (40102) as a valid "not found" response, not an error
+      if (task?.status_code === 40102) {
+        console.log('[GBP Service] ⚠️ DataForSEO returned "No Search Results" for:', businessName, 'in', location);
+        console.log('[GBP Service] 💡 This means the business was not found in Google Business Profile for this location.');
+        console.log('[GBP Service] 💡 Try: 1) More specific name, 2) Different location, 3) Check if business exists in Google Maps for that region');
+        return null; // Return null to indicate "not found"
+      }
+      
+      if (!task || (task.status_code !== 20000 && task.status_code !== 40102)) {
+        console.error('[GBP Service] ❌ Task error:', task?.status_message);
         throw new ApiError(502, task?.status_message || 'GBP audit failed');
       }
 
       const items = task.result?.[0]?.items || [];
+      console.log('[GBP Service] Results found:', items.length);
+      
+      if (items.length === 0) {
+        console.log('[GBP Service] ⚠️ No items in results for:', businessName, 'in', location);
+        console.log('[GBP Service] Full task result:', JSON.stringify(task.result, null, 2));
+      } else {
+        console.log('[GBP Service] ✅ Found business:', items[0]?.title || items[0]?.name);
+      }
+
       return items.length > 0 ? items[0] : null;
     } catch (error) {
       if (error instanceof ApiError) throw error;
 
+      console.error('[GBP Service] ❌ Request error:', error.message);
+
       if (error.response) {
         const statusCode = error.response.status;
+        console.error('[GBP Service] Response status:', statusCode);
+        console.error('[GBP Service] Response data:', JSON.stringify(error.response.data, null, 2));
+        
         if (statusCode === 401) {
           throw new ApiError(401, 'DataForSEO authentication failed');
         }
@@ -231,6 +273,11 @@ class GBPService {
 
   transformResult(data, businessName, lang = 'en') {
     if (!data) {
+      console.log('[GBP Service] ⚠️ No data to transform - returning "not found" result');
+      console.log('[GBP Service] Business name searched:', businessName);
+      console.log('[GBP Service] This means DataForSEO did not find any business matching this name in the specified location.');
+      console.log('[GBP Service] 💡 Tips: Try a more specific business name, or check if the business exists in Google Maps for that region.');
+      
       return {
         businessName,
         found: false,

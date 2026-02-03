@@ -9,6 +9,12 @@ export const runAudit = async (req, res, next) => {
     const userId = req.user._id;
     const { creditInfo } = req;
 
+    // Debug logging - see what frontend is sending
+    console.log('[GBP Controller] 📥 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('[GBP Controller] Received locale:', locale);
+    console.log('[GBP Controller] Received businessName:', businessName);
+    console.log('[GBP Controller] Received gbpLink:', gbpLink);
+
     // Business name is REQUIRED for search to work properly
     if (!businessName || businessName.trim().length === 0) {
       return res.status(400).json(
