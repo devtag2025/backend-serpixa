@@ -5,6 +5,16 @@ import { getTranslation } from "../locales/index.js";
 import { DEFAULT_LOCALE } from "../config/index.js";
 
 class EmailService {
+  constructor() {
+    // Initialize SendGrid with API key
+    const apiKey = env.SENDGRID_API_KEY;
+    if (apiKey) {
+      sgMail.setApiKey(apiKey);
+      // console.log(' SendGrid initialized with API key');
+    } else {
+      console.error(' SENDGRID_API_KEY not configured! Emails will not be sent.');
+    }
+  }
   /**
    * Get locale from data or default to 'en'
    */
@@ -145,33 +155,6 @@ class EmailService {
 </div>`;
   }
 
-  async send(to, subject, html, retries = 0) {
-    const maxRetries = emailConfig?.settings?.maxRetries ?? 3;
-    const retryDelayMs = emailConfig?.settings?.retryDelay ?? 5000;
-
-    const msg = {
-      to,
-      from: {
-        name: emailConfig.from.name,
-        email: emailConfig.from.address,
-      },
-      subject,
-      html,
-    };
-
-    try {
-      const result = await sgMail.send(msg);
-      return result;
-    } catch (err) {
-      if (retries < maxRetries) {
-        await new Promise((r) => setTimeout(r, retryDelayMs));
-        return this.send(to, subject, html, retries + 1);
-      }
-      throw err;
-    }
-  }
-
-
   passwordResetHTML(resetToken, data = {}, locale = 'en') {
     const resetUrl = `${env.CLIENT_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
     const name = data.userName || "there";
@@ -263,7 +246,22 @@ class EmailService {
    * Send SEO Audit completion email
    */
   async sendSEOAuditEmail(email, data = {}) {
+    console.log(`[Email Service] 📧 sendSEOAuditEmail called for: ${email}`);
+    
     const { audit, userName } = data;
+    
+    if (!audit) {
+      console.error('[Email Service] ❌ sendSEOAuditEmail: No audit data provided');
+      return null;
+    }
+    
+    if (!email) {
+      console.error('[Email Service] ❌ sendSEOAuditEmail: No email address provided');
+      return null;
+    }
+    
+    console.log(`[Email Service] Audit URL: ${audit.url}, Score: ${audit.score}`);
+    
     const locale = audit?.locale || DEFAULT_LOCALE;
     const lang = this.getLanguageFromLocale(locale);
     const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
@@ -273,7 +271,7 @@ class EmailService {
 
     return this.send(email, subject, html).catch(err => {
       // Log error but don't throw - email is non-critical
-      console.error('Failed to send SEO audit email:', err.message);
+      console.error('[Email Service] ❌ Failed to send SEO audit email:', err.message);
     });
   }
 
@@ -281,7 +279,22 @@ class EmailService {
    * Send GBP Audit completion email
    */
   async sendGBPAuditEmail(email, data = {}) {
+    console.log(`[Email Service] 📧 sendGBPAuditEmail called for: ${email}`);
+    
     const { audit, userName } = data;
+    
+    if (!audit) {
+      console.error('[Email Service] ❌ sendGBPAuditEmail: No audit data provided');
+      return null;
+    }
+    
+    if (!email) {
+      console.error('[Email Service] ❌ sendGBPAuditEmail: No email address provided');
+      return null;
+    }
+    
+    console.log(`[Email Service] Business: ${audit.businessName}, Score: ${audit.score}`);
+    
     const locale = audit?.locale || DEFAULT_LOCALE;
     const lang = this.getLanguageFromLocale(locale);
     const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
@@ -290,7 +303,7 @@ class EmailService {
     const html = this.gbpAuditHTML(audit, userName, lang);
 
     return this.send(email, subject, html).catch(err => {
-      console.error('Failed to send GBP audit email:', err.message);
+      console.error('[Email Service] ❌ Failed to send GBP audit email:', err.message);
     });
   }
 
@@ -315,24 +328,58 @@ class EmailService {
     const maxRetries = emailConfig?.settings?.maxRetries ?? 3;
     const retryDelayMs = emailConfig?.settings?.retryDelay ?? 5000;
 
+    // Check if SendGrid API key is configured
+    if (!env.SENDGRID_API_KEY) {
+      console.error('[Email Service] ❌ Cannot send email - SENDGRID_API_KEY not configured');
+      console.log('[Email Service] Would have sent email to:', to, 'Subject:', subject);
+      return null;
+    }
+
+    // Check if email config is valid
+    if (!emailConfig?.from?.address) {
+      console.error('[Email Service] ❌ Cannot send email - FROM_EMAIL not configured');
+      console.log('[Email Service] emailConfig:', JSON.stringify(emailConfig, null, 2));
+      return null;
+    }
+
     const msg = {
       to,
       from: {
-        name: emailConfig.from.name,
+        name: emailConfig.from.name || 'Serpixa',
         email: emailConfig.from.address,
       },
       subject,
       html,
     };
 
+    console.log(`[Email Service] 📧 Attempting to send email...`);
+    console.log(`[Email Service] To: ${to}`);
+    console.log(`[Email Service] From: ${msg.from.email} (${msg.from.name})`);
+    console.log(`[Email Service] Subject: ${subject}`);
+    console.log(`[Email Service] Retry: ${retries}/${maxRetries}`);
+
     try {
       const result = await sgMail.send(msg);
+      console.log(`[Email Service] ✅ Email sent successfully to ${to}`);
+      console.log(`[Email Service] Response status: ${result[0]?.statusCode}`);
       return result;
     } catch (err) {
+      console.error(`[Email Service] ❌ Email send failed (attempt ${retries + 1}/${maxRetries + 1})`);
+      console.error(`[Email Service] Error: ${err.message}`);
+      
+      // Log SendGrid specific error details
+      if (err.response) {
+        console.error(`[Email Service] SendGrid status: ${err.response.status}`);
+        console.error(`[Email Service] SendGrid body:`, JSON.stringify(err.response.body, null, 2));
+      }
+      
       if (retries < maxRetries) {
+        console.log(`[Email Service] ⏳ Retrying in ${retryDelayMs}ms...`);
         await new Promise((r) => setTimeout(r, retryDelayMs));
         return this.send(to, subject, html, retries + 1);
       }
+      
+      console.error(`[Email Service] ❌ All retry attempts exhausted. Email not sent.`);
       throw err;
     }
   }
@@ -972,7 +1019,22 @@ class EmailService {
    * Send AI Content completion email
    */
   async sendAIContentEmail(email, data = {}) {
+    console.log(`[Email Service] 📧 sendAIContentEmail called for: ${email}`);
+    
     const { content, userName } = data;
+    
+    if (!content) {
+      console.error('[Email Service] ❌ sendAIContentEmail: No content data provided');
+      return null;
+    }
+    
+    if (!email) {
+      console.error('[Email Service] ❌ sendAIContentEmail: No email address provided');
+      return null;
+    }
+    
+    console.log(`[Email Service] Content keyword: ${content.keyword}, SEO Score: ${content.seoScore}`);
+    
     const locale = content?.locale || DEFAULT_LOCALE;
     const lang = this.getLanguageFromLocale(locale);
     const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
@@ -981,7 +1043,7 @@ class EmailService {
     const html = this.aiContentHTML(content, userName, lang);
 
     return this.send(email, subject, html).catch(err => {
-      console.error('Failed to send AI content email:', err.message);
+      console.error('[Email Service] ❌ Failed to send AI content email:', err.message);
     });
   }
 
@@ -1002,53 +1064,79 @@ class EmailService {
   }
 
   /**
-   * AI Content Email HTML Template
+   * AI Content Email HTML Template - Enhanced design
    */
   aiContentHTML(content, userName, lang = 'en') {
     const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
     const name = userName || 'there';
     const viewUrl = `${env.CLIENT_URL}/dashboard/ai-content/${content._id}`;
+    const wordCount = content.wordCount || 0;
+    const faqCount = (content.faq || []).length;
 
     const scoreColor = content.seoScore >= 80 ? '#059669' : content.seoScore >= 50 ? '#d97706' : '#dc2626';
+    const scoreBg = content.seoScore >= 80 ? '#ecfdf5' : content.seoScore >= 50 ? '#fffbeb' : '#fef2f2';
 
     return `
-<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
-<div style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">✨ ${t('email.aiContent.subject', { keyword: content.keyword })}</h1>
-  <p style="margin:0;opacity:0.9;font-size:14px;color:#ffffff">${content.topic}</p>
-</div>
-
-<div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;box-shadow:0 4px 6px rgba(0,0,0,0.05)">
-  <p style="color:#111827;font-size:16px;margin-bottom:24px">${t('email.aiContent.greeting', { name })}</p>
-  <p style="color:#374151;margin-bottom:24px">${t('email.aiContent.intro', { keyword: content.keyword, topic: content.topic })}</p>
-  
-  <!-- Score Card -->
-  <div style="background:#f8fafc;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;border:1px solid #e5e7eb">
-    <p style="margin:0 0 8px 0;color:#6b7280;font-size:14px;text-transform:uppercase;letter-spacing:1px">${t('email.aiContent.seoScoreLabel')}</p>
-    <p style="margin:0;font-size:48px;font-weight:bold;color:${scoreColor}">${content.seoScore}<span style="font-size:24px;color:#9ca3af">/100</span></p>
-  </div>
-
-  <!-- Content Stats -->
-  <div style="display:flex;gap:16px;margin-bottom:24px">
-    <div style="flex:1;background:#f8fafc;border-radius:12px;padding:20px;text-align:center;border:1px solid #e5e7eb">
-      <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase">${t('email.aiContent.wordCountLabel')}</p>
-      <p style="margin:0;font-size:36px;font-weight:bold;color:#6366f1">${content.wordCount || 0}</p>
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#f1f5f9">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px">
+  <!-- Main Card -->
+  <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.04)">
+    
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%);padding:40px 32px;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px;line-height:1">✨</div>
+      <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px">${t('email.aiContent.subject', { keyword: content.keyword })}</h1>
+      <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.9)">${content.topic}</p>
     </div>
-    <div style="flex:1;background:#f8fafc;border-radius:12px;padding:20px;text-align:center;border:1px solid #e5e7eb">
-      <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase">${t('email.aiContent.faqCountLabel')}</p>
-      <p style="margin:0;font-size:36px;font-weight:bold;color:#6366f1">${(content.faq || []).length}</p>
+
+    <!-- Body -->
+    <div style="padding:32px 28px">
+      <p style="margin:0 0 8px 0;color:#1e293b;font-size:16px;font-weight:500">${t('email.aiContent.greeting', { name })}</p>
+      <p style="margin:0 0 28px 0;color:#64748b;font-size:15px;line-height:1.6">${t('email.aiContent.intro', { keyword: content.keyword, topic: content.topic })}</p>
+      
+      <!-- SEO Score Hero -->
+      <div style="background:${scoreBg};border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;border:1px solid ${content.seoScore >= 80 ? '#a7f3d0' : content.seoScore >= 50 ? '#fde68a' : '#fecaca'}">
+        <p style="margin:0 0 4px 0;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600">${t('email.aiContent.seoScoreLabel')}</p>
+        <p style="margin:0;font-size:44px;font-weight:800;color:${scoreColor};letter-spacing:-2px">${content.seoScore}<span style="font-size:20px;font-weight:500;color:#94a3b8">/100</span></p>
+      </div>
+
+      <!-- Stats Row -->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px">
+        <tr>
+          <td width="50%" style="padding-right:8px">
+            <div style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-radius:12px;padding:20px;text-align:center;border:1px solid #e2e8f0">
+              <p style="margin:0 0 6px 0;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600">${t('email.aiContent.wordCountLabel')}</p>
+              <p style="margin:0;font-size:32px;font-weight:800;color:#6366f1;letter-spacing:-1px">${wordCount.toLocaleString()}</p>
+            </div>
+          </td>
+          <td width="50%" style="padding-left:8px">
+            <div style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-radius:12px;padding:20px;text-align:center;border:1px solid #e2e8f0">
+              <p style="margin:0 0 6px 0;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600">${t('email.aiContent.faqCountLabel')}</p>
+              <p style="margin:0;font-size:32px;font-weight:800;color:#8b5cf6;letter-spacing:-1px">${faqCount}</p>
+            </div>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA Button -->
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr><td align="center" style="padding:8px 0 16px 0">
+          <a href="${viewUrl}" style="display:inline-block;background:linear-gradient(135deg,#6366f1 0%,#7c3aed 100%);color:#ffffff;padding:16px 40px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;box-shadow:0 4px 14px rgba(99,102,241,0.4);letter-spacing:0.3px">${t('email.aiContent.viewButton')}</a>
+        </td></tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f8fafc;padding:20px 28px;border-top:1px solid #e2e8f0">
+      <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;line-height:1.5">${t('email.aiContent.footer')}</p>
     </div>
   </div>
-  
-  <!-- CTA Button -->
-  <p style="text-align:center;margin:32px 0">
-    <a href="${viewUrl}" style="background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;box-shadow:0 4px 6px rgba(124,58,237,0.25)">${t('email.aiContent.viewButton')}</a>
-  </p>
-  
-  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-  <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0">${t('email.aiContent.footer')}</p>
 </div>
-</div>`;
+</body>
+</html>`;
   }
 
   /**
