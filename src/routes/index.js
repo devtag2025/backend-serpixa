@@ -5,6 +5,8 @@ import seoAuditRoutes from './seoAudit.route.js';
 import geoAuditRoutes from './geoAudit.route.js';
 import gbpAuditRoutes from './gbpAudit.route.js';
 import subscriptionRoutes from './subscription.route.js';
+import locationAdminRoutes from './location.route.js';
+import publicLocationRoutes from './publicLocation.route.js';
 import planRoutes from './plan.route.js';
 import dashboardRoutes from './dashboard.route.js';
 import adminRoutes from './admin.route.js';
@@ -23,6 +25,8 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/plans', planRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/admin', adminRoutes);
+router.use('/admin/locations', locationAdminRoutes);
+router.use('/locations', publicLocationRoutes);
 router.use('/support', supportRoutes);
 
 export default router;

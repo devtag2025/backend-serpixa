@@ -44,10 +44,9 @@ class GeoAuditService {
       // Get language name for DataForSEO API
       const languageName = language ? getLanguageName(language) : 'English';
       
-      // Construct location_name as "City,Region,Country" or "City,Country" (no space after comma as per DataForSEO format)
-      const locationName = region 
-        ? `${city},${region},${country}`
-        : `${city},${country}`;
+      // city now already contains the full DataForSEO location_name
+      // e.g. "Paris,Paris,Ile-de-France,France" from our Location DB
+      const locationName = city || country;
 
       // Fetch data from Google Local Finder API
       const localFinderData = await this.fetchMapsData(keyword, locationName, languageName, googleDomain);
@@ -84,19 +83,15 @@ class GeoAuditService {
       location_name: locationName,
       language_name: languageName,
       depth: 10, // Get top 10 results
+      // Note: se_domain is NOT supported for this endpoint → using default
     }];
-
-    // Add se_domain only if provided (optional)
-    if (googleDomain && googleDomain !== 'google.com') {
-      payload[0].se_domain = googleDomain;
-    }
 
     Logger.log('Sending request to DataForSEO Google Local Finder API:', {
       endpoint: '/v3/serp/google/local_finder/live/advanced',
       keyword: keyword.trim(),
       location_name: locationName,
       language_name: languageName,
-      se_domain: googleDomain || 'not set',
+      se_domain: 'default (not sent)',
     });
 
     const response = await this.client.post('/v3/serp/google/local_finder/live/advanced', payload);
