@@ -157,6 +157,9 @@ const runGeoAudit = validateRequest(Joi.object({
     'string.length': 'Language must be a 2-character code (e.g., "fr", "en", "nl")',
   }),
   businessName: Joi.string().min(1).max(200).optional(),
+  gbpLink: Joi.string().uri().optional().allow('', null).messages({
+    'string.uri': 'GBP link must be a valid URL if provided',
+  }),
   locale: Joi.string().max(10).optional(),
 }));
 

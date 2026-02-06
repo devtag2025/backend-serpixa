@@ -489,13 +489,17 @@ class DataForSEOService {
     const description = this.normalizeForSearch(meta.description || '');
     const h1Values = (meta.htags?.h1 || []).map((h) => this.normalizeForSearch(h));
     const h2Values = (meta.htags?.h2 || []).map((h) => this.normalizeForSearch(h));
-    const plainText = this.normalizeForSearch(
-      meta.content?.plain_text_content || ''
-    );
+
+    // Build full searchable content: body + headings (DataForSEO may put content in different places)
+    const bodyText = meta.content?.plain_text_content || pageData.content?.plain_text_content || '';
+    const headingsText = [...(meta.htags?.h1 || []), ...(meta.htags?.h2 || []), ...(meta.htags?.h3 || [])].join(' ');
+    const fullSearchableText = this.normalizeForSearch((headingsText + ' ' + bodyText).trim() || bodyText);
+    const plainText = fullSearchableText || this.normalizeForSearch(bodyText);
+
     const url = (pageData.url || '').toLowerCase();
 
-    // Count keyword occurrences
-    const keywordPattern = new RegExp(this.escapeRegex(keywordNorm), 'g');
+    // Count keyword occurrences (in full searchable content)
+    const keywordPattern = new RegExp(this.escapeRegex(keywordNorm), 'gi');
     const keywordCount = (plainText.match(keywordPattern) || []).length;
     const wordCount = meta.content?.plain_text_word_count || 1;
     const density = ((keywordCount / wordCount) * 100);
@@ -739,6 +743,36 @@ class DataForSEOService {
     // SERP competitiveness: 45%, Content & structure: 35%, Technical: 20%
     let total =
       serpSimilarity * 0.45 + contentQuality * 0.35 + onPageHealth * 0.2;
+
+    const kw = keywordAnalysis;
+
+    // --- HARD GATE: Keyword not in content → page cannot compete, score must be very low ---
+    if (kw) {
+      if (!kw.inContent) {
+        total = 0;
+        return {
+          total,
+          components: {
+            serpSimilarity: Math.round(serpSimilarity),
+            contentQuality: Math.round(contentQuality),
+            onPageHealth: Math.round(onPageHealth),
+          },
+        };
+      }
+
+      // --- STRONG PENALTY: Keyword barely present (incidental) and missing from key elements ---
+      const occurrences = kw.occurrences ?? 0;
+      const density = kw.density ?? 0;
+      const weaklyRelevant = occurrences <= 2 && density < 0.2 && !kw.inTitle && !kw.inH1;
+      if (weaklyRelevant) {
+        total = Math.min(total, 20);
+      }
+
+      // --- PENALTY: Keyword missing from title, H1, and first 100 words ---
+      if (!kw.inTitle && !kw.inH1 && !kw.inFirst100Words) {
+        total = Math.min(total, weaklyRelevant ? 20 : 30);
+      }
+    }
 
     // Important rule: if content is far below SERP standard, cap the total score
     if (benchmark && benchmark.medianWordCount > 0) {
