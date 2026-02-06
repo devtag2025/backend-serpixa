@@ -401,6 +401,18 @@
         "issue": "Google Business Profile optimization is critical for top 10 rankings",
         "action": "Complete and optimize your Google Business Profile: 1) Add all business information (hours, attributes, services), 2) Upload 10+ high-quality photos, 3) Write a compelling 750+ character description with local keywords, 4) Post updates weekly, 5) Respond to all reviews within 24 hours, 6) Add Q&A section with common questions. A complete GBP profile significantly improves local rankings."
       },
+      "gbpMissingWebsite": {
+        "issue": "Your Google Business Profile is missing a website link",
+        "action": "Add your website URL to your Google Business Profile. This drives traffic, builds authority, and provides a conversion path. Ensure your website has consistent NAP info and location pages."
+      },
+      "gbpMissingPhone": {
+        "issue": "Your Google Business Profile is missing a phone number",
+        "action": "Add a local phone number to your GBP (same area code as your address). Local numbers build trust and improve rankings. Use a tracking number if needed but ensure it's a local format."
+      },
+      "gbpMissingAddress": {
+        "issue": "Your Google Business Profile is missing an address",
+        "action": "Add your complete business address to your Google Business Profile. Use the exact same format everywhere (your website, directories, social media) for NAP consistency."
+      },
       "top3RatingTarget": {
         "issue": "Top 3 competitors average {avgRating}/5 rating - You need {targetRating}+ to compete",
         "action": "To reach top 3, achieve {targetRating}+ rating: 1) Deliver exceptional service consistently, 2) Implement review request system (email, SMS, in-person), 3) Respond to all reviews professionally, 4) Address negative feedback immediately, 5) Train staff on customer service excellence. Top-rated businesses rank higher."
@@ -433,14 +445,22 @@
     "napIssues": {
       "missingName": "{percentage}% of competitors are missing business names",
       "missingAddress": "{percentage}% of competitors are missing addresses",
-      "missingPhone": "{percentage}% of competitors are missing phone numbers"
+      "missingPhone": "{percentage}% of competitors are missing phone numbers",
+      "missingNameUser": "Your Google Business Profile is missing the business name",
+      "missingAddressUser": "Your Google Business Profile is missing the address",
+      "missingPhoneUser": "Your Google Business Profile is missing the phone number"
     },
     "citationIssues": {
       "missingWebsite": "{percentage}% of competitors are missing website URLs",
       "competitorsHaveWebsite": "Most competitors ({percentage}%) have websites listed - ensure yours is included",
       "missingCategory": "{percentage}% of competitors are missing category information",
       "topCompetitorsHaveWebsite": "Top competitors have websites - ensure your website is listed to compete effectively",
-      "topCompetitorsHaveCategory": "Top competitors have categories - ensure your category is properly set"
+      "topCompetitorsHaveCategory": "Top competitors have categories - ensure your category is properly set",
+      "missingWebsiteUser": "Your Google Business Profile is missing a website link",
+      "missingPhoneUser": "Your Google Business Profile is missing a phone number",
+      "missingAddressUser": "Your Google Business Profile is missing an address",
+      "missingCategoryUser": "Your Google Business Profile is missing a business category",
+      "citationDataMayBeLimited": "Competitor citation data from this search may be limited; ensure your Google Business Profile has complete NAP and website."
     }
   },
   "gbp": {

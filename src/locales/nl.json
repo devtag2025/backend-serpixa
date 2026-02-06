@@ -401,6 +401,18 @@
         "issue": "Google Bedrijfsprofiel optimalisatie is cruciaal voor top 10 rankings",
         "action": "Volledig en optimaliseer uw Google Bedrijfsprofiel: 1) Voeg alle bedrijfsinformatie toe (uren, attributen, diensten), 2) Upload 10+ hoogwaardige foto's, 3) Schrijf een overtuigende 750+ karakter beschrijving met lokale trefwoorden, 4) Post wekelijkse updates, 5) Reageer op alle reviews binnen 24 uur, 6) Voeg Q&A sectie toe met veelgestelde vragen. Een compleet GBP profiel verbetert lokale rankings aanzienlijk."
       },
+      "gbpMissingWebsite": {
+        "issue": "Uw Google Business-profiel mist een websitelink",
+        "action": "Voeg de URL van uw website toe aan uw Google Business-profiel. Dit genereert verkeer, versterkt autoriteit en biedt een conversiepad. Zorg dat uw website consistente NAP-informatie en locatiepagina's heeft."
+      },
+      "gbpMissingPhone": {
+        "issue": "Uw Google Business-profiel mist een telefoonnummer",
+        "action": "Voeg een lokaal telefoonnummer toe aan uw GBP (zelfde netnummer als uw adres). Lokale nummers bouwen vertrouwen op en verbeteren rankings. Gebruik een volgnummer indien nodig, maar zorg dat het een lokaal formaat heeft."
+      },
+      "gbpMissingAddress": {
+        "issue": "Uw Google Business-profiel mist een adres",
+        "action": "Voeg uw volledige bedrijfsadres toe aan uw Google Business-profiel. Gebruik overal exact hetzelfde formaat (website, directories, sociale media) voor NAP-consistentie."
+      },
       "top3RatingTarget": {
         "issue": "Top 3 concurrenten hebben gemiddeld {avgRating}/5 beoordeling - U heeft {targetRating}+ nodig om te concurreren",
         "action": "Om top 3 te bereiken, behaal {targetRating}+ beoordeling: 1) Lever consistent uitzonderlijke service, 2) Implementeer review aanvraagsysteem (email, SMS, persoonlijk), 3) Reageer professioneel op alle reviews, 4) Adresseer negatieve feedback onmiddellijk, 5) Train personeel op klantenservice excellentie. Hoogst beoordeelde bedrijven ranken hoger."
@@ -433,14 +445,22 @@
     "napIssues": {
       "missingName": "{percentage}% van de concurrenten missen bedrijfsnamen",
       "missingAddress": "{percentage}% van de concurrenten missen adressen",
-      "missingPhone": "{percentage}% van de concurrenten missen telefoonnummers"
+      "missingPhone": "{percentage}% van de concurrenten missen telefoonnummers",
+      "missingNameUser": "Uw Google Business-profiel mist de bedrijfsnaam",
+      "missingAddressUser": "Uw Google Business-profiel mist het adres",
+      "missingPhoneUser": "Uw Google Business-profiel mist het telefoonnummer"
     },
     "citationIssues": {
       "missingWebsite": "{percentage}% van de concurrenten missen website URL's",
       "competitorsHaveWebsite": "De meeste concurrenten ({percentage}%) hebben websites vermeld - zorg ervoor dat de uwe is opgenomen",
       "missingCategory": "{percentage}% van de concurrenten missen categorie informatie",
       "topCompetitorsHaveWebsite": "Top concurrenten hebben websites - zorg ervoor dat uw website is vermeld om effectief te concurreren",
-      "topCompetitorsHaveCategory": "Top concurrenten hebben categorieën - zorg ervoor dat uw categorie correct is ingesteld"
+      "topCompetitorsHaveCategory": "Top concurrenten hebben categorieën - zorg ervoor dat uw categorie correct is ingesteld",
+      "missingWebsiteUser": "Uw Google Business-profiel mist een websitelink",
+      "missingPhoneUser": "Uw Google Business-profiel mist een telefoonnummer",
+      "missingAddressUser": "Uw Google Business-profiel mist een adres",
+      "missingCategoryUser": "Uw Google Business-profiel mist een bedrijfscategorie",
+      "citationDataMayBeLimited": "Concurrentie-citatiedata voor deze zoekopdracht kan beperkt zijn; zorg dat uw Google Business-profiel volledige NAP- en websitegegevens heeft."
     }
   },
   "gbp": {

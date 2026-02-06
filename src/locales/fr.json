@@ -401,6 +401,18 @@
         "issue": "L'optimisation du Google Business Profile est essentielle pour les classements dans le top 10",
         "action": "Complétez et optimisez votre Google Business Profile : 1) Ajoutez toutes les informations de l'entreprise (heures, attributs, services), 2) Téléchargez 10+ photos de haute qualité, 3) Rédigez une description convaincante de 750+ caractères avec des mots-clés locaux, 4) Publiez des mises à jour hebdomadaires, 5) Répondez à tous les avis dans les 24 heures, 6) Ajoutez une section Q&R avec des questions courantes. Un profil GBP complet améliore considérablement les classements locaux."
       },
+      "gbpMissingWebsite": {
+        "issue": "Votre fiche Google Business manque un lien vers le site web",
+        "action": "Ajoutez l'URL de votre site web à votre fiche Google Business. Cela génère du trafic, renforce l'autorité et offre un parcours de conversion. Assurez-vous que votre site a des informations NAP cohérentes et des pages localisées."
+      },
+      "gbpMissingPhone": {
+        "issue": "Votre fiche Google Business manque un numéro de téléphone",
+        "action": "Ajoutez un numéro de téléphone local à votre GBP (même indicatif régional que votre adresse). Les numéros locaux renforcent la confiance et améliorent le classement. Utilisez un numéro de suivi si nécessaire, mais assurez-vous qu'il soit au format local."
+      },
+      "gbpMissingAddress": {
+        "issue": "Votre fiche Google Business manque une adresse",
+        "action": "Ajoutez l'adresse complète de votre entreprise à votre fiche Google Business. Utilisez exactement le même format partout (site web, annuaires, réseaux sociaux) pour la cohérence NAP."
+      },
       "top3RatingTarget": {
         "issue": "Les 3 meilleurs concurrents ont une note moyenne de {avgRating}/5 - Vous avez besoin de {targetRating}+ pour concurrencer",
         "action": "Pour atteindre le top 3, obtenez une note de {targetRating}+ : 1) Offrez un service exceptionnel de manière constante, 2) Mettez en place un système de demande d'avis (email, SMS, en personne), 3) Répondez à tous les avis professionnellement, 4) Traitez les commentaires négatifs immédiatement, 5) Formez le personnel à l'excellence du service client. Les entreprises les mieux notées se classent plus haut."
@@ -433,14 +445,22 @@
     "napIssues": {
       "missingName": "{percentage}% des concurrents manquent de noms d'entreprise",
       "missingAddress": "{percentage}% des concurrents manquent d'adresses",
-      "missingPhone": "{percentage}% des concurrents manquent de numéros de téléphone"
+      "missingPhone": "{percentage}% des concurrents manquent de numéros de téléphone",
+      "missingNameUser": "Votre fiche Google Business manque le nom de l'entreprise",
+      "missingAddressUser": "Votre fiche Google Business manque l'adresse",
+      "missingPhoneUser": "Votre fiche Google Business manque le numéro de téléphone"
     },
     "citationIssues": {
       "missingWebsite": "{percentage}% des concurrents manquent d'URL de site web",
       "competitorsHaveWebsite": "La plupart des concurrents ({percentage}%) ont des sites web listés - assurez-vous que le vôtre est inclus",
       "missingCategory": "{percentage}% des concurrents manquent d'informations de catégorie",
       "topCompetitorsHaveWebsite": "Les meilleurs concurrents ont des sites web - assurez-vous que votre site web est listé pour concurrencer efficacement",
-      "topCompetitorsHaveCategory": "Les meilleurs concurrents ont des catégories - assurez-vous que votre catégorie est correctement définie"
+      "topCompetitorsHaveCategory": "Les meilleurs concurrents ont des catégories - assurez-vous que votre catégorie est correctement définie",
+      "missingWebsiteUser": "Votre fiche Google Business manque un lien vers le site web",
+      "missingPhoneUser": "Votre fiche Google Business manque un numéro de téléphone",
+      "missingAddressUser": "Votre fiche Google Business manque une adresse",
+      "missingCategoryUser": "Votre fiche Google Business manque une catégorie d'entreprise",
+      "citationDataMayBeLimited": "Les données de citations des concurrents pour cette recherche peuvent être limitées ; assurez-vous que votre fiche Google Business a un NAP et un site web complets."
     }
   },
   "gbp": {
