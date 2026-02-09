@@ -54,6 +54,10 @@ const SEOAuditSchema = new Schema(
       }],
       default: [],
     },
+    keywordAnalysis: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
     serpInfo: {
       type: Schema.Types.Mixed,
       default: null,

@@ -61,6 +61,9 @@ class DataForSEOService {
           url,
           enable_javascript: true,
           enable_browser_rendering: true,
+          // Request additional content fields
+          load_resources: true,
+          enable_xpath: false,
         },
       ]);
 
@@ -157,22 +160,26 @@ class DataForSEOService {
       }
 
       const organicResults = serpData?.items || [];
+      
+      // Use keyword variations for SERP matching too
+      const keywordVariations = this.generateKeywordVariations(keyword.trim());
 
-      const normalizedKeyword = keyword.trim().toLowerCase();
-
+      // Extract top 10 organic competitors
       const competitors = organicResults
         .filter((item) => item.type === 'organic')
         .slice(0, 10)
         .map((item, index) => {
           const title = item.title || '';
           const description = item.description || '';
-
-          // Very rough content length estimate from snippet (no extra API calls)
-          const estimatedWordCount =
-            (description.split(/\s+/).filter(Boolean).length || 0) * 15;
-
-          const keywordInTitle = title.toLowerCase().includes(normalizedKeyword);
-
+          
+          // Check if any keyword variation is in title/description
+          const keywordInTitle = keywordVariations.some(variant => 
+            this.normalizeForSearch(title).includes(variant)
+          );
+          const keywordInDescription = keywordVariations.some(variant => 
+            this.normalizeForSearch(description).includes(variant)
+          );
+          
           const pageType = this.classifyPageType(item.url || '', title);
 
           return {
@@ -182,49 +189,28 @@ class DataForSEOService {
             domain: item.domain || '',
             description,
             breadcrumb: item.breadcrumb || '',
-            estimatedWordCount,
             keywordInTitle,
+            keywordInDescription,
             pageType,
           };
         });
 
-      // Build simple SERP benchmark for this keyword (Top 10)
-      const wordCounts = competitors.map((c) => c.estimatedWordCount || 0);
-      const avgWordCount = Math.round(
-        wordCounts.reduce((sum, v) => sum + v, 0) / Math.max(wordCounts.length, 1)
-      );
+      // Build SERP benchmark based on available data
+      const titleWithKeywordCount = competitors.filter(c => c.keywordInTitle).length;
+      const descWithKeywordCount = competitors.filter(c => c.keywordInDescription).length;
 
-      const sortedWordCounts = [...wordCounts].sort((a, b) => a - b);
-      const medianWordCount =
-        sortedWordCounts.length === 0
-          ? 0
-          : sortedWordCounts.length % 2 === 1
-          ? sortedWordCounts[(sortedWordCounts.length - 1) / 2]
-          : Math.round(
-              (sortedWordCounts[sortedWordCounts.length / 2 - 1] +
-                sortedWordCounts[sortedWordCounts.length / 2]) /
-                2
-            );
+      const percentTitleHasKeyword = competitors.length === 0 ? 0 : titleWithKeywordCount / competitors.length;
+      const percentDescHasKeyword = competitors.length === 0 ? 0 : descWithKeywordCount / competitors.length;
 
-      const titleWithKeywordCount = competitors.filter(
-        (c) => c.keywordInTitle
-      ).length;
-
-      const percentTitleHasKeyword =
-        competitors.length === 0
-          ? 0
-          : titleWithKeywordCount / competitors.length;
-
-      // Very rough dominant page type in Top 10
+      // Determine dominant page type in Top 10
       const pageTypeCounts = competitors.reduce((acc, c) => {
         if (!c.pageType) return acc;
         acc[c.pageType] = (acc[c.pageType] || 0) + 1;
         return acc;
       }, {});
 
-      const dominantPageType =
-        Object.entries(pageTypeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
-        null;
+      const dominantPageType = Object.entries(pageTypeCounts)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
       return {
         keyword,
@@ -233,17 +219,16 @@ class DataForSEOService {
         device,
         competitors,
         totalResults: competitors.length,
-        avgCompetitorWordCount: Math.max(avgWordCount, 1200), // Minimum estimate (kept for backwards compat)
         searchInfo: {
           seResultsCount: serpData?.se_results_count || 0,
           checkUrl: serpData?.check_url || '',
           datetime: serpData?.datetime || new Date().toISOString(),
         },
         benchmark: {
-          avgWordCount,
-          medianWordCount,
           percentTitleHasKeyword,
+          percentDescHasKeyword,
           dominantPageType,
+          topCompetitorsAnalysis: this.analyzeTopCompetitors(competitors),
         },
       };
     } catch (error) {
@@ -262,6 +247,184 @@ class DataForSEOService {
       }
       return null;
     }
+  }
+
+  /**
+   * Analyze patterns in top competitors
+   */
+  analyzeTopCompetitors(competitors) {
+    if (!competitors || competitors.length === 0) return null;
+
+    const top3 = competitors.slice(0, 3);
+    const top5 = competitors.slice(0, 5);
+
+    return {
+      top3KeywordInTitle: top3.filter(c => c.keywordInTitle).length,
+      top5KeywordInTitle: top5.filter(c => c.keywordInTitle).length,
+      top3KeywordInDescription: top3.filter(c => c.keywordInDescription).length,
+      avgTitleLength: Math.round(
+        competitors.reduce((sum, c) => sum + (c.title?.length || 0), 0) / competitors.length
+      ),
+      avgDescriptionLength: Math.round(
+        competitors.reduce((sum, c) => sum + (c.description?.length || 0), 0) / competitors.length
+      ),
+    };
+  }
+
+  /**
+   * Extract comprehensive text content from pageData
+   * Falls back to HTML parsing if plain_text_content is insufficient
+   */
+  extractPageContent(pageData, meta) {
+    // Primary: Use DataForSEO's extracted plain text
+    let primaryContent = meta.content?.plain_text_content || pageData.content?.plain_text_content || '';
+    
+    // Fallback: If plain_text_content is empty or very short, try HTML extraction
+    if (!primaryContent || primaryContent.length < 100) {
+      const html = pageData.page_content || meta.content?.html_content || '';
+      if (html) {
+        primaryContent = this.stripHTML(html);
+        Logger.info(`Used HTML fallback for content extraction. Length: ${primaryContent.length}`);
+      }
+    }
+    
+    // Additional content sources to check
+    const additionalSources = [
+      meta.description,
+      ...(meta.htags?.h1 || []),
+      ...(meta.htags?.h2 || []),
+      ...(meta.htags?.h3 || []),
+    ].filter(Boolean).join(' ');
+    
+    // Combine all sources
+    const fullContent = [primaryContent, additionalSources].filter(Boolean).join(' ');
+    
+    return fullContent;
+  }
+
+  /**
+   * Build content from available meta fields when plain_text_content is unavailable
+   */
+  buildContentFromMeta(meta) {
+    const parts = [];
+    
+    // Add title
+    if (meta.title) parts.push(meta.title);
+    
+    // Add description
+    if (meta.description) parts.push(meta.description);
+    
+    // Add all headings
+    if (meta.htags) {
+      const headings = [
+        ...(meta.htags.h1 || []),
+        ...(meta.htags.h2 || []),
+        ...(meta.htags.h3 || []),
+        ...(meta.htags.h4 || []),
+        ...(meta.htags.h5 || []),
+        ...(meta.htags.h6 || []),
+      ];
+      parts.push(...headings);
+    }
+    
+    return parts.filter(Boolean).join(' ');
+  }
+
+  /**
+   * Strip HTML tags and decode entities
+   */
+  stripHTML(html) {
+    if (!html) return '';
+    
+    return html
+      // Remove script and style tags with their content
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
+      // Remove HTML comments
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      // Remove all HTML tags
+      .replace(/<[^>]+>/g, ' ')
+      // Decode common HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&[a-z]+;/gi, ' ')
+      // Collapse whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Generate keyword variations for better matching
+   * Handles: singular/plural, with/without hyphens, accents
+   */
+  generateKeywordVariations(keyword) {
+    const variations = new Set();
+    const normalized = this.normalizeForSearch(keyword);
+    
+    variations.add(normalized);
+    
+    // Add plural forms
+    if (!normalized.endsWith('s')) {
+      variations.add(normalized + 's');
+      // Handle words ending in 'y' -> 'ies'
+      if (normalized.endsWith('y') && normalized.length > 2) {
+        variations.add(normalized.slice(0, -1) + 'ies');
+      }
+    } else {
+      // Remove 's' for singular
+      variations.add(normalized.slice(0, -1));
+    }
+    
+    // Handle hyphenated versions
+    if (normalized.includes(' ')) {
+      variations.add(normalized.replace(/\s+/g, '-'));
+      variations.add(normalized.replace(/\s+/g, ''));
+    }
+    
+    if (normalized.includes('-')) {
+      variations.add(normalized.replace(/-/g, ' '));
+      variations.add(normalized.replace(/-/g, ''));
+    }
+    
+    return Array.from(variations);
+  }
+
+  /**
+   * Check if any keyword variation exists in text
+   */
+  keywordExistsInText(keyword, text) {
+    const variations = this.generateKeywordVariations(keyword);
+    const textNorm = this.normalizeForSearch(text);
+    
+    return variations.some(variant => textNorm.includes(variant));
+  }
+
+  /**
+   * Count all keyword variation occurrences
+   */
+  countKeywordOccurrences(keyword, text) {
+    const variations = this.generateKeywordVariations(keyword);
+    const textNorm = this.normalizeForSearch(text);
+    
+    let totalCount = 0;
+    const foundVariations = [];
+    
+    for (const variant of variations) {
+      const pattern = new RegExp('\\b' + this.escapeRegex(variant) + '\\b', 'gi');
+      const matches = textNorm.match(pattern);
+      const count = matches ? matches.length : 0;
+      
+      if (count > 0) {
+        totalCount += count;
+        foundVariations.push({ variant, count });
+      }
+    }
+    
+    return { totalCount, foundVariations };
   }
 
   transformOnPageResult(data, url, keyword, serpData = null, lang = 'en') {
@@ -294,7 +457,7 @@ class DataForSEOService {
       ? this.analyzeKeyword(keyword, meta, pageData, serpData, lang)
       : null;
 
-    // Compute new SEO score based on SERP benchmark, content & technical health
+    // Compute SEO score with transparent component breakdown
     const scoring = this.computeSEOScore({
       pageData,
       meta,
@@ -310,6 +473,7 @@ class DataForSEOService {
       serpData,
       pageData,
       meta,
+      scoring,
       lang
     );
 
@@ -317,6 +481,11 @@ class DataForSEOService {
       url,
       keyword,
       score: Math.round(scoring.total * 100) / 100,
+      scoreBreakdown: {
+        total: Math.round(scoring.total * 100) / 100,
+        components: scoring.components,
+        explanation: scoring.explanation,
+      },
       checks,
       keywordAnalysis,
       recommendations,
@@ -327,10 +496,8 @@ class DataForSEOService {
             language: serpData.language,
             device: serpData.device,
             totalResults: serpData.totalResults,
-            avgCompetitorWordCount: serpData.avgCompetitorWordCount,
-            benchmark: serpData.benchmark || null,
+            benchmark: serpData.benchmark,
             searchInfo: serpData.searchInfo,
-            componentScores: scoring.components,
           }
         : null,
       raw: data,
@@ -358,22 +525,27 @@ class DataForSEOService {
     const h2Count = meta.htags?.h2?.length || 0;
     const h3Count = meta.htags?.h3?.length || 0;
     const wordCount = meta.content?.plain_text_word_count || 0;
+    
+    // CRITICAL FIX: Links and images data is in meta, not pageData
+    const internalLinksCount = meta.internal_links_count || 0;
+    const externalLinksCount = meta.external_links_count || 0;
+    const imagesCount = meta.images_count || 0;
+    
     // DataForSEO returns timing values in milliseconds – convert to seconds
     const rawLoadTime = pageData.page_timing?.time_to_interactive;
-    const loadTime =
-      typeof rawLoadTime === 'number' ? rawLoadTime / 1000 : null;
+    const loadTime = typeof rawLoadTime === 'number' ? rawLoadTime / 1000 : null;
 
     // Calculate status based on best practices
     const getTitleStatus = () => {
       if (!meta.title) return 'poor';
       if (titleLength >= 50 && titleLength <= 60) return 'good';
-      if (titleLength >= 30 && titleLength <= 70) return 'needsImprovement';
+      if (titleLength >= 40 && titleLength <= 70) return 'needsImprovement';
       return 'poor';
     };
 
     const getDescStatus = () => {
       if (!meta.description) return 'poor';
-      if (descLength >= 150 && descLength <= 160) return 'good';
+      if (descLength >= 140 && descLength <= 160) return 'good';
       if (descLength >= 120 && descLength <= 170) return 'needsImprovement';
       return 'poor';
     };
@@ -386,7 +558,7 @@ class DataForSEOService {
 
     const getWordCountStatus = () => {
       if (wordCount >= 1500) return 'good';
-      if (wordCount >= 600) return 'needsImprovement';
+      if (wordCount >= 800) return 'needsImprovement';
       return 'poor';
     };
 
@@ -410,7 +582,7 @@ class DataForSEOService {
         value: meta.description || null,
         length: descLength,
         lengthLabel: t(lang, 'seo.labels.length'),
-        optimal: descLength >= 150 && descLength <= 160,
+        optimal: descLength >= 140 && descLength <= 160,
         optimalLabel: t(lang, 'seo.labels.optimal'),
         status: getDescStatus(),
         statusLabel: t(lang, `seo.labels.${getDescStatus()}`),
@@ -430,8 +602,8 @@ class DataForSEOService {
         count: h2Count,
         countLabel: t(lang, 'seo.labels.count'),
         values: meta.htags?.h2 || [],
-        status: h2Count >= 3 ? 'good' : h2Count > 0 ? 'needsImprovement' : 'poor',
-        statusLabel: t(lang, `seo.labels.${h2Count >= 3 ? 'good' : h2Count > 0 ? 'needsImprovement' : 'poor'}`),
+        status: h2Count >= 5 ? 'good' : h2Count >= 3 ? 'needsImprovement' : 'poor',
+        statusLabel: t(lang, `seo.labels.${h2Count >= 5 ? 'good' : h2Count >= 3 ? 'needsImprovement' : 'poor'}`),
       },
       h3: {
         label: t(lang, 'seo.checks.h3'),
@@ -449,29 +621,29 @@ class DataForSEOService {
       },
       images: {
         label: t(lang, 'seo.checks.images'),
-        total: pageData.images?.images_count || 0,
+        total: imagesCount,
         totalLabel: t(lang, 'seo.labels.total'),
-        withoutAlt: pageData.images?.images_without_alt || 0,
+        withoutAlt: 0, // DataForSEO instant_pages doesn't provide images_without_alt in this response structure
         withoutAltLabel: t(lang, 'seo.labels.withoutAlt'),
-        status: (pageData.images?.images_without_alt || 0) === 0 ? 'good' : 'needsImprovement',
-        statusLabel: t(lang, `seo.labels.${(pageData.images?.images_without_alt || 0) === 0 ? 'good' : 'needsImprovement'}`),
+        status: imagesCount > 0 ? 'good' : 'needsImprovement',
+        statusLabel: t(lang, `seo.labels.${imagesCount > 0 ? 'good' : 'needsImprovement'}`),
       },
       links: {
         label: t(lang, 'seo.checks.links'),
-        internal: pageData.links?.internal?.count || 0,
+        internal: internalLinksCount,
         internalLabel: t(lang, 'seo.labels.internal'),
-        external: pageData.links?.external?.count || 0,
+        external: externalLinksCount,
         externalLabel: t(lang, 'seo.labels.external'),
-        broken: pageData.links?.broken?.count || 0,
+        broken: 0, // DataForSEO instant_pages shows broken_links as boolean, not count
         brokenLabel: t(lang, 'seo.labels.broken'),
-        status: (pageData.links?.broken?.count || 0) === 0 ? 'good' : 'poor',
-        statusLabel: t(lang, `seo.labels.${(pageData.links?.broken?.count || 0) === 0 ? 'good' : 'poor'}`),
+        status: pageData.broken_links ? 'poor' : 'good',
+        statusLabel: t(lang, `seo.labels.${pageData.broken_links ? 'poor' : 'good'}`),
       },
       loadTime: {
         label: t(lang, 'seo.checks.loadTime'),
         value: loadTime,
-        status: loadTime !== null && loadTime < 3 ? 'good' : loadTime !== null && loadTime < 5 ? 'needsImprovement' : 'poor',
-        statusLabel: loadTime !== null ? t(lang, `seo.labels.${loadTime < 3 ? 'good' : loadTime < 5 ? 'needsImprovement' : 'poor'}`) : t(lang, 'common.notAvailable'),
+        status: loadTime !== null && loadTime < 2.5 ? 'good' : loadTime !== null && loadTime < 4 ? 'needsImprovement' : 'poor',
+        statusLabel: loadTime !== null ? t(lang, `seo.labels.${loadTime < 2.5 ? 'good' : loadTime < 4 ? 'needsImprovement' : 'poor'}`) : t(lang, 'common.notAvailable'),
       },
       wordCount: {
         label: t(lang, 'seo.checks.wordCount'),
@@ -483,78 +655,160 @@ class DataForSEOService {
   }
 
   analyzeKeyword(keyword, meta, pageData, serpData = null, lang = 'en') {
-    // Normalize keyword and content (lowercase + remove accents) to reduce false negatives
-    const keywordNorm = this.normalizeForSearch(keyword);
+    // Generate keyword variations for flexible matching
+    const keywordVariations = this.generateKeywordVariations(keyword);
+    
+    // RELIABLE STRATEGY:
+    // 1. ALWAYS use API's plain_text_word_count (it's reliable even though we can't see the text)
+    // 2. Search for keywords in available text (headings + meta description)
+    // 3. Approximate density based on keyword occurrences in headings vs total word count
+    
+    const apiWordCount = meta.content?.plain_text_word_count || 0;
+    
+    // Build searchable text from what we have (headings + meta)
+    const allHeadings = [
+      ...(meta.htags?.h1 || []),
+      ...(meta.htags?.h2 || []),
+      ...(meta.htags?.h3 || []),
+      ...(meta.htags?.h4 || []),
+      ...(meta.htags?.h5 || []),
+      ...(meta.htags?.h6 || []),
+    ].join(' ');
+    
+    const metaDesc = meta.description || '';
+    const metaTitle = meta.title || '';
+    
+    // Combine all available text for keyword searching
+    const searchableText = [allHeadings, metaDesc, metaTitle].filter(Boolean).join(' ');
+    const plainText = this.normalizeForSearch(searchableText);
+    
+    // ALWAYS use API word count - it's the most reliable
+    const wordCount = apiWordCount || 0;
+    
+    let contentSource = 'api_word_count';
+    
+    // Log warning if we have no word count
+    if (wordCount === 0) {
+      Logger.warn(`[Word Count] API returned 0 word count for analysis. This will affect scoring.`);
+      contentSource = 'no_content';
+    }
+    
+    Logger.info(`[Content Analysis] Using API word count: ${wordCount}, Searchable text length: ${plainText.length}`);
+
+    // Normalize meta elements (for keyword position checking)
     const title = this.normalizeForSearch(meta.title || '');
     const description = this.normalizeForSearch(meta.description || '');
-    const h1Values = (meta.htags?.h1 || []).map((h) => this.normalizeForSearch(h));
-    const h2Values = (meta.htags?.h2 || []).map((h) => this.normalizeForSearch(h));
-
-    // Build full searchable content: body + headings (DataForSEO may put content in different places)
-    const bodyText = meta.content?.plain_text_content || pageData.content?.plain_text_content || '';
-    const headingsText = [...(meta.htags?.h1 || []), ...(meta.htags?.h2 || []), ...(meta.htags?.h3 || [])].join(' ');
-    const fullSearchableText = this.normalizeForSearch((headingsText + ' ' + bodyText).trim() || bodyText);
-    const plainText = fullSearchableText || this.normalizeForSearch(bodyText);
-
+    const h1Values = (meta.htags?.h1 || []).map(h => this.normalizeForSearch(h));
+    const h2Values = (meta.htags?.h2 || []).map(h => this.normalizeForSearch(h));
     const url = (pageData.url || '').toLowerCase();
 
-    // Count keyword occurrences (in full searchable content)
-    const keywordPattern = new RegExp(this.escapeRegex(keywordNorm), 'gi');
-    const keywordCount = (plainText.match(keywordPattern) || []).length;
-    const wordCount = meta.content?.plain_text_word_count || 1;
-    const density = ((keywordCount / wordCount) * 100);
+    // Check keyword presence using variations
+    const inTitle = this.keywordExistsInText(keyword, title);
+    const inDescription = this.keywordExistsInText(keyword, description);
+    const inH1 = h1Values.some(h => this.keywordExistsInText(keyword, h));
+    const inH2 = h2Values.some(h => this.keywordExistsInText(keyword, h));
+    const inContent = this.keywordExistsInText(keyword, plainText);
+    
+    // URL check with variations
+    const inUrl = keywordVariations.some(variant => 
+      url.includes(variant.replace(/\s+/g, '-')) || url.includes(variant.replace(/\s+/g, ''))
+    );
 
-    // Check positions
-    const inTitle = title.includes(keywordNorm);
-    const inDescription = description.includes(keywordNorm);
-    const inH1 = h1Values.some((h) => h.includes(keywordNorm));
-    const inH2 = h2Values.some((h) => h.includes(keywordNorm));
-    const inContent = plainText.includes(keywordNorm);
-    const inUrl =
-      url.includes(keywordNorm.replace(/\s+/g, '-')) ||
-      url.includes(keywordNorm.replace(/\s+/g, ''));
+    // Count all keyword variation occurrences in the content
+    // NOTE: We search in plainText (body + headings) for comprehensive counting
+    const { totalCount: keywordCount, foundVariations } = this.countKeywordOccurrences(keyword, plainText);
+    
+    // Calculate density (modern SEO: 0.3-1.5% is natural)
+    const density = wordCount > 0 ? ((keywordCount / wordCount) * 100) : 0;
 
-    // Check if keyword is in first 100 words
+    // Check if keyword appears in first 100 words (important for relevance)
     const first100Words = plainText.split(/\s+/).slice(0, 100).join(' ');
-    const inFirst100Words = first100Words.includes(keywordNorm);
+    const inFirst100Words = this.keywordExistsInText(keyword, first100Words);
 
-    // Density analysis
-    const densityOptimal = density >= 1 && density <= 2;
-    const densityStatus = density < 0.5 ? 'poor' : density > 3 ? 'poor' : density >= 1 && density <= 2 ? 'good' : 'needsImprovement';
+    // Modern density standards (relaxed from old 1-2% rule)
+    const densityOptimal = density >= 0.5 && density <= 1.5;
+    const densityStatus = 
+      density === 0 ? 'poor' :
+      density < 0.3 ? 'poor' :
+      density >= 0.5 && density <= 1.5 ? 'good' :
+      density > 3 ? 'poor' :
+      'needsImprovement';
 
-    // Calculate recommended occurrences
-    const recommendedMin = Math.max(1, Math.round(wordCount * 0.01));
-    const recommendedMax = Math.round(wordCount * 0.02);
+    // Calculate recommended occurrences (0.5-1.5% range)
+    const recommendedMin = Math.max(1, Math.round(wordCount * 0.005));
+    const recommendedMax = Math.round(wordCount * 0.015);
 
-    // Competitor comparison
-    const competitorAvgWordCount = serpData?.avgCompetitorWordCount || 1200;
+    // SERP competitive analysis
+    let serpComparison = null;
+    if (serpData?.benchmark) {
+      const bench = serpData.benchmark;
+      serpComparison = {
+        competitorsWithKeywordInTitle: Math.round(bench.percentTitleHasKeyword * 100),
+        competitorsWithKeywordInDesc: Math.round(bench.percentDescHasKeyword * 100),
+        yourTitleHasKeyword: inTitle,
+        yourDescHasKeyword: inDescription,
+        titleCompetitiveness: inTitle ? 'competitive' : bench.percentTitleHasKeyword > 0.7 ? 'weak' : 'moderate',
+      };
+    }
+
+    // Debug logging
+    if (process.env.DEBUG_SEO_KEYWORD === '1' || !inContent) {
+      Logger.info('[SEO Keyword Analysis]', {
+        keyword,
+        variations: keywordVariations,
+        foundVariations,
+        inContent,
+        inTitle,
+        inH1,
+        inDescription,
+        wordCount: wordCount,
+        wordCountSource: 'api_plain_text_word_count',
+        searchableTextLength: plainText.length,
+        contentSource,
+        density: `${density.toFixed(2)}%`,
+        headingsAvailable: allHeadings.length > 0,
+        contentPreview: plainText.substring(0, 200),
+      });
+    }
 
     return {
       title: t(lang, 'seo.keywordAnalysis.title'),
       keyword,
+      keywordVariationsFound: foundVariations, // Show which variations were found
+      
+      // Presence checks
       inTitle,
       inTitleLabel: t(lang, 'seo.keywordAnalysis.inTitle'),
       inTitleValue: inTitle ? t(lang, 'common.yes') : t(lang, 'common.no'),
+      
       inDescription,
       inDescriptionLabel: t(lang, 'seo.keywordAnalysis.inDescription'),
       inDescriptionValue: inDescription ? t(lang, 'common.yes') : t(lang, 'common.no'),
+      
       inH1,
       inH1Label: t(lang, 'seo.keywordAnalysis.inH1'),
       inH1Value: inH1 ? t(lang, 'common.yes') : t(lang, 'common.no'),
+      
       inH2,
       inH2Label: t(lang, 'seo.keywordAnalysis.inH2'),
       inH2Value: inH2 ? t(lang, 'common.yes') : t(lang, 'common.no'),
+      
       inContent,
       inContentLabel: t(lang, 'seo.keywordAnalysis.inContent'),
       inContentValue: inContent ? t(lang, 'common.yes') : t(lang, 'common.no'),
+      
       inUrl,
       inUrlLabel: t(lang, 'seo.keywordAnalysis.inUrl'),
       inUrlValue: inUrl ? t(lang, 'common.yes') : t(lang, 'common.no'),
+      
       inFirst100Words,
       inFirst100WordsLabel: t(lang, 'seo.keywordAnalysis.inFirst100Words'),
       inFirst100WordsValue: inFirst100Words ? t(lang, 'common.yes') : t(lang, 'common.no'),
+      
+      // Density metrics (counts all variations)
       occurrences: keywordCount,
       occurrencesLabel: t(lang, 'seo.keywordAnalysis.occurrences'),
+      
       density: parseFloat(density.toFixed(2)),
       densityLabel: t(lang, 'seo.keywordAnalysis.density'),
       densityOptimal,
@@ -562,11 +816,14 @@ class DataForSEOService {
       densityOptimalValue: densityOptimal ? t(lang, 'common.yes') : t(lang, 'common.no'),
       densityStatus,
       densityStatusLabel: t(lang, `seo.labels.${densityStatus}`),
+      
       recommendedOccurrences: `${recommendedMin}-${recommendedMax}`,
       recommendedOccurrencesLabel: t(lang, 'seo.keywordAnalysis.recommendedOccurrences'),
-      competitorAvgWordCount,
-      competitorAvgWordCountLabel: t(lang, 'seo.keywordAnalysis.competitorAvgWordCount'),
+      
       wordCount,
+      
+      // SERP competitive context
+      serpComparison,
     };
   }
 
@@ -578,10 +835,8 @@ class DataForSEOService {
     return (str || '')
       .toString()
       .toLowerCase()
-      // Remove accents/diacritics
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
-      // Collapse whitespace
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -590,384 +845,672 @@ class DataForSEOService {
     const u = (url || '').toLowerCase();
     const t = (title || '').toLowerCase();
 
-    if (u.includes('/blog/') || u.includes('/news/') || t.includes('blog')) {
+    if (u.includes('/blog/') || u.includes('/news/') || u.includes('/article/') || t.includes('blog')) {
       return 'blog';
     }
-    if (
-      u.includes('/category/') ||
-      u.includes('/categories/') ||
-      u.includes('/collection/') ||
-      t.includes('category')
-    ) {
+    if (u.includes('/category/') || u.includes('/categories/') || u.includes('/collection/') || t.includes('category')) {
       return 'category';
     }
-    if (
-      u.includes('/product/') ||
-      u.includes('/services/') ||
-      u.includes('/service/') ||
-      t.includes('pricing')
-    ) {
+    if (u.includes('/product/') || u.includes('/p/') || t.includes('buy') || t.includes('product')) {
+      return 'product';
+    }
+    if (u.includes('/service') || t.includes('pricing') || t.includes('plans')) {
       return 'landing';
     }
     return 'other';
   }
 
   /**
-   * Compute overall SEO score using SERP benchmark, content/structure and technical health.
-   * Returns total (0-100) and component scores so UI can explain the result.
+   * Compute SEO score with transparent component breakdown
+   * Returns total (0-100) and detailed component scores
    */
   computeSEOScore({ pageData, meta, keywordAnalysis, serpData, checks }) {
-    const wordCount = meta.content?.plain_text_word_count || 0;
-
-    const benchmark = serpData?.benchmark || null;
-
-    // --- SERP Competitiveness (0-100) ---
-    let serpSimilarity = 0;
-    if (benchmark) {
-      const medianWC = benchmark.medianWordCount || benchmark.avgWordCount || 0;
-
-      // Content length vs SERP median
-      let lengthScore = 0;
-      if (medianWC > 0) {
-        const ratio = wordCount / medianWC;
-        if (ratio >= 1) {
-          lengthScore = 100;
-        } else if (ratio >= 0.7) {
-          // Between 70% and 100% of median → 60–100
-          lengthScore = 60 + ((ratio - 0.7) / 0.3) * 40;
-        } else {
-          // Below 70% → up to 60 but strongly penalized
-          lengthScore = Math.max(10, (ratio / 0.7) * 60);
-        }
-      }
-
-      // Keyword usage in key elements vs SERP
-      let keywordScore = 0;
-      if (keywordAnalysis) {
-        const serpTitleRate = benchmark.percentTitleHasKeyword || 0;
-        // If most competitors have keyword in title, missing it is a strong penalty
-        if (serpTitleRate >= 0.7) {
-          keywordScore = keywordAnalysis.inTitle ? 100 : 25;
-        } else {
-          keywordScore = keywordAnalysis.inTitle ? 100 : 60;
-        }
-
-        // Bonus for keyword also appearing in H1 and first 100 words
-        if (keywordAnalysis.inH1) keywordScore += 10;
-        if (keywordAnalysis.inFirst100Words) keywordScore += 10;
-        keywordScore = Math.min(keywordScore, 100);
-      }
-
-      // Heading structure vs simple best practice (we don't have SERP headings)
-      const h2Count = checks.h2?.count || 0;
-      const h3Count = checks.h3?.count || 0;
-      let structureScore = 0;
-      if (h2Count >= 4 && h3Count >= 2) structureScore = 100;
-      else if (h2Count >= 2) structureScore = 70;
-      else if (h2Count > 0) structureScore = 50;
-      else structureScore = 20;
-
-      // Very rough page type alignment
-      let pageTypeScore = 70;
-      const dominantType = benchmark.dominantPageType;
-      const pageType = this.classifyPageType(pageData.url || '', meta.title || '');
-      if (dominantType && pageType) {
-        pageTypeScore = dominantType === pageType ? 100 : 60;
-      }
-
-      serpSimilarity =
-        (lengthScore * 0.5 +
-          keywordScore * 0.25 +
-          structureScore * 0.15 +
-          pageTypeScore * 0.1);
-    }
-
-    serpSimilarity = Math.max(0, Math.min(100, serpSimilarity));
-
-    // --- Content & Structure Quality (0-100) ---
-    let contentQuality = 0;
-    const h2Count = checks.h2?.count || 0;
-    const h3Count = checks.h3?.count || 0;
-
-    // Base on word count alone if no SERP data
-    let baseContentScore = 50;
-    if (wordCount >= 2000) baseContentScore = 95;
-    else if (wordCount >= 1500) baseContentScore = 85;
-    else if (wordCount >= 800) baseContentScore = 70;
-    else if (wordCount >= 400) baseContentScore = 50;
-    else baseContentScore = 30;
-
-    // Heading richness
-    let headingScore = 50;
-    if (h2Count >= 6) headingScore = 95;
-    else if (h2Count >= 3) headingScore = 80;
-    else if (h2Count >= 1) headingScore = 60;
-    else headingScore = 30;
-
-    // Keyword placement
-    let keywordPlacementScore = 50;
-    if (keywordAnalysis) {
-      let pts = 0;
-      if (keywordAnalysis.inTitle) pts += 30;
-      if (keywordAnalysis.inH1) pts += 25;
-      if (keywordAnalysis.inDescription) pts += 15;
-      if (keywordAnalysis.inContent) pts += 20;
-      if (keywordAnalysis.inFirst100Words) pts += 10;
-      keywordPlacementScore = Math.min(pts, 100);
-    }
-
-    contentQuality =
-      baseContentScore * 0.4 +
-      headingScore * 0.3 +
-      keywordPlacementScore * 0.3;
-
-    contentQuality = Math.max(0, Math.min(100, contentQuality));
-
-    // --- Technical On‑Page Health (0-100) ---
-    const rawOnPageScore = pageData.onpage_score || 0; // 0–1 from DataForSEO
-    let onPageHealth = Math.max(0, Math.min(100, rawOnPageScore * 100));
-
-    // Adjust for critical technical issues
-    if (checks.links?.broken > 0) {
-      onPageHealth -= 15;
-    }
-    if (!checks.canonical?.exists) {
-      onPageHealth -= 10;
-    }
-    if (checks.loadTime?.value && checks.loadTime.value > 5) {
-      onPageHealth -= 10;
-    }
-    onPageHealth = Math.max(0, Math.min(100, onPageHealth));
-
-    // --- Final weighted SEO score ---
-    // SERP competitiveness: 45%, Content & structure: 35%, Technical: 20%
-    let total =
-      serpSimilarity * 0.45 + contentQuality * 0.35 + onPageHealth * 0.2;
-
+    // Use word count from keyword analysis (uses API count with fallback)
+    // This ensures we use the same count that density was calculated against
+    const wordCount = keywordAnalysis?.wordCount || meta.content?.plain_text_word_count || 0;
     const kw = keywordAnalysis;
 
-    // --- HARD GATE: Keyword not in content → page cannot compete, score must be very low ---
-    if (kw) {
+    let explanation = {
+      keywordRelevance: '',
+      contentQuality: '',
+      technicalHealth: '',
+      finalAdjustments: '',
+    };
+
+    // ===================================================================
+    // 1. KEYWORD RELEVANCE SCORE (0-100) - Weight: 40%
+    // ===================================================================
+    let keywordRelevance = 0;
+
+    if (!kw) {
+      keywordRelevance = 50; // No keyword provided = neutral score
+      explanation.keywordRelevance = 'No target keyword provided for analysis.';
+    } else {
+      // HARD GATE: Keyword must appear in content
       if (!kw.inContent) {
-        total = 0;
+        keywordRelevance = 0;
+        const variations = this.generateKeywordVariations(kw.keyword).join(', ');
+        explanation.keywordRelevance = `Target keyword "${kw.keyword}" (including variations: ${variations}) not found in page content. Page cannot rank without keyword presence.`;
+        
         return {
-          total,
+          total: 0,
           components: {
-            serpSimilarity: Math.round(serpSimilarity),
-            contentQuality: Math.round(contentQuality),
-            onPageHealth: Math.round(onPageHealth),
+            keywordRelevance: 0,
+            contentQuality: 0,
+            technicalHealth: 0,
           },
+          explanation,
         };
       }
 
-      // --- STRONG PENALTY: Keyword barely present (incidental) and missing from key elements ---
-      const occurrences = kw.occurrences ?? 0;
-      const density = kw.density ?? 0;
-      const weaklyRelevant = occurrences <= 2 && density < 0.2 && !kw.inTitle && !kw.inH1;
-      if (weaklyRelevant) {
-        total = Math.min(total, 20);
+      // Build keyword relevance score from critical elements
+      let kwPoints = 0;
+      const reasons = [];
+
+      // Title (most important - 30 points)
+      if (kw.inTitle) {
+        kwPoints += 30;
+        reasons.push('✓ Keyword in title (+30)');
+      } else {
+        reasons.push('✗ Keyword missing from title (0/30)');
       }
 
-      // --- PENALTY: Keyword missing from title, H1, and first 100 words ---
-      if (!kw.inTitle && !kw.inH1 && !kw.inFirst100Words) {
-        total = Math.min(total, weaklyRelevant ? 20 : 30);
+      // H1 (very important - 25 points)
+      if (kw.inH1) {
+        kwPoints += 25;
+        reasons.push('✓ Keyword in H1 (+25)');
+      } else {
+        reasons.push('✗ Keyword missing from H1 (0/25)');
+      }
+
+      // First 100 words (important for relevance - 20 points)
+      if (kw.inFirst100Words) {
+        kwPoints += 20;
+        reasons.push('✓ Keyword in first 100 words (+20)');
+      } else {
+        reasons.push('✗ Keyword not in first 100 words (0/20)');
+      }
+
+      // Meta description (15 points)
+      if (kw.inDescription) {
+        kwPoints += 15;
+        reasons.push('✓ Keyword in meta description (+15)');
+      } else {
+        reasons.push('✗ Keyword missing from meta description (0/15)');
+      }
+
+      // Keyword density (10 points max)
+      const density = kw.density;
+      if (density >= 1.0 && density <= 1.5) {
+        kwPoints += 10;
+        reasons.push(`✓ Optimal keyword density ${density.toFixed(2)}% (+10)`);
+      } else if (density >= 0.8 && density < 1.0) {
+        kwPoints += 8;
+        reasons.push(`✓ Good keyword density ${density.toFixed(2)}% (+8)`);
+      } else if (density >= 0.5 && density < 0.8) {
+        kwPoints += 6;
+        reasons.push(`◐ Moderate keyword density ${density.toFixed(2)}% (+6)`);
+      } else if (density >= 0.3 && density < 0.5) {
+        kwPoints += 4;
+        reasons.push(`◐ Low keyword density ${density.toFixed(2)}% (+4)`);
+      } else if (density > 0 && density < 0.3) {
+        kwPoints += 1;
+        reasons.push(`✗ Very low keyword density ${density.toFixed(2)}% (+1, needs significant improvement)`);
+      } else if (density > 1.5 && density <= 2.5) {
+        kwPoints += 7;
+        reasons.push(`◐ High keyword density ${density.toFixed(2)}% (+7)`);
+      } else if (density > 2.5) {
+        kwPoints += 2;
+        reasons.push(`✗ Excessive keyword density ${density.toFixed(2)}% (+2, keyword stuffing risk)`);
+      } else {
+        reasons.push(`✗ No keyword density (0/10)`);
+      }
+
+      // Show which variations were found
+      if (kw.keywordVariationsFound && kw.keywordVariationsFound.length > 0) {
+        const variantStr = kw.keywordVariationsFound.map(v => `"${v.variant}" (${v.count}×)`).join(', ');
+        reasons.push(`Found variations: ${variantStr}`);
+      }
+
+      keywordRelevance = Math.min(kwPoints, 100);
+      
+      // CRITICAL: Apply immediate penalties for missing essential placements
+      // These are NON-NEGOTIABLE for ranking
+      if (!kw.inTitle) {
+        keywordRelevance = Math.max(0, keywordRelevance - 40);
+        reasons.push(`⚠ CRITICAL PENALTY: Keyword missing from title (-40 points)`);
+      }
+      
+      if (!kw.inH1) {
+        keywordRelevance = Math.max(0, keywordRelevance - 30);
+        reasons.push(`⚠ CRITICAL PENALTY: Keyword missing from H1 (-30 points)`);
+      }
+      
+      keywordRelevance = Math.max(0, keywordRelevance);
+      explanation.keywordRelevance = reasons.join('\n');
+
+      // SERP competitive context
+      if (serpData?.benchmark) {
+        const bench = serpData.benchmark;
+        const competitorTitleRate = bench.percentTitleHasKeyword || 0;
+        
+        if (!kw.inTitle && competitorTitleRate >= 0.7) {
+          explanation.keywordRelevance += `\n⚠ ${Math.round(competitorTitleRate * 100)}% of top competitors have keyword in title - you're at a significant disadvantage.`;
+        }
       }
     }
 
-    // Important rule: if content is far below SERP standard, cap the total score
-    if (benchmark && benchmark.medianWordCount > 0) {
-      const ratio = wordCount / benchmark.medianWordCount;
-      if (ratio < 0.5) {
-        total = Math.min(total, 55);
-      } else if (ratio < 0.7) {
-        total = Math.min(total, 70);
+    // ===================================================================
+    // 2. CONTENT QUALITY SCORE (0-100) - Weight: 35%
+    // ===================================================================
+    let contentQuality = 0;
+    const contentReasons = [];
+
+    // A. Word count scoring (60% of content quality)
+    let lengthScore = 0;
+    if (wordCount >= 2000) {
+      lengthScore = 100;
+      contentReasons.push(`✓ Excellent content length: ${wordCount} words (100/100)`);
+    } else if (wordCount >= 1500) {
+      lengthScore = 85;
+      contentReasons.push(`✓ Good content length: ${wordCount} words (85/100)`);
+    } else if (wordCount >= 1000) {
+      lengthScore = 70;
+      contentReasons.push(`◐ Moderate content length: ${wordCount} words (70/100)`);
+    } else if (wordCount >= 600) {
+      lengthScore = 50;
+      contentReasons.push(`◐ Below average content length: ${wordCount} words (50/100)`);
+    } else if (wordCount >= 300) {
+      lengthScore = 30;
+      contentReasons.push(`✗ Poor content length: ${wordCount} words (30/100)`);
+    } else {
+      lengthScore = 10;
+      contentReasons.push(`✗ Very poor content length: ${wordCount} words (10/100)`);
+    }
+
+    // B. Content structure scoring (40% of content quality)
+    const h1Count = checks.h1?.count || 0;
+    const h2Count = checks.h2?.count || 0;
+    const h3Count = checks.h3?.count || 0;
+
+    let structureScore = 0;
+    const structureReasons = [];
+
+    // H1 evaluation
+    if (h1Count === 1) {
+      structureScore += 40;
+      structureReasons.push('✓ Single H1 tag (+40)');
+    } else if (h1Count === 0) {
+      structureReasons.push('✗ Missing H1 tag (0/40)');
+    } else {
+      structureScore += 20;
+      structureReasons.push(`◐ Multiple H1 tags (${h1Count}) - should have only one (+20/40)`);
+    }
+
+    // H2 evaluation
+    if (h2Count >= 5) {
+      structureScore += 40;
+      structureReasons.push(`✓ Excellent H2 structure: ${h2Count} H2 tags (+40)`);
+    } else if (h2Count >= 3) {
+      structureScore += 30;
+      structureReasons.push(`✓ Good H2 structure: ${h2Count} H2 tags (+30)`);
+    } else if (h2Count >= 1) {
+      structureScore += 15;
+      structureReasons.push(`◐ Minimal H2 structure: ${h2Count} H2 tag(s) (+15)`);
+    } else {
+      structureReasons.push('✗ No H2 tags found (0/40)');
+    }
+
+    // H3 bonus
+    if (h3Count >= 3) {
+      structureScore += 20;
+      structureReasons.push(`✓ Good H3 depth: ${h3Count} H3 tags (+20 bonus)`);
+    }
+
+    structureScore = Math.min(structureScore, 100);
+    contentReasons.push(...structureReasons);
+
+    // Combine length and structure
+    contentQuality = (lengthScore * 0.6) + (structureScore * 0.4);
+    
+    // Additional penalties for poor content engagement
+    if (checks.links?.internal === 0) {
+      contentQuality = Math.max(0, contentQuality - 10);
+      contentReasons.push('✗ No internal links - poor site structure (-10)');
+    } else if (checks.links?.internal < 3) {
+      contentQuality = Math.max(0, contentQuality - 5);
+      contentReasons.push(`◐ Only ${checks.links.internal} internal link(s) - should have 3+ (-5)`);
+    }
+    
+    if (checks.links?.external === 0 && wordCount > 800) {
+      contentQuality = Math.max(0, contentQuality - 5);
+      contentReasons.push('✗ No external links - missing credibility signals (-5)');
+    }
+    
+    explanation.contentQuality = contentReasons.join('\n');
+
+    // ===================================================================
+    // 3. TECHNICAL HEALTH SCORE (0-100) - Weight: 25%
+    // ===================================================================
+    let technicalHealth = 0;
+    const techReasons = [];
+
+    // Start with DataForSEO's on-page score (base score)
+    const rawOnPageScore = pageData.onpage_score || 0;
+    technicalHealth = rawOnPageScore * 100;
+    techReasons.push(`Base technical score: ${technicalHealth.toFixed(0)}/100 (from DataForSEO)`);
+
+    // Critical technical issues (hard penalties)
+    let penalties = 0;
+
+    // Broken links (critical) - instant_pages returns boolean
+    const hasBrokenLinks = pageData.broken_links || false;
+    if (hasBrokenLinks) {
+      penalties += 15;
+      techReasons.push('✗ Page has broken links (-15)');
+    }
+
+    // Missing canonical (important)
+    if (!checks.canonical?.exists) {
+      penalties += 10;
+      techReasons.push('✗ Missing canonical tag (-10)');
+    }
+
+    // Page load time
+    const loadTime = checks.loadTime?.value;
+    if (loadTime !== null) {
+      if (loadTime > 5) {
+        penalties += 15;
+        techReasons.push(`✗ Slow page load: ${loadTime.toFixed(1)}s (-15)`);
+      } else if (loadTime > 3) {
+        penalties += 8;
+        techReasons.push(`◐ Moderate page load: ${loadTime.toFixed(1)}s (-8)`);
+      } else if (loadTime <= 2.5) {
+        techReasons.push(`✓ Fast page load: ${loadTime.toFixed(1)}s (no penalty)`);
       }
     }
 
+    // Missing meta description (important for CTR)
+    if (!checks.description?.exists) {
+      penalties += 10;
+      techReasons.push('✗ Missing meta description (-10)');
+    }
+
+    // Apply penalties
+    technicalHealth = Math.max(0, technicalHealth - penalties);
+    if (penalties > 0) {
+      techReasons.push(`Total technical penalties: -${penalties}`);
+    }
+    techReasons.push(`Final technical health: ${technicalHealth.toFixed(0)}/100`);
+
+    explanation.technicalHealth = techReasons.join('\n');
+
+    // ===================================================================
+    // 4. CALCULATE FINAL SCORE
+    // ===================================================================
+    // Weights: Keyword 40%, Content 35%, Technical 25%
+    let total = (keywordRelevance * 0.40) + (contentQuality * 0.35) + (technicalHealth * 0.25);
+
+    // Final adjustments and caps
+    const adjustments = [];
+    
+    // EARLY CAPS - Apply immediately if critical issues exist
+    // These prevent inflated scores when fundamental optimization is missing
+    
+    // CRITICAL: Keyword not in title = Cannot rank well
+    if (kw && !kw.inTitle) {
+      const cap = 50;
+      if (total > cap) {
+        adjustments.push(`⚠ CRITICAL: Keyword missing from title - score capped at ${cap}`);
+        total = cap;
+      }
+    }
+    
+    // CRITICAL: Keyword not in H1 = Poor topical relevance
+    if (kw && !kw.inH1) {
+      const cap = 60;
+      if (total > cap) {
+        adjustments.push(`⚠ CRITICAL: Keyword missing from H1 - score capped at ${cap}`);
+        total = cap;
+      }
+    }
+
+    // SERP competitive disadvantage
+    if (serpData?.benchmark && kw) {
+      const bench = serpData.benchmark;
+      const top3Analysis = bench.topCompetitorsAnalysis;
+      
+      if (top3Analysis) {
+        // If top 3 all have keyword in title and you don't
+        if (top3Analysis.top3KeywordInTitle === 3 && !kw.inTitle) {
+          const cap = 45;
+          if (total > cap) {
+            adjustments.push(`⚠ Top 3 competitors all have keyword in title - score capped at ${cap}`);
+            total = cap;
+          }
+        }
+      }
+    }
+
+    // Insufficient content penalty
+    if (wordCount < 300) {
+      const cap = 35;
+      if (total > cap) {
+        adjustments.push(`⚠ Content too short (${wordCount} words) - score capped at ${cap}`);
+        total = cap;
+      }
+    } else if (wordCount < 500) {
+      const cap = 55;
+      if (total > cap) {
+        adjustments.push(`⚠ Content below minimum threshold (${wordCount} words) - score capped at ${cap}`);
+        total = cap;
+      }
+    }
+
+    // Missing critical keyword placements
+    if (kw && !kw.inTitle && !kw.inH1 && !kw.inFirst100Words) {
+      const cap = 40;
+      if (total > cap) {
+        adjustments.push(`⚠ Keyword missing from title, H1, and first 100 words - score capped at ${cap}`);
+        total = cap;
+      }
+    }
+
+    // Very weak keyword presence (incidental only)
+    if (kw && kw.occurrences <= 2 && kw.density < 0.2) {
+      const cap = 25;
+      if (total > cap) {
+        adjustments.push(`⚠ Keyword appears only ${kw.occurrences} time(s) with ${kw.density.toFixed(2)}% density - likely incidental, score capped at ${cap}`);
+        total = cap;
+      }
+    }
+    
+    // Cap for very low keyword density (below 0.3%) but not incidental
+    if (kw && kw.density >= 0.2 && kw.density < 0.3 && kw.occurrences > 2) {
+      const cap = 75;
+      if (total > cap) {
+        const needed = Math.max(1, Math.round(wordCount * 0.005) - kw.occurrences);
+        adjustments.push(`⚠ Very low keyword density (${kw.density.toFixed(2)}%) - needs ${needed} more mentions, score capped at ${cap}`);
+        total = cap;
+      }
+    }
+    
+    // Cap for pages with no internal linking structure
+    if (checks.links?.internal === 0 && checks.links?.external === 0) {
+      const cap = 85;
+      if (total > cap) {
+        adjustments.push(`⚠ No internal or external links - poor content engagement, score capped at ${cap}`);
+        total = cap;
+      }
+    }
+    
+    // Cap for poor heading structure despite good content length
+    if (wordCount > 1000 && (checks.h2?.count || 0) < 3) {
+      const cap = 88;
+      if (total > cap) {
+        adjustments.push(`⚠ Long content (${wordCount} words) with only ${checks.h2?.count || 0} H2 tags - poor structure, score capped at ${cap}`);
+        total = cap;
+      }
+    }
+
+    explanation.finalAdjustments = adjustments.length > 0 ? adjustments.join('\n') : 'No final adjustments applied.';
+
+    // Ensure score is within bounds
     total = Math.max(0, Math.min(100, total));
+    
+    // ABSOLUTE CAP: No page is truly perfect (100/100)
+    // Reserve 100 for truly exceptional pages with no issues whatsoever
+    if (total >= 98) {
+      // Check for any imperfections
+      const hasImperfections = 
+        keywordRelevance < 100 ||  // Keyword optimization not perfect
+        contentQuality < 100 ||     // Content could be better
+        technicalHealth < 100 ||    // Technical issues exist
+        (checks.links?.internal || 0) < 5 ||  // Few internal links
+        (checks.links?.external || 0) < 2 ||  // Few external links
+        (checks.h2?.count || 0) < 5;          // Weak heading structure
+      
+      if (hasImperfections) {
+        total = Math.min(total, 95);
+        if (!adjustments.some(a => a.includes('capped at 95'))) {
+          adjustments.push('⚠ Maximum score capped at 95 - minor optimizations still possible');
+          explanation.finalAdjustments = adjustments.join('\n');
+        }
+      }
+    }
 
     return {
       total,
       components: {
-        serpSimilarity: Math.round(serpSimilarity),
+        keywordRelevance: Math.round(keywordRelevance),
         contentQuality: Math.round(contentQuality),
-        onPageHealth: Math.round(onPageHealth),
+        technicalHealth: Math.round(technicalHealth),
       },
+      explanation,
     };
   }
 
-  generateEnhancedRecommendations(checks, keywordAnalysis, keyword, serpData, pageData, meta, lang) {
+  generateEnhancedRecommendations(checks, keywordAnalysis, keyword, serpData, pageData, meta, scoring, lang) {
     const recommendations = [];
-    const wordCount = meta?.content?.plain_text_word_count || 0;
+    const wordCount = keywordAnalysis?.wordCount || meta?.content?.plain_text_word_count || 0;
+    const kw = keywordAnalysis;
 
-    // Helper to add recommendation
+    // Helper to add recommendation without duplication
     const addRec = (priority, category, issueKey, actionKey, vars = {}) => {
       const issue = t(lang, `seo.recommendations.${issueKey}.issue`, vars);
       const action = t(lang, `seo.recommendations.${issueKey}.action`, vars);
+      
       if (issue && action && !issue.includes('.issue')) {
-        recommendations.push({
-          priority,
-          category,
-          issue,
-          action,
-          impact: priority === 'critical' || priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low',
-          effort: ['missingTitle', 'missingDescription', 'missingH1', 'missingCanonical'].includes(issueKey) ? 'easy' : 'moderate',
-        });
+        // Check for duplicates
+        const isDuplicate = recommendations.some(r => r.issue === issue);
+        if (!isDuplicate) {
+          recommendations.push({
+            priority,
+            category,
+            issue,
+            action,
+            impact: priority === 'critical' ? 'high' : priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low',
+            effort: ['missingTitle', 'missingDescription', 'missingH1', 'missingCanonical', 'keywordNotInTitle'].includes(issueKey) ? 'easy' : 'moderate',
+          });
+        }
       }
     };
 
-    // === CRITICAL: Title Tag ===
+    // ===================================================================
+    // CRITICAL PRIORITY (Must fix immediately)
+    // ===================================================================
+
+    // Keyword not in content (show first if applicable)
+    if (kw && !kw.inContent) {
+      // Include info about variations checked
+      const variations = this.generateKeywordVariations(keyword).join('", "');
+      addRec('critical', 'keyword', 'keywordNotInContent', 'keywordNotInContent', { 
+        keyword,
+        variations: `"${variations}"`
+      });
+    }
+
+    // Missing title tag
     if (!checks.title.exists) {
       addRec('critical', 'meta', 'missingTitle', 'missingTitle');
-    } else {
+    }
+
+    // Keyword not in title (when keyword IS in content)
+    if (kw && kw.inContent && !kw.inTitle) {
+      addRec('critical', 'keyword', 'keywordNotInTitle', 'keywordNotInTitle', { keyword });
+    }
+
+    // Missing H1
+    if (!checks.h1.exists) {
+      addRec('critical', 'content', 'missingH1', 'missingH1');
+    }
+
+    // Broken links
+    if (pageData.broken_links) {
+      addRec('critical', 'technical', 'brokenLinks', 'brokenLinks', { count: 'some' });
+    }
+
+    // Very low word count
+    if (wordCount < 300) {
+      addRec('critical', 'content', 'veryLowWordCount', 'veryLowWordCount', { count: wordCount });
+    }
+
+    // Missing meta description
+    if (!checks.description.exists) {
+      addRec('critical', 'meta', 'missingDescription', 'missingDescription');
+    }
+
+    // ===================================================================
+    // HIGH PRIORITY (Important for ranking)
+    // ===================================================================
+
+    // Keyword not in H1 (when in content and title)
+    if (kw && kw.inContent && !kw.inH1) {
+      addRec('high', 'keyword', 'keywordNotInH1', 'keywordNotInH1', { keyword });
+    }
+
+    // Multiple H1 tags
+    if (checks.h1.count > 1) {
+      addRec('high', 'content', 'multipleH1', 'multipleH1', { count: checks.h1.count });
+    }
+
+    // Missing H2 structure
+    if (checks.h2.count === 0) {
+      addRec('high', 'content', 'missingH2', 'missingH2');
+    }
+
+    // Keyword not in meta description
+    if (kw && !kw.inDescription) {
+      addRec('high', 'keyword', 'keywordNotInDescription', 'keywordNotInDescription', { keyword });
+    }
+
+    // Low word count (compared to minimum standards)
+    if (wordCount >= 300 && wordCount < 800) {
+      addRec('high', 'content', 'lowWordCount', 'lowWordCount', {
+        count: wordCount,
+        recommended: 1200,
+      });
+    }
+
+    // Missing canonical tag
+    if (!checks.canonical.exists) {
+      addRec('high', 'technical', 'missingCanonical', 'missingCanonical');
+    }
+
+    // Slow page load
+    if (checks.loadTime.value && checks.loadTime.value > 4) {
+      addRec('high', 'technical', 'slowLoadTime', 'slowLoadTime', { time: checks.loadTime.value.toFixed(1) });
+    }
+
+    // Very low keyword density (when keyword is in content)
+    if (kw && kw.inContent && kw.density < 0.5) {
+      const needed = Math.max(1, Math.round(wordCount * 0.008) - kw.occurrences);
+      addRec('high', 'keyword', 'keywordDensityLow', 'keywordDensityLow', {
+        density: kw.density.toFixed(2),
+        occurrences: kw.occurrences,
+        wordCount,
+        recommended: needed,
+        keyword,
+      });
+    }
+
+    // ===================================================================
+    // MEDIUM PRIORITY (Should improve)
+    // ===================================================================
+
+    // Title length not optimal
+    if (checks.title.exists) {
       const titleLen = checks.title.length;
       if (titleLen < 30) {
-        addRec('high', 'meta', 'titleTooShort', 'titleTooShort', { length: titleLen });
-      } else if (titleLen < 50 || titleLen > 60) {
+        addRec('medium', 'meta', 'titleTooShort', 'titleTooShort', { length: titleLen });
+      } else if (titleLen < 40 || titleLen > 70) {
         addRec('medium', 'meta', 'titleNotOptimal', 'titleNotOptimal', { length: titleLen });
       }
     }
 
-    // === CRITICAL: Meta Description ===
-    if (!checks.description.exists) {
-      addRec('critical', 'meta', 'missingDescription', 'missingDescription');
-    } else {
+    // Description length not optimal
+    if (checks.description.exists) {
       const descLen = checks.description.length;
       if (descLen < 120 || descLen > 170) {
         addRec('medium', 'meta', 'descriptionNotOptimal', 'descriptionNotOptimal', { length: descLen });
       }
     }
 
-    // === CRITICAL: H1 Tag ===
-    if (!checks.h1.exists) {
-      addRec('critical', 'content', 'missingH1', 'missingH1');
-    } else if (checks.h1.count > 1) {
-      addRec('high', 'content', 'multipleH1', 'multipleH1', { count: checks.h1.count });
+    // Keyword not in first 100 words
+    if (kw && kw.inContent && !kw.inFirst100Words) {
+      addRec('medium', 'keyword', 'keywordNotInFirst100Words', 'keywordNotInFirst100Words', { keyword });
     }
 
-    // === HIGH: H2 Structure ===
-    if (checks.h2.count === 0) {
-      addRec('high', 'content', 'missingH2', 'missingH2');
-    } else if (checks.h2.count < 3 && wordCount > 500) {
+    // Few H2 tags
+    if (checks.h2.count > 0 && checks.h2.count < 3 && wordCount > 500) {
       addRec('medium', 'content', 'fewH2', 'fewH2', { count: checks.h2.count });
     }
 
-    // === HIGH: Canonical Tag ===
-    if (!checks.canonical.exists) {
-      addRec('high', 'technical', 'missingCanonical', 'missingCanonical');
-    }
-
-    // === HIGH: Images Alt Text ===
-    if (checks.images.withoutAlt > 0) {
-      addRec('high', 'content', 'imagesNoAlt', 'imagesNoAlt', { count: checks.images.withoutAlt });
-    }
-
-    // === CRITICAL: Broken Links ===
-    if (checks.links.broken > 0) {
-      addRec('critical', 'technical', 'brokenLinks', 'brokenLinks', { count: checks.links.broken });
-    }
-
-    // === MEDIUM: Internal Linking ===
+    // Few internal links
     if (checks.links.internal < 3) {
       addRec('medium', 'content', 'fewInternalLinks', 'fewInternalLinks', { count: checks.links.internal });
     }
 
-    // === LOW: External Links ===
+    // Moderate page load time
+    if (checks.loadTime.value && checks.loadTime.value > 3 && checks.loadTime.value <= 4) {
+      addRec('medium', 'technical', 'slowLoadTime', 'slowLoadTime', { time: checks.loadTime.value.toFixed(1) });
+    }
+
+    // High keyword density (potential over-optimization)
+    if (kw && kw.density > 3) {
+      const recommended = Math.round(wordCount * 0.015);
+      addRec('medium', 'keyword', 'keywordDensityHigh', 'keywordDensityHigh', {
+        density: kw.density.toFixed(2),
+        occurrences: kw.occurrences,
+        recommended,
+        keyword,
+      });
+    }
+
+    // ===================================================================
+    // LOW PRIORITY (Nice to have)
+    // ===================================================================
+
+    // Keyword not in URL
+    if (kw && !kw.inUrl) {
+      addRec('low', 'keyword', 'keywordNotInUrl', 'keywordNotInUrl', { keyword });
+    }
+
+    // No external links (for credibility)
     if (checks.links.external === 0 && wordCount > 500) {
       addRec('low', 'content', 'noExternalLinks', 'noExternalLinks');
     }
 
-    // === HIGH: Word Count ===
-    const competitorAvgWordCount = serpData?.avgCompetitorWordCount || 1200;
-    if (wordCount < 300) {
-      addRec('critical', 'content', 'veryLowWordCount', 'veryLowWordCount', { count: wordCount });
-    } else if (wordCount < competitorAvgWordCount * 0.7) {
-      addRec('high', 'content', 'lowWordCount', 'lowWordCount', {
-        count: wordCount,
-        recommended: Math.round(competitorAvgWordCount * 0.8),
-        competitorAvg: competitorAvgWordCount,
-      });
-    }
-
-    // === HIGH: Page Load Time ===
-    if (checks.loadTime.value && checks.loadTime.value > 3) {
-      addRec('high', 'technical', 'slowLoadTime', 'slowLoadTime', { time: checks.loadTime.value.toFixed(1) });
-    }
-
-    // === KEYWORD-SPECIFIC RECOMMENDATIONS ===
-    if (keywordAnalysis && keyword) {
-      // Keyword in Title
-      if (!keywordAnalysis.inTitle) {
-        addRec('critical', 'keyword', 'keywordNotInTitle', 'keywordNotInTitle', { keyword });
-      }
-
-      // Keyword in Description
-      if (!keywordAnalysis.inDescription) {
-        addRec('high', 'keyword', 'keywordNotInDescription', 'keywordNotInDescription', { keyword });
-      }
-
-      // Keyword in H1
-      if (!keywordAnalysis.inH1) {
-        addRec('high', 'keyword', 'keywordNotInH1', 'keywordNotInH1', { keyword });
-      }
-
-      // Keyword in Content
-      if (!keywordAnalysis.inContent) {
-        addRec('critical', 'keyword', 'keywordNotInContent', 'keywordNotInContent', { keyword });
-      }
-
-      // Keyword in First 100 Words
-      if (keywordAnalysis.inContent && !keywordAnalysis.inFirst100Words) {
-        addRec('medium', 'keyword', 'keywordNotInFirst100Words', 'keywordNotInFirst100Words', { keyword });
-      }
-
-      // Keyword in URL
-      if (!keywordAnalysis.inUrl) {
-        addRec('low', 'keyword', 'keywordNotInUrl', 'keywordNotInUrl', { keyword });
-      }
-
-      // Keyword Density
-      const density = keywordAnalysis.density;
-      const recommendedMin = Math.max(1, Math.round(wordCount * 0.01));
-      const recommendedMax = Math.round(wordCount * 0.02);
-
-      if (density < 0.5 && keywordAnalysis.inContent) {
-        addRec('high', 'keyword', 'keywordDensityLow', 'keywordDensityLow', {
-          density: density.toFixed(2),
-          occurrences: keywordAnalysis.occurrences,
-          wordCount,
-          recommended: recommendedMin - keywordAnalysis.occurrences,
+    // ===================================================================
+    // SERP COMPETITIVE INSIGHTS
+    // ===================================================================
+    if (serpData && serpData.competitors && serpData.competitors.length > 0 && kw) {
+      const bench = serpData.benchmark;
+      
+      // Alert if most competitors have keyword in title but you don't
+      if (bench.percentTitleHasKeyword >= 0.7 && !kw.inTitle) {
+        addRec('high', 'competitor', 'competitorTitleAdvantage', 'competitorTitleAdvantage', {
+          percent: Math.round(bench.percentTitleHasKeyword * 100),
           keyword,
         });
-      } else if (density > 3) {
-        addRec('medium', 'keyword', 'keywordDensityHigh', 'keywordDensityHigh', {
-          density: density.toFixed(2),
-          occurrences: keywordAnalysis.occurrences,
-          recommended: recommendedMax,
+      }
+
+      // General competitor analysis recommendation
+      if (recommendations.filter(r => r.priority === 'critical' || r.priority === 'high').length <= 2) {
+        addRec('medium', 'competitor', 'competitorAnalysis', 'competitorAnalysis', {
+          count: serpData.competitors.length,
           keyword,
         });
       }
     }
 
-    // === COMPETITOR ANALYSIS ===
-    if (serpData && serpData.competitors && serpData.competitors.length > 0) {
-      addRec('medium', 'competitor', 'competitorAnalysis', 'competitorAnalysis', {
-        count: serpData.competitors.length,
-        keyword,
-      });
+    // ===================================================================
+    // SUCCESS MESSAGE (if page is well optimized)
+    // ===================================================================
+    const criticalIssues = recommendations.filter(r => r.priority === 'critical').length;
+    const highIssues = recommendations.filter(r => r.priority === 'high').length;
 
-      // Content comparison
-      if (wordCount < competitorAvgWordCount * 0.6) {
-        const percent = Math.round((1 - (wordCount / competitorAvgWordCount)) * 100);
-        addRec('high', 'content', 'contentBelowCompetitors', 'contentBelowCompetitors', {
-          percent,
-          avgWords: competitorAvgWordCount,
-        });
-      }
-    }
-
-    // === EXCELLENT OPTIMIZATION (if score is high and few issues) ===
-    if (recommendations.filter(r => r.priority === 'critical' || r.priority === 'high').length === 0 && keyword) {
+    if (criticalIssues === 0 && highIssues === 0 && scoring.total >= 70 && keyword) {
       addRec('low', 'success', 'excellentOptimization', 'excellentOptimization', { keyword });
     }
 
