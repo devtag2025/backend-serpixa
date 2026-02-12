@@ -53,7 +53,7 @@ class GBPService {
 
       // Determine location: use override if provided, otherwise use locale config
       const location = locationOverride || localeConfig.locationName;
-      console.log('[GBP Service] 📍 Final location to use:', location);
+      console.log('[GBP Service] Final location to use:', location);
 
       Logger.log('GBP Audit request:', {
         businessName,
@@ -229,9 +229,9 @@ class GBPService {
       
       // Handle "No Search Results" (40102) as a valid "not found" response, not an error
       if (task?.status_code === 40102) {
-        console.log('[GBP Service] ⚠️ DataForSEO returned "No Search Results" for:', businessName, 'in', location);
-        console.log('[GBP Service] 💡 This means the business was not found in Google Business Profile for this location.');
-        console.log('[GBP Service] 💡 Try: 1) More specific name, 2) Different location, 3) Check if business exists in Google Maps for that region');
+        console.log('[GBP Service] DataForSEO returned "No Search Results" for:', businessName, 'in', location);
+        console.log('[GBP Service] This means the business was not found in Google Business Profile for this location.');
+        console.log('[GBP Service] Try: 1) More specific name, 2) Different location, 3) Check if business exists in Google Maps for that region');
         return null; // Return null to indicate "not found"
       }
       
@@ -244,7 +244,7 @@ class GBPService {
       console.log('[GBP Service] Results found:', items.length);
       
       if (items.length === 0) {
-        console.log('[GBP Service] ⚠️ No items in results for:', businessName, 'in', location);
+        console.log('[GBP Service] No items in results for:', businessName, 'in', location);
         console.log('[GBP Service] Full task result:', JSON.stringify(task.result, null, 2));
       } else {
         console.log('[GBP Service] ✅ Found business:', items[0]?.title || items[0]?.name);
@@ -273,10 +273,10 @@ class GBPService {
 
   transformResult(data, businessName, lang = 'en') {
     if (!data) {
-      console.log('[GBP Service] ⚠️ No data to transform - returning "not found" result');
+      console.log('[GBP Service] No data to transform - returning "not found" result');
       console.log('[GBP Service] Business name searched:', businessName);
       console.log('[GBP Service] This means DataForSEO did not find any business matching this name in the specified location.');
-      console.log('[GBP Service] 💡 Tips: Try a more specific business name, or check if the business exists in Google Maps for that region.');
+      console.log('[GBP Service] Tips: Try a more specific business name, or check if the business exists in Google Maps for that region.');
       
       return {
         businessName,
