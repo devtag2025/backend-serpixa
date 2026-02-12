@@ -86,7 +86,7 @@ Language: English (default).
       const prompt = this.buildSEOPrompt(keyword, topic, language, locale);
       
       const message = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',  // ✅ Most likely to work
+        model: 'claude-sonnet-4-20250514',  // Most likely to work
         max_tokens: 16000,  // Increased for Sonnet's more detailed responses
         messages: [
           {
@@ -143,9 +143,9 @@ Language: English (default).
 
     // Build language-specific instruction
     const languageInstruction = promptLanguage === 'NL' 
-      ? '⚠️ CRITICAL: Write ALL content in DUTCH (Nederlands). This includes:\n- All HTML content (headings, paragraphs, lists)\n- Meta title and meta description\n- FAQ questions and answers\n- CTA (Call-to-Action)\n- All text elements\n\nDO NOT write in English. Everything must be in Dutch.'
+      ? 'CRITICAL: Write ALL content in DUTCH (Nederlands). This includes:\n- All HTML content (headings, paragraphs, lists)\n- Meta title and meta description\n- FAQ questions and answers\n- CTA (Call-to-Action)\n- All text elements\n\nDO NOT write in English. Everything must be in Dutch.'
       : promptLanguage === 'FR'
-      ? '⚠️ CRITICAL: Write ALL content in FRENCH (Français). This includes:\n- All HTML content (headings, paragraphs, lists)\n- Meta title and meta description\n- FAQ questions and answers\n- CTA (Call-to-Action)\n- All text elements\n\nDO NOT write in English. Everything must be in French.'
+      ? 'CRITICAL: Write ALL content in FRENCH (Français). This includes:\n- All HTML content (headings, paragraphs, lists)\n- Meta title and meta description\n- FAQ questions and answers\n- CTA (Call-to-Action)\n- All text elements\n\nDO NOT write in English. Everything must be in French.'
       : 'Write ALL content in ENGLISH. This includes all HTML content, meta tags, FAQ, and CTA.';
 
     return `Create a complete HTML page optimized SIMULTANEOUSLY for:
@@ -156,7 +156,7 @@ LLM comprehension (Claude, ChatGPT, Perplexity)
 📅 CURRENT YEAR: ${currentYear}
 📅 CURRENT MONTH: ${currentMonth}
 
-⚠️ CRITICAL DATE REQUIREMENT:
+CRITICAL DATE REQUIREMENT:
 - Use ${currentYear} as the current year in ALL content (NOT 2024 or any other year)
 - Any "last updated" dates should use ${currentMonth} ${currentYear}
 - Any trend references should be "${currentYear} trends" not "2024 trends"
@@ -260,7 +260,7 @@ Respond with ONLY valid JSON. The JSON MUST be properly formatted with:
 }
 
 CRITICAL RULES:
-1. ⚠️ LANGUAGE: ${promptLanguage === 'NL' ? 'ALL content MUST be in DUTCH (Nederlands).' : promptLanguage === 'FR' ? 'ALL content MUST be in FRENCH (Français).' : 'ALL content MUST be in ENGLISH.'} This includes metaTitle, metaDescription, htmlContent, FAQ questions/answers, and CTA. DO NOT write in any other language.
+1. LANGUAGE: ${promptLanguage === 'NL' ? 'ALL content MUST be in DUTCH (Nederlands).' : promptLanguage === 'FR' ? 'ALL content MUST be in FRENCH (Français).' : 'ALL content MUST be in ENGLISH.'} This includes metaTitle, metaDescription, htmlContent, FAQ questions/answers, and CTA. DO NOT write in any other language.
 2. Your response must start with { and end with }
 3. The htmlContent field must be a SINGLE LINE string with \\n for newlines
 4. Do NOT format the HTML with actual newlines - use \\n escape sequence
@@ -332,17 +332,17 @@ parseSEOContent(content, keyword, locale) {
         }
       }
       
-      console.log('✅ JSON control characters fixed');
+      console.log('JSON control characters fixed');
     } catch (fixError) {
-      console.warn('⚠️ Could not auto-fix JSON:', fixError.message);
+      console.warn('Could not auto-fix JSON:', fixError.message);
     }
 
     let parsed;
     try {
       parsed = JSON.parse(jsonString);
-      console.log('✅ JSON parsed successfully');
-      console.log('📋 Parsed keys:', Object.keys(parsed));
-      console.log('📋 FAQ in parsed object:', parsed.faq);
+      console.log('JSON parsed successfully');
+      console.log('Parsed keys:', Object.keys(parsed));
+      console.log('FAQ in parsed object:', parsed.faq);
       console.log('📋 FAQ type:', typeof parsed.faq);
       console.log('📋 FAQ is array:', Array.isArray(parsed.faq));
       if (parsed.faq) {
@@ -354,7 +354,7 @@ parseSEOContent(content, keyword, locale) {
       
       // Last resort: try to manually parse key fields
       try {
-        console.log('⚠️ Attempting manual extraction...');
+        console.log('Attempting manual extraction...');
         
         const htmlContent = this.extractHtmlContent(jsonString);
         const extractedFaq = this.extractFaqArray(jsonString);
@@ -381,9 +381,9 @@ parseSEOContent(content, keyword, locale) {
           wordCount: parseInt(this.extractJsonValue(jsonString, 'wordCount')) || 0
         };
         
-        console.log('✅ Manual extraction successful');
+        console.log('Manual extraction successful');
       } catch (manualError) {
-        console.error('❌ Manual extraction failed:', manualError.message);
+        console.error('Manual extraction failed:', manualError.message);
         throw new Error('Failed to parse JSON response from Claude');
       }
     }
@@ -393,54 +393,54 @@ parseSEOContent(content, keyword, locale) {
     const missingFields = requiredFields.filter(field => !parsed[field]);
     
     if (missingFields.length > 0) {
-      console.warn('⚠️ Missing required fields:', missingFields.join(', '));
+      console.warn('Missing required fields:', missingFields.join(', '));
       throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
     }
 
     // Ensure arrays exist and extract FAQ properly
     if (!Array.isArray(parsed.faq) || parsed.faq.length === 0) {
-      console.warn('⚠️ FAQ not found or empty in parsed JSON, attempting extraction...');
-      console.log('📋 Parsed FAQ value:', parsed.faq);
-      console.log('📋 FAQ type:', typeof parsed.faq);
+      console.warn('FAQ not found or empty in parsed JSON, attempting extraction...');
+      console.log('Parsed FAQ value:', parsed.faq);
+      console.log('FAQ type:', typeof parsed.faq);
       
       // First try to extract from raw JSON string (might be a parsing issue)
       const extractedFromJson = this.extractFaqArray(jsonString);
       if (extractedFromJson.length > 0) {
-        console.log('✅ Found FAQ in JSON string:', extractedFromJson.length, 'items');
+        console.log('Found FAQ in JSON string:', extractedFromJson.length, 'items');
         parsed.faq = extractedFromJson;
       } else {
         // Try to extract FAQ from HTML content
-        console.log('⚠️ Trying to extract FAQ from HTML content...');
+        console.log('Trying to extract FAQ from HTML content...');
         parsed.faq = this.extractFAQFromHTML(parsed.htmlContent || '');
         if (parsed.faq.length > 0) {
-          console.log('✅ Found FAQ in HTML:', parsed.faq.length, 'items');
+          console.log('Found FAQ in HTML:', parsed.faq.length, 'items');
         } else {
-          console.warn('❌ No FAQ found in JSON or HTML');
+          console.warn('No FAQ found in JSON or HTML');
         }
       }
     } else {
-      console.log('✅ FAQ found in parsed JSON:', parsed.faq.length, 'items');
+      console.log('FAQ found in parsed JSON:', parsed.faq.length, 'items');
     }
 
     // Calculate word count from HTML content
     if (!parsed.wordCount || parsed.wordCount === 0) {
       const textContent = parsed.htmlContent.replace(/<[^>]*>/g, ' ');
       parsed.wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length;
-      console.log('📊 Calculated word count:', parsed.wordCount);
+      console.log('Calculated word count:', parsed.wordCount);
     }
 
     // Calculate keyword density if not provided
     let keywordDensity = parsed.keywordDensity;
     if (!keywordDensity || keywordDensity === 'N/A' || keywordDensity === '') {
       keywordDensity = this.calculateKeywordDensity(parsed.htmlContent || '', keyword);
-      console.log('📊 Calculated keyword density:', keywordDensity);
+      console.log('Calculated keyword density:', keywordDensity);
     }
 
     // Ensure SEO score is valid
     if (!parsed.seoScore || parsed.seoScore < 0 || parsed.seoScore > 100) {
       // Calculate a basic SEO score based on content quality
       parsed.seoScore = this.calculateSEOScore(parsed, keyword);
-      console.log('📊 Calculated SEO score:', parsed.seoScore);
+      console.log('Calculated SEO score:', parsed.seoScore);
     }
 
     // Ensure CTA exists
@@ -465,8 +465,8 @@ parseSEOContent(content, keyword, locale) {
       generatedAt: new Date().toISOString()
     };
 
-    console.log('✅ Content parsed successfully');
-    console.log('📊 Stats:', {
+    console.log('Content parsed successfully');
+    console.log('Stats:', {
       wordCount: result.wordCount,
       seoScore: result.seoScore,
       faqCount: result.faq.length
@@ -557,8 +557,8 @@ extractFaqArray(jsonString) {
       const pattern = patterns[i];
       const faqMatch = jsonString.match(pattern);
       if (faqMatch) {
-        console.log(`✅ Found FAQ pattern ${i + 1}, attempting to parse...`);
-        console.log('📋 FAQ match preview:', faqMatch[1].substring(0, 200));
+        console.log(`Found FAQ pattern ${i + 1}, attempting to parse...`);
+        console.log('FAQ match preview:', faqMatch[1].substring(0, 200));
         
         try {
           // Clean up the FAQ string
@@ -569,7 +569,7 @@ extractFaqArray(jsonString) {
           const faqArray = JSON.parse(faqString);
           
           if (Array.isArray(faqArray)) {
-            console.log(`📊 Parsed FAQ array with ${faqArray.length} items`);
+            console.log(`Parsed FAQ array with ${faqArray.length} items`);
             
             // Validate and normalize FAQ structure
             const validFaq = faqArray
@@ -586,18 +586,18 @@ extractFaqArray(jsonString) {
               .filter(item => item.question.trim() && item.answer.trim());
             
             if (validFaq.length > 0) {
-              console.log(`✅ Extracted ${validFaq.length} valid FAQ items`);
+              console.log(`Extracted ${validFaq.length} valid FAQ items`);
               return validFaq;
             } else {
-              console.warn('⚠️ FAQ array found but no valid items after filtering');
+              console.warn('FAQ array found but no valid items after filtering');
             }
           }
         } catch (parseError) {
-          console.warn(`⚠️ Could not parse FAQ array with pattern ${i + 1}:`, parseError.message);
+          console.warn(`Could not parse FAQ array with pattern ${i + 1}:`, parseError.message);
           // Try manual extraction as fallback
           const manualFaq = this.extractFAQManually(faqMatch[1]);
           if (manualFaq.length > 0) {
-            console.log(`✅ Manually extracted ${manualFaq.length} FAQ items`);
+            console.log(`Manually extracted ${manualFaq.length} FAQ items`);
             return manualFaq;
           }
           continue;
@@ -651,7 +651,7 @@ extractFAQFromHTML(htmlContent) {
     const schemaMatch = htmlContent.match(schemaOrgPattern);
     
     if (schemaMatch) {
-      console.log('✅ Found Schema.org FAQPage format');
+      console.log('Found Schema.org FAQPage format');
       const faqSection = schemaMatch[1];
       
       // Extract each Question-Answer pair - handle both itemprop="mainEntity" and direct Question types
@@ -738,9 +738,9 @@ extractFAQFromHTML(htmlContent) {
       }
     }
     
-    console.log(`📊 Extracted ${faq.length} FAQ items from HTML`);
+    console.log(`Extracted ${faq.length} FAQ items from HTML`);
   } catch (e) {
-    console.error('❌ Error extracting FAQ from HTML:', e.message);
+    console.error('Error extracting FAQ from HTML:', e.message);
   }
   return faq;
 }

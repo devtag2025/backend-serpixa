@@ -43,7 +43,7 @@ class DataForSEOService {
         ) : Promise.resolve(null),
       ]);
 
-      return this.transformOnPageResult(onPageResult, url, keyword, serpResult, lang);
+      return this.transformOnPageResult(onPageResult, url, keyword, serpResult, lang, locale);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(502, `DataForSEO request failed: ${error.message}`);
@@ -61,7 +61,6 @@ class DataForSEOService {
           url,
           enable_javascript: true,
           enable_browser_rendering: true,
-          // Request additional content fields
           load_resources: true,
           enable_xpath: false,
         },
@@ -122,6 +121,8 @@ class DataForSEOService {
         },
       ];
 
+      Logger.info(`[SERP Fetch] Keyword: "${keyword}", Location: ${locationName}, Language: ${languageName}, Device: ${device}`);
+
       const response = await this.client.post('/v3/serp/google/organic/live/regular', payload);
 
       let result;
@@ -161,10 +162,9 @@ class DataForSEOService {
 
       const organicResults = serpData?.items || [];
       
-      // Use keyword variations for SERP matching too
       const keywordVariations = this.generateKeywordVariations(keyword.trim());
 
-      // Extract top 10 organic competitors
+      // Extract top 10 organic competitors WITH FULL DETAILS
       const competitors = organicResults
         .filter((item) => item.type === 'organic')
         .slice(0, 10)
@@ -172,7 +172,6 @@ class DataForSEOService {
           const title = item.title || '';
           const description = item.description || '';
           
-          // Check if any keyword variation is in title/description
           const keywordInTitle = keywordVariations.some(variant => 
             this.normalizeForSearch(title).includes(variant)
           );
@@ -192,25 +191,16 @@ class DataForSEOService {
             keywordInTitle,
             keywordInDescription,
             pageType,
+            // Estimate metrics from SERP preview
+            estimatedTitleLength: title.length,
+            estimatedDescLength: description.length,
           };
         });
 
-      // Build SERP benchmark based on available data
-      const titleWithKeywordCount = competitors.filter(c => c.keywordInTitle).length;
-      const descWithKeywordCount = competitors.filter(c => c.keywordInDescription).length;
+      Logger.info(`[SERP Analysis] Found ${competitors.length} competitors for "${keyword}" in ${locationName}`);
 
-      const percentTitleHasKeyword = competitors.length === 0 ? 0 : titleWithKeywordCount / competitors.length;
-      const percentDescHasKeyword = competitors.length === 0 ? 0 : descWithKeywordCount / competitors.length;
-
-      // Determine dominant page type in Top 10
-      const pageTypeCounts = competitors.reduce((acc, c) => {
-        if (!c.pageType) return acc;
-        acc[c.pageType] = (acc[c.pageType] || 0) + 1;
-        return acc;
-      }, {});
-
-      const dominantPageType = Object.entries(pageTypeCounts)
-        .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+      // Build comprehensive SERP benchmark with MARKET-SPECIFIC data
+      const benchmark = this.buildSERPBenchmark(competitors, keyword, keywordVariations, locationName, languageName);
 
       return {
         keyword,
@@ -224,12 +214,7 @@ class DataForSEOService {
           checkUrl: serpData?.check_url || '',
           datetime: serpData?.datetime || new Date().toISOString(),
         },
-        benchmark: {
-          percentTitleHasKeyword,
-          percentDescHasKeyword,
-          dominantPageType,
-          topCompetitorsAnalysis: this.analyzeTopCompetitors(competitors),
-        },
+        benchmark,
       };
     } catch (error) {
       if (error.response) {
@@ -250,116 +235,216 @@ class DataForSEOService {
   }
 
   /**
-   * Analyze patterns in top competitors
+   * Build comprehensive SERP benchmark from Top 10 competitors
+   * NOW INCLUDES: Market-specific fingerprint for score differentiation
    */
-  analyzeTopCompetitors(competitors) {
-    if (!competitors || competitors.length === 0) return null;
+  buildSERPBenchmark(competitors, keyword, keywordVariations, locationName, languageName) {
+    if (!competitors || competitors.length === 0) {
+      return null;
+    }
 
     const top3 = competitors.slice(0, 3);
     const top5 = competitors.slice(0, 5);
+    const top10 = competitors;
 
-    return {
-      top3KeywordInTitle: top3.filter(c => c.keywordInTitle).length,
-      top5KeywordInTitle: top5.filter(c => c.keywordInTitle).length,
-      top3KeywordInDescription: top3.filter(c => c.keywordInDescription).length,
-      avgTitleLength: Math.round(
-        competitors.reduce((sum, c) => sum + (c.title?.length || 0), 0) / competitors.length
-      ),
-      avgDescriptionLength: Math.round(
-        competitors.reduce((sum, c) => sum + (c.description?.length || 0), 0) / competitors.length
-      ),
+    // Keyword presence analysis
+    const titleWithKeywordCount = top10.filter(c => c.keywordInTitle).length;
+    const descWithKeywordCount = top10.filter(c => c.keywordInDescription).length;
+    
+    const top3TitleWithKeyword = top3.filter(c => c.keywordInTitle).length;
+    const top5TitleWithKeyword = top5.filter(c => c.keywordInTitle).length;
+    
+    const top3DescWithKeyword = top3.filter(c => c.keywordInDescription).length;
+
+    // Page type distribution
+    const pageTypeCounts = top10.reduce((acc, c) => {
+      if (!c.pageType) return acc;
+      acc[c.pageType] = (acc[c.pageType] || 0) + 1;
+      return acc;
+    }, {});
+
+    const dominantPageType = Object.entries(pageTypeCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+    const pageTypeDistribution = Object.entries(pageTypeCounts)
+      .map(([type, count]) => ({ type, count, percentage: (count / top10.length) * 100 }));
+
+    // Title and description length analysis
+    const titleLengths = top10.map(c => c.estimatedTitleLength || 0);
+    const descLengths = top10.map(c => c.estimatedDescLength || 0);
+    
+    const avgTitleLength = Math.round(
+      titleLengths.reduce((sum, len) => sum + len, 0) / top10.length
+    );
+    const avgDescLength = Math.round(
+      descLengths.reduce((sum, len) => sum + len, 0) / top10.length
+    );
+
+    // =========================================================================
+    // NEW: MARKET-SPECIFIC FINGERPRINT
+    // This creates unique characteristics for each market that affect scoring
+    // =========================================================================
+    
+    // 1. Domain diversity - how many unique domains in top 10
+    const uniqueDomains = new Set(top10.map(c => c.domain)).size;
+    
+    // 2. Actual competitor URLs/domains (for logging and debugging)
+    const topDomains = top10.slice(0, 5).map(c => c.domain);
+    
+    // 3. Title optimization spread (variance in title lengths)
+    const titleLengthVariance = this.calculateVariance(titleLengths);
+    
+    // 4. Description optimization spread
+    const descLengthVariance = this.calculateVariance(descLengths);
+    
+    // 5. Top 3 optimization intensity (how well-optimized are the TOP positions)
+    const top3OptimizationScore = (
+      (top3TitleWithKeyword / 3) * 0.5 +
+      (top3DescWithKeyword / 3) * 0.3 +
+      (top3.filter(c => c.pageType === dominantPageType).length / 3) * 0.2
+    );
+    
+    // 6. SERP homogeneity (how similar are competitors to each other)
+    const serpHomogeneity = this.calculateSERPHomogeneity(top10, dominantPageType);
+    
+    // 7. Generate a unique market hash based on actual competitor data
+    const marketFingerprint = this.generateMarketFingerprint(competitors, locationName, languageName);
+
+    const benchmark = {
+      // Keyword presence metrics
+      percentTitleHasKeyword: titleWithKeywordCount / top10.length,
+      percentDescHasKeyword: descWithKeywordCount / top10.length,
+      
+      // Top performer analysis
+      top3KeywordInTitle: top3TitleWithKeyword,
+      top5KeywordInTitle: top5TitleWithKeyword,
+      top10KeywordInTitle: titleWithKeywordCount,
+      
+      top3KeywordInDescription: top3DescWithKeyword,
+      
+      // Page type insights
+      dominantPageType,
+      pageTypeDistribution,
+      
+      // Content structure benchmarks
+      avgTitleLength,
+      avgDescLength,
+      titleLengthVariance,
+      descLengthVariance,
+      
+      // NEW: Market-specific metrics
+      uniqueDomains,
+      topDomains,
+      top3OptimizationScore,
+      serpHomogeneity,
+      marketFingerprint,
+      
+      // Competitiveness indicators
+      competitionLevel: this.assessCompetitionLevel({
+        titleKeywordRate: titleWithKeywordCount / top10.length,
+        top3Optimization: top3TitleWithKeyword / 3,
+        pageTypeConsistency: (pageTypeCounts[dominantPageType] || 0) / top10.length,
+        serpHomogeneity,
+      }),
     };
+
+    Logger.info(`[SERP Benchmark] Market: ${locationName}/${languageName}`);
+    Logger.info(`[SERP Benchmark] ${titleWithKeywordCount}/10 have keyword in title, Dominant type: ${dominantPageType}`);
+    Logger.info(`[SERP Benchmark] Top domains: ${topDomains.join(', ')}`);
+    Logger.info(`[SERP Benchmark] Market fingerprint: ${marketFingerprint}`);
+    Logger.info(`[SERP Benchmark] Competition: ${benchmark.competitionLevel}, Homogeneity: ${serpHomogeneity.toFixed(2)}`);
+
+    return benchmark;
   }
 
   /**
-   * Extract comprehensive text content from pageData
-   * Falls back to HTML parsing if plain_text_content is insufficient
+   * Calculate variance of an array of numbers
    */
-  extractPageContent(pageData, meta) {
-    // Primary: Use DataForSEO's extracted plain text
-    let primaryContent = meta.content?.plain_text_content || pageData.content?.plain_text_content || '';
+  calculateVariance(numbers) {
+    if (numbers.length === 0) return 0;
+    const mean = numbers.reduce((sum, n) => sum + n, 0) / numbers.length;
+    const squaredDiffs = numbers.map(n => Math.pow(n - mean, 2));
+    return squaredDiffs.reduce((sum, d) => sum + d, 0) / numbers.length;
+  }
+
+  /**
+   * Calculate how homogeneous (similar) the SERP results are
+   * Higher = more similar competitors = harder to differentiate
+   */
+  calculateSERPHomogeneity(competitors, dominantPageType) {
+    if (competitors.length === 0) return 0;
     
-    // Fallback: If plain_text_content is empty or very short, try HTML extraction
-    if (!primaryContent || primaryContent.length < 100) {
-      const html = pageData.page_content || meta.content?.html_content || '';
-      if (html) {
-        primaryContent = this.stripHTML(html);
-        Logger.info(`Used HTML fallback for content extraction. Length: ${primaryContent.length}`);
-      }
+    let similarityScore = 0;
+    
+    // Page type consistency
+    const sameTypeCount = competitors.filter(c => c.pageType === dominantPageType).length;
+    similarityScore += (sameTypeCount / competitors.length) * 0.4;
+    
+    // Title length consistency (low variance = high homogeneity)
+    const titleLengths = competitors.map(c => c.estimatedTitleLength);
+    const titleVariance = this.calculateVariance(titleLengths);
+    const normalizedTitleVariance = Math.min(titleVariance / 500, 1); // Normalize
+    similarityScore += (1 - normalizedTitleVariance) * 0.3;
+    
+    // Keyword optimization consistency
+    const kwInTitleRate = competitors.filter(c => c.keywordInTitle).length / competitors.length;
+    // If all have it or none have it = homogeneous
+    const kwHomogeneity = kwInTitleRate > 0.5 ? kwInTitleRate : (1 - kwInTitleRate);
+    similarityScore += kwHomogeneity * 0.3;
+    
+    return similarityScore;
+  }
+
+  /**
+   * Generate a unique fingerprint for this specific market's SERP
+   * This ensures different markets produce different scores even with similar patterns
+   */
+  generateMarketFingerprint(competitors, locationName, languageName) {
+    // Create a hash from actual competitor data
+    const dataPoints = [
+      locationName,
+      languageName,
+      ...competitors.slice(0, 5).map(c => c.domain),
+      ...competitors.slice(0, 3).map(c => c.estimatedTitleLength),
+    ];
+    
+    // Simple hash function
+    let hash = 0;
+    const str = dataPoints.join('|');
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
     }
     
-    // Additional content sources to check
-    const additionalSources = [
-      meta.description,
-      ...(meta.htags?.h1 || []),
-      ...(meta.htags?.h2 || []),
-      ...(meta.htags?.h3 || []),
-    ].filter(Boolean).join(' ');
-    
-    // Combine all sources
-    const fullContent = [primaryContent, additionalSources].filter(Boolean).join(' ');
-    
-    return fullContent;
+    return Math.abs(hash).toString(16).substring(0, 8);
   }
 
   /**
-   * Build content from available meta fields when plain_text_content is unavailable
+   * Assess overall competition level
    */
-  buildContentFromMeta(meta) {
-    const parts = [];
+  assessCompetitionLevel({ titleKeywordRate, top3Optimization, pageTypeConsistency, serpHomogeneity = 0.5 }) {
+    // Factor in SERP homogeneity - more homogeneous = harder to compete
+    const adjustedRate = titleKeywordRate + (serpHomogeneity * 0.1);
     
-    // Add title
-    if (meta.title) parts.push(meta.title);
-    
-    // Add description
-    if (meta.description) parts.push(meta.description);
-    
-    // Add all headings
-    if (meta.htags) {
-      const headings = [
-        ...(meta.htags.h1 || []),
-        ...(meta.htags.h2 || []),
-        ...(meta.htags.h3 || []),
-        ...(meta.htags.h4 || []),
-        ...(meta.htags.h5 || []),
-        ...(meta.htags.h6 || []),
-      ];
-      parts.push(...headings);
+    // High competition: top results are highly optimized
+    if (adjustedRate >= 0.85 && top3Optimization >= 0.9) {
+      return 'very-high';
     }
-    
-    return parts.filter(Boolean).join(' ');
-  }
-
-  /**
-   * Strip HTML tags and decode entities
-   */
-  stripHTML(html) {
-    if (!html) return '';
-    
-    return html
-      // Remove script and style tags with their content
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-      // Remove HTML comments
-      .replace(/<!--[\s\S]*?-->/g, ' ')
-      // Remove all HTML tags
-      .replace(/<[^>]+>/g, ' ')
-      // Decode common HTML entities
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&[a-z]+;/gi, ' ')
-      // Collapse whitespace
-      .replace(/\s+/g, ' ')
-      .trim();
+    if (adjustedRate >= 0.75 && top3Optimization >= 0.67) {
+      return 'high';
+    }
+    if (adjustedRate >= 0.5) {
+      return 'medium';
+    }
+    if (adjustedRate >= 0.3) {
+      return 'low';
+    }
+    return 'very-low';
   }
 
   /**
    * Generate keyword variations for better matching
-   * Handles: singular/plural, with/without hyphens, accents
    */
   generateKeywordVariations(keyword) {
     const variations = new Set();
@@ -370,12 +455,10 @@ class DataForSEOService {
     // Add plural forms
     if (!normalized.endsWith('s')) {
       variations.add(normalized + 's');
-      // Handle words ending in 'y' -> 'ies'
       if (normalized.endsWith('y') && normalized.length > 2) {
         variations.add(normalized.slice(0, -1) + 'ies');
       }
     } else {
-      // Remove 's' for singular
       variations.add(normalized.slice(0, -1));
     }
     
@@ -427,11 +510,12 @@ class DataForSEOService {
     return { totalCount, foundVariations };
   }
 
-  transformOnPageResult(data, url, keyword, serpData = null, lang = 'en') {
+  transformOnPageResult(data, url, keyword, serpData = null, lang = 'en', locale = DEFAULT_LOCALE) {
     if (!data) {
       return {
         url,
         keyword,
+        locale,
         score: 0,
         checks: this.buildEmptyChecks(lang),
         keywordAnalysis: null,
@@ -457,16 +541,17 @@ class DataForSEOService {
       ? this.analyzeKeyword(keyword, meta, pageData, serpData, lang)
       : null;
 
-    // Compute SEO score with transparent component breakdown
-    const scoring = this.computeSEOScore({
+    // Compute SEO score with SERP-FIRST approach and MARKET DIFFERENTIATION
+    const scoring = this.computeSEOScoreWithSERPFirst({
       pageData,
       meta,
       keywordAnalysis,
       serpData,
       checks,
+      locale,
     });
 
-    const recommendations = this.generateEnhancedRecommendations(
+    const recommendations = this.generateSERPDrivenRecommendations(
       checks,
       keywordAnalysis,
       keyword,
@@ -480,11 +565,13 @@ class DataForSEOService {
     return {
       url,
       keyword,
+      locale,
       score: Math.round(scoring.total * 100) / 100,
       scoreBreakdown: {
         total: Math.round(scoring.total * 100) / 100,
         components: scoring.components,
         explanation: scoring.explanation,
+        marketFactors: scoring.marketFactors, // NEW: expose market-specific factors
       },
       checks,
       keywordAnalysis,
@@ -526,16 +613,13 @@ class DataForSEOService {
     const h3Count = meta.htags?.h3?.length || 0;
     const wordCount = meta.content?.plain_text_word_count || 0;
     
-    // CRITICAL FIX: Links and images data is in meta, not pageData
     const internalLinksCount = meta.internal_links_count || 0;
     const externalLinksCount = meta.external_links_count || 0;
     const imagesCount = meta.images_count || 0;
     
-    // DataForSEO returns timing values in milliseconds – convert to seconds
     const rawLoadTime = pageData.page_timing?.time_to_interactive;
     const loadTime = typeof rawLoadTime === 'number' ? rawLoadTime / 1000 : null;
 
-    // Calculate status based on best practices
     const getTitleStatus = () => {
       if (!meta.title) return 'poor';
       if (titleLength >= 50 && titleLength <= 60) return 'good';
@@ -553,7 +637,7 @@ class DataForSEOService {
     const getH1Status = () => {
       if (h1Count === 1) return 'good';
       if (h1Count === 0) return 'poor';
-      return 'needsImprovement'; // Multiple H1s
+      return 'needsImprovement';
     };
 
     const getWordCountStatus = () => {
@@ -623,7 +707,7 @@ class DataForSEOService {
         label: t(lang, 'seo.checks.images'),
         total: imagesCount,
         totalLabel: t(lang, 'seo.labels.total'),
-        withoutAlt: 0, // DataForSEO instant_pages doesn't provide images_without_alt in this response structure
+        withoutAlt: 0,
         withoutAltLabel: t(lang, 'seo.labels.withoutAlt'),
         status: imagesCount > 0 ? 'good' : 'needsImprovement',
         statusLabel: t(lang, `seo.labels.${imagesCount > 0 ? 'good' : 'needsImprovement'}`),
@@ -634,7 +718,7 @@ class DataForSEOService {
         internalLabel: t(lang, 'seo.labels.internal'),
         external: externalLinksCount,
         externalLabel: t(lang, 'seo.labels.external'),
-        broken: 0, // DataForSEO instant_pages shows broken_links as boolean, not count
+        broken: 0,
         brokenLabel: t(lang, 'seo.labels.broken'),
         status: pageData.broken_links ? 'poor' : 'good',
         statusLabel: t(lang, `seo.labels.${pageData.broken_links ? 'poor' : 'good'}`),
@@ -655,17 +739,9 @@ class DataForSEOService {
   }
 
   analyzeKeyword(keyword, meta, pageData, serpData = null, lang = 'en') {
-    // Generate keyword variations for flexible matching
     const keywordVariations = this.generateKeywordVariations(keyword);
-    
-    // RELIABLE STRATEGY:
-    // 1. ALWAYS use API's plain_text_word_count (it's reliable even though we can't see the text)
-    // 2. Search for keywords in available text (headings + meta description)
-    // 3. Approximate density based on keyword occurrences in headings vs total word count
-    
     const apiWordCount = meta.content?.plain_text_word_count || 0;
     
-    // Build searchable text from what we have (headings + meta)
     const allHeadings = [
       ...(meta.htags?.h1 || []),
       ...(meta.htags?.h2 || []),
@@ -678,16 +754,13 @@ class DataForSEOService {
     const metaDesc = meta.description || '';
     const metaTitle = meta.title || '';
     
-    // Combine all available text for keyword searching
     const searchableText = [allHeadings, metaDesc, metaTitle].filter(Boolean).join(' ');
     const plainText = this.normalizeForSearch(searchableText);
     
-    // ALWAYS use API word count - it's the most reliable
     const wordCount = apiWordCount || 0;
     
     let contentSource = 'api_word_count';
     
-    // Log warning if we have no word count
     if (wordCount === 0) {
       Logger.warn(`[Word Count] API returned 0 word count for analysis. This will affect scoring.`);
       contentSource = 'no_content';
@@ -695,37 +768,28 @@ class DataForSEOService {
     
     Logger.info(`[Content Analysis] Using API word count: ${wordCount}, Searchable text length: ${plainText.length}`);
 
-    // Normalize meta elements (for keyword position checking)
     const title = this.normalizeForSearch(meta.title || '');
     const description = this.normalizeForSearch(meta.description || '');
     const h1Values = (meta.htags?.h1 || []).map(h => this.normalizeForSearch(h));
     const h2Values = (meta.htags?.h2 || []).map(h => this.normalizeForSearch(h));
     const url = (pageData.url || '').toLowerCase();
 
-    // Check keyword presence using variations
     const inTitle = this.keywordExistsInText(keyword, title);
     const inDescription = this.keywordExistsInText(keyword, description);
     const inH1 = h1Values.some(h => this.keywordExistsInText(keyword, h));
     const inH2 = h2Values.some(h => this.keywordExistsInText(keyword, h));
     const inContent = this.keywordExistsInText(keyword, plainText);
     
-    // URL check with variations
     const inUrl = keywordVariations.some(variant => 
       url.includes(variant.replace(/\s+/g, '-')) || url.includes(variant.replace(/\s+/g, ''))
     );
 
-    // Count all keyword variation occurrences in the content
-    // NOTE: We search in plainText (body + headings) for comprehensive counting
     const { totalCount: keywordCount, foundVariations } = this.countKeywordOccurrences(keyword, plainText);
-    
-    // Calculate density (modern SEO: 0.3-1.5% is natural)
     const density = wordCount > 0 ? ((keywordCount / wordCount) * 100) : 0;
 
-    // Check if keyword appears in first 100 words (important for relevance)
     const first100Words = plainText.split(/\s+/).slice(0, 100).join(' ');
     const inFirst100Words = this.keywordExistsInText(keyword, first100Words);
 
-    // Modern density standards (relaxed from old 1-2% rule)
     const densityOptimal = density >= 0.5 && density <= 1.5;
     const densityStatus = 
       density === 0 ? 'poor' :
@@ -734,11 +798,10 @@ class DataForSEOService {
       density > 3 ? 'poor' :
       'needsImprovement';
 
-    // Calculate recommended occurrences (0.5-1.5% range)
     const recommendedMin = Math.max(1, Math.round(wordCount * 0.005));
     const recommendedMax = Math.round(wordCount * 0.015);
 
-    // SERP competitive analysis
+    // SERP competitive analysis - NOW WITH MORE DETAIL
     let serpComparison = null;
     if (serpData?.benchmark) {
       const bench = serpData.benchmark;
@@ -747,11 +810,22 @@ class DataForSEOService {
         competitorsWithKeywordInDesc: Math.round(bench.percentDescHasKeyword * 100),
         yourTitleHasKeyword: inTitle,
         yourDescHasKeyword: inDescription,
-        titleCompetitiveness: inTitle ? 'competitive' : bench.percentTitleHasKeyword > 0.7 ? 'weak' : 'moderate',
+        titleCompetitiveness: inTitle 
+          ? 'competitive' 
+          : bench.percentTitleHasKeyword > 0.7 
+            ? 'weak' 
+            : 'moderate',
+        competitionLevel: bench.competitionLevel,
+        dominantPageType: bench.dominantPageType,
+        // NEW: Market-specific context
+        marketLocation: serpData.location,
+        marketLanguage: serpData.language,
+        topCompetitorDomains: bench.topDomains || [],
+        serpHomogeneity: bench.serpHomogeneity,
+        marketFingerprint: bench.marketFingerprint,
       };
     }
 
-    // Debug logging
     if (process.env.DEBUG_SEO_KEYWORD === '1' || !inContent) {
       Logger.info('[SEO Keyword Analysis]', {
         keyword,
@@ -762,21 +836,16 @@ class DataForSEOService {
         inH1,
         inDescription,
         wordCount: wordCount,
-        wordCountSource: 'api_plain_text_word_count',
-        searchableTextLength: plainText.length,
-        contentSource,
         density: `${density.toFixed(2)}%`,
-        headingsAvailable: allHeadings.length > 0,
-        contentPreview: plainText.substring(0, 200),
+        serpComparison,
       });
     }
 
     return {
       title: t(lang, 'seo.keywordAnalysis.title'),
       keyword,
-      keywordVariationsFound: foundVariations, // Show which variations were found
+      keywordVariationsFound: foundVariations,
       
-      // Presence checks
       inTitle,
       inTitleLabel: t(lang, 'seo.keywordAnalysis.inTitle'),
       inTitleValue: inTitle ? t(lang, 'common.yes') : t(lang, 'common.no'),
@@ -805,7 +874,6 @@ class DataForSEOService {
       inFirst100WordsLabel: t(lang, 'seo.keywordAnalysis.inFirst100Words'),
       inFirst100WordsValue: inFirst100Words ? t(lang, 'common.yes') : t(lang, 'common.no'),
       
-      // Density metrics (counts all variations)
       occurrences: keywordCount,
       occurrencesLabel: t(lang, 'seo.keywordAnalysis.occurrences'),
       
@@ -821,8 +889,6 @@ class DataForSEOService {
       recommendedOccurrencesLabel: t(lang, 'seo.keywordAnalysis.recommendedOccurrences'),
       
       wordCount,
-      
-      // SERP competitive context
       serpComparison,
     };
   }
@@ -860,448 +926,540 @@ class DataForSEOService {
     return 'other';
   }
 
-  /**
-   * Compute SEO score with transparent component breakdown
-   * Returns total (0-100) and detailed component scores
-   */
-  computeSEOScore({ pageData, meta, keywordAnalysis, serpData, checks }) {
-    // Use word count from keyword analysis (uses API count with fallback)
-    // This ensures we use the same count that density was calculated against
+  
+  computeSEOScoreWithSERPFirst({ pageData, meta, keywordAnalysis, serpData, checks, locale }) {
     const wordCount = keywordAnalysis?.wordCount || meta.content?.plain_text_word_count || 0;
     const kw = keywordAnalysis;
 
     let explanation = {
-      keywordRelevance: '',
-      contentQuality: '',
-      technicalHealth: '',
+      serpCompetitiveness: '',
+      contentStructure: '',
+      technicalOnPage: '',
       finalAdjustments: '',
+    };
+ 
+    // Track market-specific factors for transparency
+    let marketFactors = {
+      location: serpData?.location || 'Unknown',
+      language: serpData?.language || 'Unknown',
+      fingerprint: null,
+      competitorDomains: [],
+      adjustments: [],
     };
 
     // ===================================================================
-    // 1. KEYWORD RELEVANCE SCORE (0-100) - Weight: 40%
+    // 1. SERP COMPETITIVENESS SCORE (0-100) - Weight: 45%
+    // NOW TRULY MARKET-SPECIFIC
     // ===================================================================
-    let keywordRelevance = 0;
+    let serpCompetitiveness = 0;
 
-    if (!kw) {
-      keywordRelevance = 50; // No keyword provided = neutral score
-      explanation.keywordRelevance = 'No target keyword provided for analysis.';
+    if (!serpData || !serpData.benchmark || !kw) {
+      // No SERP data available - use fallback scoring
+      serpCompetitiveness = 50;
+      explanation.serpCompetitiveness = 'No SERP data available. Cannot assess competitive position. Using neutral score.';
+      
+      Logger.warn(`[SERP Scoring] No SERP data for locale: ${locale}. Score will be generic.`);
     } else {
+      const serpReasons = [];
+      const bench = serpData.benchmark;
+      const competitors = serpData.competitors || [];
+      
+      // Store market info
+      marketFactors.fingerprint = bench.marketFingerprint;
+      marketFactors.competitorDomains = bench.topDomains || [];
+      
+      serpReasons.push(`🌍 Market: ${serpData.location} (${serpData.language})`);
+      serpReasons.push(`🔑 Market Fingerprint: ${bench.marketFingerprint}`);
+      serpReasons.push(`🎯 Analyzing Top ${competitors.length} competitors for "${kw.keyword}"`);
+      serpReasons.push(`📊 Competition Level: ${bench.competitionLevel.toUpperCase()}`);
+      serpReasons.push(`🏢 Top domains: ${(bench.topDomains || []).slice(0, 3).join(', ')}`);
+
       // HARD GATE: Keyword must appear in content
       if (!kw.inContent) {
-        keywordRelevance = 0;
-        const variations = this.generateKeywordVariations(kw.keyword).join(', ');
-        explanation.keywordRelevance = `Target keyword "${kw.keyword}" (including variations: ${variations}) not found in page content. Page cannot rank without keyword presence.`;
+        serpCompetitiveness = 0;
+        serpReasons.push(`❌ CRITICAL: Keyword not found in page content. Cannot compete without keyword presence.`);
+        explanation.serpCompetitiveness = serpReasons.join('\n');
         
         return {
           total: 0,
           components: {
-            keywordRelevance: 0,
-            contentQuality: 0,
-            technicalHealth: 0,
+            serpCompetitiveness: 0,
+            contentStructure: 0,
+            technicalOnPage: 0,
           },
           explanation,
+          marketFactors,
         };
       }
 
-      // Build keyword relevance score from critical elements
-      let kwPoints = 0;
-      const reasons = [];
+      // =====================================================================
+      // MARKET-SPECIFIC SCORING
+      // Compare YOUR optimization against THIS MARKET'S specific competitors
+      // =====================================================================
+      
+      let serpPoints = 0;
 
-      // Title (most important - 30 points)
+      // 1. Title Optimization vs THIS MARKET'S Competitors (35 points max)
+      const titleKeywordRate = bench.percentTitleHasKeyword;
+      const top3TitleRate = bench.top3KeywordInTitle / 3;
+      
       if (kw.inTitle) {
-        kwPoints += 30;
-        reasons.push('✓ Keyword in title (+30)');
+        // You have keyword in title - how does this compare to THIS market?
+        if (titleKeywordRate >= 0.9) {
+          // Very competitive market - all competitors optimized
+          serpPoints += 30; // Slightly less because it's table stakes
+          serpReasons.push(`✅ Keyword in title - MATCHED ${Math.round(titleKeywordRate * 100)}% of ${serpData.location} competitors (+30)`);
+        } else if (titleKeywordRate >= 0.7) {
+          serpPoints += 33;
+          serpReasons.push(`✅ Keyword in title - competitive with ${Math.round(titleKeywordRate * 100)}% of ${serpData.location} market (+33)`);
+        } else if (titleKeywordRate >= 0.5) {
+          serpPoints += 35;
+          serpReasons.push(`✅ Keyword in title - OUTPERFORMING ${serpData.location} average (only ${Math.round(titleKeywordRate * 100)}% have it) (+35)`);
+        } else {
+          serpPoints += 35;
+          serpReasons.push(`✅ Keyword in title - STRONG ADVANTAGE in ${serpData.location} (only ${Math.round(titleKeywordRate * 100)}% have it) (+35)`);
+        }
       } else {
-        reasons.push('✗ Keyword missing from title (0/30)');
-      }
-
-      // H1 (very important - 25 points)
-      if (kw.inH1) {
-        kwPoints += 25;
-        reasons.push('✓ Keyword in H1 (+25)');
-      } else {
-        reasons.push('✗ Keyword missing from H1 (0/25)');
-      }
-
-      // First 100 words (important for relevance - 20 points)
-      if (kw.inFirst100Words) {
-        kwPoints += 20;
-        reasons.push('✓ Keyword in first 100 words (+20)');
-      } else {
-        reasons.push('✗ Keyword not in first 100 words (0/20)');
-      }
-
-      // Meta description (15 points)
-      if (kw.inDescription) {
-        kwPoints += 15;
-        reasons.push('✓ Keyword in meta description (+15)');
-      } else {
-        reasons.push('✗ Keyword missing from meta description (0/15)');
-      }
-
-      // Keyword density (10 points max)
-      const density = kw.density;
-      if (density >= 1.0 && density <= 1.5) {
-        kwPoints += 10;
-        reasons.push(`✓ Optimal keyword density ${density.toFixed(2)}% (+10)`);
-      } else if (density >= 0.8 && density < 1.0) {
-        kwPoints += 8;
-        reasons.push(`✓ Good keyword density ${density.toFixed(2)}% (+8)`);
-      } else if (density >= 0.5 && density < 0.8) {
-        kwPoints += 6;
-        reasons.push(`◐ Moderate keyword density ${density.toFixed(2)}% (+6)`);
-      } else if (density >= 0.3 && density < 0.5) {
-        kwPoints += 4;
-        reasons.push(`◐ Low keyword density ${density.toFixed(2)}% (+4)`);
-      } else if (density > 0 && density < 0.3) {
-        kwPoints += 1;
-        reasons.push(`✗ Very low keyword density ${density.toFixed(2)}% (+1, needs significant improvement)`);
-      } else if (density > 1.5 && density <= 2.5) {
-        kwPoints += 7;
-        reasons.push(`◐ High keyword density ${density.toFixed(2)}% (+7)`);
-      } else if (density > 2.5) {
-        kwPoints += 2;
-        reasons.push(`✗ Excessive keyword density ${density.toFixed(2)}% (+2, keyword stuffing risk)`);
-      } else {
-        reasons.push(`✗ No keyword density (0/10)`);
-      }
-
-      // Show which variations were found
-      if (kw.keywordVariationsFound && kw.keywordVariationsFound.length > 0) {
-        const variantStr = kw.keywordVariationsFound.map(v => `"${v.variant}" (${v.count}×)`).join(', ');
-        reasons.push(`Found variations: ${variantStr}`);
-      }
-
-      keywordRelevance = Math.min(kwPoints, 100);
-      
-      // CRITICAL: Apply immediate penalties for missing essential placements
-      // These are NON-NEGOTIABLE for ranking
-      if (!kw.inTitle) {
-        keywordRelevance = Math.max(0, keywordRelevance - 40);
-        reasons.push(`⚠ CRITICAL PENALTY: Keyword missing from title (-40 points)`);
-      }
-      
-      if (!kw.inH1) {
-        keywordRelevance = Math.max(0, keywordRelevance - 30);
-        reasons.push(`⚠ CRITICAL PENALTY: Keyword missing from H1 (-30 points)`);
-      }
-      
-      keywordRelevance = Math.max(0, keywordRelevance);
-      explanation.keywordRelevance = reasons.join('\n');
-
-      // SERP competitive context
-      if (serpData?.benchmark) {
-        const bench = serpData.benchmark;
-        const competitorTitleRate = bench.percentTitleHasKeyword || 0;
-        
-        if (!kw.inTitle && competitorTitleRate >= 0.7) {
-          explanation.keywordRelevance += `\n⚠ ${Math.round(competitorTitleRate * 100)}% of top competitors have keyword in title - you're at a significant disadvantage.`;
+        // You DON'T have keyword in title - how bad is this in THIS market?
+        if (titleKeywordRate >= 0.9) {
+          // Everyone has it, you don't = disaster
+          serpReasons.push(`❌ CRITICAL in ${serpData.location}: ${Math.round(titleKeywordRate * 100)}% of competitors have keyword in title, you don't (0/35)`);
+          marketFactors.adjustments.push(`Title keyword is essential in ${serpData.location} market`);
+        } else if (titleKeywordRate >= 0.7) {
+          serpReasons.push(`❌ MAJOR GAP in ${serpData.location}: ${Math.round(titleKeywordRate * 100)}% of competitors have keyword in title (0/35)`);
+          marketFactors.adjustments.push(`Most ${serpData.location} competitors have keyword in title`);
+        } else if (titleKeywordRate >= 0.5) {
+          serpPoints += 10;
+          serpReasons.push(`⚠️ Keyword not in title, ${Math.round(titleKeywordRate * 100)}% of ${serpData.location} competitors have it (+10/35)`);
+        } else {
+          serpPoints += 20;
+          serpReasons.push(`⚠️ Keyword not in title, but only ${Math.round(titleKeywordRate * 100)}% in ${serpData.location} have it (+20/35)`);
         }
       }
+
+      // 2. H1 Optimization vs THIS MARKET'S Top 3 (25 points max)
+      if (kw.inH1) {
+        if (top3TitleRate >= 0.9) {
+          serpPoints += 22;
+          serpReasons.push(`✅ Keyword in H1 - matched highly optimized ${serpData.location} Top 3 (+22)`);
+        } else {
+          serpPoints += 25;
+          serpReasons.push(`✅ Keyword in H1 - strong position in ${serpData.location} (+25)`);
+        }
+      } else {
+        if (top3TitleRate >= 0.9) {
+          serpReasons.push(`❌ ${serpData.location} Top 3 are highly optimized (${bench.top3KeywordInTitle}/3), you're not (0/25)`);
+          marketFactors.adjustments.push(`Top 3 in ${serpData.location} all have keyword in H1`);
+        } else if (bench.top3KeywordInTitle >= 2) {
+          serpPoints += 5;
+          serpReasons.push(`⚠️ ${bench.top3KeywordInTitle}/3 ${serpData.location} top competitors have keyword optimized (+5/25)`);
+        } else {
+          serpPoints += 12;
+          serpReasons.push(`⚠️ ${serpData.location} Top 3 less optimized (${bench.top3KeywordInTitle}/3), you can still compete (+12/25)`);
+        }
+      }
+
+      // 3. Meta Description vs THIS MARKET (15 points max)
+      const descKeywordRate = bench.percentDescHasKeyword;
+      if (kw.inDescription) {
+        if (descKeywordRate >= 0.8) {
+          serpPoints += 13;
+          serpReasons.push(`✅ Keyword in description - matched ${Math.round(descKeywordRate * 100)}% ${serpData.location} standard (+13)`);
+        } else {
+          serpPoints += 15;
+          serpReasons.push(`✅ Keyword in description - ahead of ${serpData.location} competition (+15)`);
+        }
+      } else {
+        if (descKeywordRate >= 0.8) {
+          serpReasons.push(`⚠️ ${Math.round(descKeywordRate * 100)}% of ${serpData.location} competitors have keyword in description (0/15)`);
+        } else if (descKeywordRate >= 0.5) {
+          serpPoints += 5;
+          serpReasons.push(`⚠️ Keyword not in description (${Math.round(descKeywordRate * 100)}% in ${serpData.location} have it) (+5/15)`);
+        } else {
+          serpPoints += 10;
+          serpReasons.push(`⚠️ Keyword not in description, but ${serpData.location} market is less optimized (+10/15)`);
+        }
+      }
+
+      // 4. Early Keyword Placement (10 points max)
+      if (kw.inFirst100Words) {
+        serpPoints += 10;
+        serpReasons.push(`✅ Keyword in first 100 words - strong relevance signal (+10)`);
+      } else {
+        serpReasons.push(`⚠️ Keyword not in first 100 words (0/10)`);
+      }
+
+      // 5. Page Type Alignment with THIS MARKET (15 points max)
+      const myPageType = this.classifyPageType(pageData.url || '', meta.title || '');
+      const dominantType = bench.dominantPageType;
+      
+      if (dominantType && myPageType === dominantType) {
+        serpPoints += 15;
+        serpReasons.push(`✅ Page type '${myPageType}' MATCHES ${serpData.location} SERP type (+15)`);
+      } else if (dominantType) {
+        const distribution = bench.pageTypeDistribution?.find(d => d.type === dominantType);
+        const dominance = distribution ? distribution.percentage : 0;
+        
+        if (dominance >= 80) {
+          serpReasons.push(`❌ ${Math.round(dominance)}% of ${serpData.location} Top 10 are '${dominantType}' pages, yours is '${myPageType}' (0/15)`);
+          marketFactors.adjustments.push(`${serpData.location} SERP dominated by ${dominantType} pages`);
+        } else if (dominance >= 60) {
+          serpPoints += 5;
+          serpReasons.push(`⚠️ ${serpData.location} SERP prefers '${dominantType}' (${Math.round(dominance)}%), yours is '${myPageType}' (+5/15)`);
+        } else {
+          serpPoints += 10;
+          serpReasons.push(`◐ ${serpData.location} SERP has mixed page types (+10)`);
+        }
+      } else {
+        serpPoints += 10;
+        serpReasons.push(`◐ ${serpData.location} SERP has diverse page types (+10)`);
+      }
+
+      // =====================================================================
+      // MARKET-SPECIFIC ADJUSTMENTS
+      // These create score differentiation between markets
+      // =====================================================================
+      
+      // A. SERP Homogeneity Factor
+      // Higher homogeneity = competitors are more similar = harder to differentiate
+      const homogeneity = bench.serpHomogeneity || 0.5;
+      if (homogeneity > 0.7 && serpPoints < 80) {
+        const homogeneityPenalty = Math.round((homogeneity - 0.5) * 10);
+        serpPoints -= homogeneityPenalty;
+        serpReasons.push(`⚠️ ${serpData.location} SERP is highly homogeneous (${(homogeneity * 100).toFixed(0)}%) - harder to stand out (-${homogeneityPenalty})`);
+        marketFactors.adjustments.push(`High SERP homogeneity in ${serpData.location}`);
+      } else if (homogeneity < 0.4 && serpPoints > 40) {
+        const homogeneityBonus = Math.round((0.5 - homogeneity) * 8);
+        serpPoints += homogeneityBonus;
+        serpReasons.push(`✅ ${serpData.location} SERP is diverse - easier to find niche (+${homogeneityBonus})`);
+      }
+
+      // B. Domain Diversity Factor
+      // More unique domains = more competitive market
+      const uniqueDomains = bench.uniqueDomains || 10;
+      if (uniqueDomains <= 5) {
+        // Few domains dominating - harder for new entrants
+        serpPoints -= 5;
+        serpReasons.push(`⚠️ Only ${uniqueDomains} domains in ${serpData.location} Top 10 - market concentrated (-5)`);
+        marketFactors.adjustments.push(`${serpData.location} market dominated by few players`);
+      } else if (uniqueDomains >= 9) {
+        // High diversity - opportunity
+        serpPoints += 3;
+        serpReasons.push(`✅ ${uniqueDomains} unique domains in ${serpData.location} Top 10 - diverse market (+3)`);
+      }
+
+      // C. Top 3 Optimization Intensity
+      // How well-optimized are the TOP positions specifically?
+      const top3Score = bench.top3OptimizationScore || 0.5;
+      if (top3Score > 0.8 && serpPoints > 60) {
+        const top3Penalty = Math.round((top3Score - 0.5) * 15);
+        serpPoints -= top3Penalty;
+        serpReasons.push(`⚠️ ${serpData.location} Top 3 are exceptionally well-optimized (${(top3Score * 100).toFixed(0)}%) (-${top3Penalty})`);
+        marketFactors.adjustments.push(`Intense competition in ${serpData.location} top positions`);
+      }
+
+      serpCompetitiveness = Math.max(0, Math.min(serpPoints, 100));
+
+      // Apply competition level multiplier (market-specific)
+      if (bench.competitionLevel === 'very-high' && serpCompetitiveness < 85) {
+        const penalty = (85 - serpCompetitiveness) * 0.25;
+        serpCompetitiveness = Math.max(0, serpCompetitiveness - penalty);
+        serpReasons.push(`⚠️ VERY HIGH competition in ${serpData.location}: -${penalty.toFixed(0)} points`);
+      } else if (bench.competitionLevel === 'high' && serpCompetitiveness < 70) {
+        const penalty = (70 - serpCompetitiveness) * 0.15;
+        serpCompetitiveness = Math.max(0, serpCompetitiveness - penalty);
+        serpReasons.push(`⚠️ HIGH competition in ${serpData.location}: -${penalty.toFixed(0)} points`);
+      } else if (bench.competitionLevel === 'low' && serpCompetitiveness > 50) {
+        const bonus = (serpCompetitiveness - 50) * 0.1;
+        serpCompetitiveness = Math.min(100, serpCompetitiveness + bonus);
+        serpReasons.push(`✅ Lower competition in ${serpData.location}: +${bonus.toFixed(0)} points`);
+      }
+
+      serpReasons.push(`\n📈 SERP Competitiveness Score for ${serpData.location}: ${serpCompetitiveness.toFixed(0)}/100`);
+      explanation.serpCompetitiveness = serpReasons.join('\n');
     }
 
     // ===================================================================
-    // 2. CONTENT QUALITY SCORE (0-100) - Weight: 35%
+    // 2. CONTENT & STRUCTURE SCORE (0-100) - Weight: 35%
+    // (This stays mostly the same as it's about YOUR page, not market)
     // ===================================================================
-    let contentQuality = 0;
+    let contentStructure = 0;
     const contentReasons = [];
 
-    // A. Word count scoring (60% of content quality)
+    // Word count scoring (50% of content score)
     let lengthScore = 0;
     if (wordCount >= 2000) {
       lengthScore = 100;
-      contentReasons.push(`✓ Excellent content length: ${wordCount} words (100/100)`);
+      contentReasons.push(`✅ Excellent content length: ${wordCount} words (100/100)`);
     } else if (wordCount >= 1500) {
       lengthScore = 85;
-      contentReasons.push(`✓ Good content length: ${wordCount} words (85/100)`);
+      contentReasons.push(`✅ Good content length: ${wordCount} words (85/100)`);
     } else if (wordCount >= 1000) {
       lengthScore = 70;
       contentReasons.push(`◐ Moderate content length: ${wordCount} words (70/100)`);
     } else if (wordCount >= 600) {
       lengthScore = 50;
-      contentReasons.push(`◐ Below average content length: ${wordCount} words (50/100)`);
+      contentReasons.push(`◐ Below average: ${wordCount} words (50/100)`);
     } else if (wordCount >= 300) {
       lengthScore = 30;
-      contentReasons.push(`✗ Poor content length: ${wordCount} words (30/100)`);
+      contentReasons.push(`⚠️ Poor length: ${wordCount} words (30/100)`);
     } else {
       lengthScore = 10;
-      contentReasons.push(`✗ Very poor content length: ${wordCount} words (10/100)`);
+      contentReasons.push(`❌ Very poor: ${wordCount} words (10/100)`);
     }
 
-    // B. Content structure scoring (40% of content quality)
+    // Heading structure scoring (30% of content score)
     const h1Count = checks.h1?.count || 0;
     const h2Count = checks.h2?.count || 0;
     const h3Count = checks.h3?.count || 0;
 
     let structureScore = 0;
-    const structureReasons = [];
 
-    // H1 evaluation
     if (h1Count === 1) {
-      structureScore += 40;
-      structureReasons.push('✓ Single H1 tag (+40)');
+      structureScore += 35;
+      contentReasons.push('✅ Single H1 (+35)');
     } else if (h1Count === 0) {
-      structureReasons.push('✗ Missing H1 tag (0/40)');
+      contentReasons.push('❌ Missing H1 (0/35)');
     } else {
-      structureScore += 20;
-      structureReasons.push(`◐ Multiple H1 tags (${h1Count}) - should have only one (+20/40)`);
-    }
-
-    // H2 evaluation
-    if (h2Count >= 5) {
-      structureScore += 40;
-      structureReasons.push(`✓ Excellent H2 structure: ${h2Count} H2 tags (+40)`);
-    } else if (h2Count >= 3) {
-      structureScore += 30;
-      structureReasons.push(`✓ Good H2 structure: ${h2Count} H2 tags (+30)`);
-    } else if (h2Count >= 1) {
       structureScore += 15;
-      structureReasons.push(`◐ Minimal H2 structure: ${h2Count} H2 tag(s) (+15)`);
-    } else {
-      structureReasons.push('✗ No H2 tags found (0/40)');
+      contentReasons.push(`⚠️ Multiple H1s: ${h1Count} (+15/35)`);
     }
 
-    // H3 bonus
+    if (h2Count >= 5) {
+      structureScore += 35;
+      contentReasons.push(`✅ Strong H2 structure: ${h2Count} tags (+35)`);
+    } else if (h2Count >= 3) {
+      structureScore += 25;
+      contentReasons.push(`✅ Good H2 structure: ${h2Count} tags (+25)`);
+    } else if (h2Count >= 1) {
+      structureScore += 10;
+      contentReasons.push(`◐ Weak H2 structure: ${h2Count} tag(s) (+10)`);
+    } else {
+      contentReasons.push('❌ No H2 tags (0/35)');
+    }
+
     if (h3Count >= 3) {
-      structureScore += 20;
-      structureReasons.push(`✓ Good H3 depth: ${h3Count} H3 tags (+20 bonus)`);
+      structureScore += 30;
+      contentReasons.push(`✅ Good depth: ${h3Count} H3 tags (+30)`);
     }
 
     structureScore = Math.min(structureScore, 100);
-    contentReasons.push(...structureReasons);
 
-    // Combine length and structure
-    contentQuality = (lengthScore * 0.6) + (structureScore * 0.4);
-    
-    // Additional penalties for poor content engagement
-    if (checks.links?.internal === 0) {
-      contentQuality = Math.max(0, contentQuality - 10);
-      contentReasons.push('✗ No internal links - poor site structure (-10)');
-    } else if (checks.links?.internal < 3) {
-      contentQuality = Math.max(0, contentQuality - 5);
-      contentReasons.push(`◐ Only ${checks.links.internal} internal link(s) - should have 3+ (-5)`);
+    // Internal linking (20% of content score)
+    let linkingScore = 0;
+    const internalLinks = checks.links?.internal || 0;
+    const externalLinks = checks.links?.external || 0;
+
+    if (internalLinks >= 5) {
+      linkingScore += 60;
+      contentReasons.push(`✅ Strong internal linking: ${internalLinks} links (+60)`);
+    } else if (internalLinks >= 3) {
+      linkingScore += 40;
+      contentReasons.push(`◐ Moderate internal linking: ${internalLinks} links (+40)`);
+    } else if (internalLinks >= 1) {
+      linkingScore += 20;
+      contentReasons.push(`⚠️ Weak internal linking: ${internalLinks} link(s) (+20)`);
+    } else {
+      contentReasons.push('❌ No internal links (0/60)');
     }
-    
-    if (checks.links?.external === 0 && wordCount > 800) {
-      contentQuality = Math.max(0, contentQuality - 5);
-      contentReasons.push('✗ No external links - missing credibility signals (-5)');
+
+    if (externalLinks >= 2) {
+      linkingScore += 40;
+      contentReasons.push(`✅ Good external links: ${externalLinks} (+40)`);
+    } else if (externalLinks >= 1) {
+      linkingScore += 20;
+      contentReasons.push(`◐ Minimal external links: ${externalLinks} (+20)`);
+    } else if (wordCount > 800) {
+      contentReasons.push('⚠️ No external links - missing credibility (0/40)');
     }
-    
-    explanation.contentQuality = contentReasons.join('\n');
+
+    linkingScore = Math.min(linkingScore, 100);
+
+    // Combine: 50% length + 30% structure + 20% linking
+    contentStructure = (lengthScore * 0.5) + (structureScore * 0.3) + (linkingScore * 0.2);
+    contentReasons.push(`\n📝 Content & Structure Score: ${contentStructure.toFixed(0)}/100`);
+    explanation.contentStructure = contentReasons.join('\n');
 
     // ===================================================================
-    // 3. TECHNICAL HEALTH SCORE (0-100) - Weight: 25%
+    // 3. TECHNICAL ON-PAGE SCORE (0-100) - Weight: 20%
     // ===================================================================
-    let technicalHealth = 0;
+    let technicalOnPage = 0;
     const techReasons = [];
 
-    // Start with DataForSEO's on-page score (base score)
     const rawOnPageScore = pageData.onpage_score || 0;
-    technicalHealth = rawOnPageScore * 100;
-    techReasons.push(`Base technical score: ${technicalHealth.toFixed(0)}/100 (from DataForSEO)`);
+    technicalOnPage = rawOnPageScore * 100;
+    techReasons.push(`Base technical score: ${technicalOnPage.toFixed(0)}/100`);
 
-    // Critical technical issues (hard penalties)
     let penalties = 0;
 
-    // Broken links (critical) - instant_pages returns boolean
+    // Critical technical issues
     const hasBrokenLinks = pageData.broken_links || false;
     if (hasBrokenLinks) {
-      penalties += 15;
-      techReasons.push('✗ Page has broken links (-15)');
+      penalties += 20;
+      techReasons.push('❌ Broken links detected (-20)');
     }
 
-    // Missing canonical (important)
     if (!checks.canonical?.exists) {
-      penalties += 10;
-      techReasons.push('✗ Missing canonical tag (-10)');
+      penalties += 15;
+      techReasons.push('⚠️ Missing canonical tag (-15)');
     }
 
-    // Page load time
     const loadTime = checks.loadTime?.value;
     if (loadTime !== null) {
       if (loadTime > 5) {
-        penalties += 15;
-        techReasons.push(`✗ Slow page load: ${loadTime.toFixed(1)}s (-15)`);
+        penalties += 20;
+        techReasons.push(`❌ Very slow load: ${loadTime.toFixed(1)}s (-20)`);
       } else if (loadTime > 3) {
-        penalties += 8;
-        techReasons.push(`◐ Moderate page load: ${loadTime.toFixed(1)}s (-8)`);
+        penalties += 10;
+        techReasons.push(`⚠️ Slow load: ${loadTime.toFixed(1)}s (-10)`);
       } else if (loadTime <= 2.5) {
-        techReasons.push(`✓ Fast page load: ${loadTime.toFixed(1)}s (no penalty)`);
+        techReasons.push(`✅ Fast load: ${loadTime.toFixed(1)}s`);
       }
     }
 
-    // Missing meta description (important for CTR)
     if (!checks.description?.exists) {
-      penalties += 10;
-      techReasons.push('✗ Missing meta description (-10)');
+      penalties += 15;
+      techReasons.push('⚠️ Missing meta description (-15)');
     }
 
-    // Apply penalties
-    technicalHealth = Math.max(0, technicalHealth - penalties);
+    if (!checks.title?.exists) {
+      penalties += 20;
+      techReasons.push('❌ Missing title tag (-20)');
+    }
+
+    technicalOnPage = Math.max(0, technicalOnPage - penalties);
     if (penalties > 0) {
-      techReasons.push(`Total technical penalties: -${penalties}`);
+      techReasons.push(`Total penalties: -${penalties}`);
     }
-    techReasons.push(`Final technical health: ${technicalHealth.toFixed(0)}/100`);
-
-    explanation.technicalHealth = techReasons.join('\n');
+    techReasons.push(`\n🔧 Technical On-Page Score: ${technicalOnPage.toFixed(0)}/100`);
+    explanation.technicalOnPage = techReasons.join('\n');
 
     // ===================================================================
-    // 4. CALCULATE FINAL SCORE
+    // 4. CALCULATE FINAL SCORE (CLIENT'S WEIGHTS)
+    // SERP: 45%, Content: 35%, Technical: 20%
     // ===================================================================
-    // Weights: Keyword 40%, Content 35%, Technical 25%
-    let total = (keywordRelevance * 0.40) + (contentQuality * 0.35) + (technicalHealth * 0.25);
+    let total = (serpCompetitiveness * 0.45) + (contentStructure * 0.35) + (technicalOnPage * 0.20);
 
-    // Final adjustments and caps
     const adjustments = [];
-    
-    // EARLY CAPS - Apply immediately if critical issues exist
-    // These prevent inflated scores when fundamental optimization is missing
-    
-    // CRITICAL: Keyword not in title = Cannot rank well
-    if (kw && !kw.inTitle) {
-      const cap = 50;
-      if (total > cap) {
-        adjustments.push(`⚠ CRITICAL: Keyword missing from title - score capped at ${cap}`);
-        total = cap;
-      }
-    }
-    
-    // CRITICAL: Keyword not in H1 = Poor topical relevance
-    if (kw && !kw.inH1) {
-      const cap = 60;
-      if (total > cap) {
-        adjustments.push(`⚠ CRITICAL: Keyword missing from H1 - score capped at ${cap}`);
-        total = cap;
-      }
-    }
 
-    // SERP competitive disadvantage
-    if (serpData?.benchmark && kw) {
+    // MARKET-SPECIFIC CAPS
+    if (serpData && kw) {
       const bench = serpData.benchmark;
-      const top3Analysis = bench.topCompetitorsAnalysis;
+      const location = serpData.location;
       
-      if (top3Analysis) {
-        // If top 3 all have keyword in title and you don't
-        if (top3Analysis.top3KeywordInTitle === 3 && !kw.inTitle) {
-          const cap = 45;
+      // If top competitors are highly optimized and you're not competing
+      if (bench.competitionLevel === 'very-high' && serpCompetitiveness < 60) {
+        const cap = 45;
+        if (total > cap) {
+          adjustments.push(`⚠️ VERY HIGH competition in ${location} - you're significantly behind. Score capped at ${cap}.`);
+          total = cap;
+        }
+      }
+
+      // If all top 3 have keyword in title and you don't
+      if (bench.top3KeywordInTitle === 3 && !kw.inTitle) {
+        const cap = 40;
+        if (total > cap) {
+          adjustments.push(`⚠️ ALL ${location} Top 3 have keyword in title - critical disadvantage. Score capped at ${cap}.`);
+          total = cap;
+        }
+      }
+
+      // Page type mismatch in uniform SERP
+      if (bench.dominantPageType) {
+        const myPageType = this.classifyPageType(pageData.url || '', meta.title || '');
+        const distribution = bench.pageTypeDistribution?.find(d => d.type === bench.dominantPageType);
+        const dominance = distribution ? distribution.percentage : 0;
+        
+        if (dominance >= 80 && myPageType !== bench.dominantPageType) {
+          const cap = 50;
           if (total > cap) {
-            adjustments.push(`⚠ Top 3 competitors all have keyword in title - score capped at ${cap}`);
+            adjustments.push(`⚠️ ${Math.round(dominance)}% of ${location} Top 10 are '${bench.dominantPageType}' pages, yours is '${myPageType}'. Score capped at ${cap}.`);
             total = cap;
           }
         }
       }
     }
 
-    // Insufficient content penalty
+    // Content too short to compete (universal)
     if (wordCount < 300) {
-      const cap = 35;
+      const cap = 30;
       if (total > cap) {
-        adjustments.push(`⚠ Content too short (${wordCount} words) - score capped at ${cap}`);
+        adjustments.push(`⚠️ Insufficient content (${wordCount} words) - cannot compete. Score capped at ${cap}.`);
         total = cap;
       }
     } else if (wordCount < 500) {
-      const cap = 55;
+      const cap = 50;
       if (total > cap) {
-        adjustments.push(`⚠ Content below minimum threshold (${wordCount} words) - score capped at ${cap}`);
+        adjustments.push(`⚠️ Content too short (${wordCount} words) to compete effectively. Score capped at ${cap}.`);
         total = cap;
       }
     }
 
-    // Missing critical keyword placements
-    if (kw && !kw.inTitle && !kw.inH1 && !kw.inFirst100Words) {
-      const cap = 40;
+    // Missing critical keyword placements (universal)
+    if (kw && !kw.inTitle && !kw.inH1) {
+      const cap = 35;
       if (total > cap) {
-        adjustments.push(`⚠ Keyword missing from title, H1, and first 100 words - score capped at ${cap}`);
+        adjustments.push(`⚠️ Keyword missing from both title AND H1 - cannot rank. Score capped at ${cap}.`);
         total = cap;
       }
     }
 
-    // Very weak keyword presence (incidental only)
-    if (kw && kw.occurrences <= 2 && kw.density < 0.2) {
-      const cap = 25;
-      if (total > cap) {
-        adjustments.push(`⚠ Keyword appears only ${kw.occurrences} time(s) with ${kw.density.toFixed(2)}% density - likely incidental, score capped at ${cap}`);
-        total = cap;
-      }
-    }
-    
-    // Cap for very low keyword density (below 0.3%) but not incidental
-    if (kw && kw.density >= 0.2 && kw.density < 0.3 && kw.occurrences > 2) {
-      const cap = 75;
-      if (total > cap) {
-        const needed = Math.max(1, Math.round(wordCount * 0.005) - kw.occurrences);
-        adjustments.push(`⚠ Very low keyword density (${kw.density.toFixed(2)}%) - needs ${needed} more mentions, score capped at ${cap}`);
-        total = cap;
-      }
-    }
-    
-    // Cap for pages with no internal linking structure
-    if (checks.links?.internal === 0 && checks.links?.external === 0) {
-      const cap = 85;
-      if (total > cap) {
-        adjustments.push(`⚠ No internal or external links - poor content engagement, score capped at ${cap}`);
-        total = cap;
-      }
-    }
-    
-    // Cap for poor heading structure despite good content length
-    if (wordCount > 1000 && (checks.h2?.count || 0) < 3) {
-      const cap = 88;
-      if (total > cap) {
-        adjustments.push(`⚠ Long content (${wordCount} words) with only ${checks.h2?.count || 0} H2 tags - poor structure, score capped at ${cap}`);
-        total = cap;
-      }
-    }
+    explanation.finalAdjustments = adjustments.length > 0 
+      ? adjustments.join('\n') 
+      : `No additional caps applied. Score reflects competitive position in ${serpData?.location || 'unknown market'}.`;
 
-    explanation.finalAdjustments = adjustments.length > 0 ? adjustments.join('\n') : 'No final adjustments applied.';
-
-    // Ensure score is within bounds
     total = Math.max(0, Math.min(100, total));
-    
-    // ABSOLUTE CAP: No page is truly perfect (100/100)
-    // Reserve 100 for truly exceptional pages with no issues whatsoever
-    if (total >= 98) {
-      // Check for any imperfections
+
+    // Realistic cap - perfect scores are rare
+    if (total >= 96) {
       const hasImperfections = 
-        keywordRelevance < 100 ||  // Keyword optimization not perfect
-        contentQuality < 100 ||     // Content could be better
-        technicalHealth < 100 ||    // Technical issues exist
-        (checks.links?.internal || 0) < 5 ||  // Few internal links
-        (checks.links?.external || 0) < 2 ||  // Few external links
-        (checks.h2?.count || 0) < 5;          // Weak heading structure
+        serpCompetitiveness < 95 ||
+        contentStructure < 95 ||
+        technicalOnPage < 95;
       
       if (hasImperfections) {
-        total = Math.min(total, 95);
-        if (!adjustments.some(a => a.includes('capped at 95'))) {
-          adjustments.push('⚠ Maximum score capped at 95 - minor optimizations still possible');
+        total = Math.min(total, 93);
+        if (!adjustments.some(a => a.includes('capped at 93'))) {
+          adjustments.push('⚠️ Maximum realistic score: 93 (room for optimization exists)');
           explanation.finalAdjustments = adjustments.join('\n');
         }
       }
     }
 
+    Logger.info(`[Final Score] Market: ${serpData?.location || 'N/A'}, Total: ${total.toFixed(0)}, SERP: ${serpCompetitiveness.toFixed(0)}, Content: ${contentStructure.toFixed(0)}, Technical: ${technicalOnPage.toFixed(0)}`);
+
     return {
       total,
       components: {
-        keywordRelevance: Math.round(keywordRelevance),
-        contentQuality: Math.round(contentQuality),
-        technicalHealth: Math.round(technicalHealth),
+        serpCompetitiveness: Math.round(serpCompetitiveness),
+        contentStructure: Math.round(contentStructure),
+        technicalOnPage: Math.round(technicalOnPage),
       },
       explanation,
+      marketFactors,
     };
   }
 
-  generateEnhancedRecommendations(checks, keywordAnalysis, keyword, serpData, pageData, meta, scoring, lang) {
+  /**
+   * REVISED: Generate SERP-driven recommendations based on competitor analysis
+   * NOW WITH MARKET-SPECIFIC CONTEXT
+   */
+  generateSERPDrivenRecommendations(checks, keywordAnalysis, keyword, serpData, pageData, meta, scoring, lang) {
     const recommendations = [];
     const wordCount = keywordAnalysis?.wordCount || meta?.content?.plain_text_word_count || 0;
     const kw = keywordAnalysis;
+    const location = serpData?.location || 'your target market';
+    const bench = serpData?.benchmark;
 
-    // Helper to add recommendation without duplication
     const addRec = (priority, category, issueKey, actionKey, vars = {}) => {
-      const issue = t(lang, `seo.recommendations.${issueKey}.issue`, vars);
-      const action = t(lang, `seo.recommendations.${issueKey}.action`, vars);
+      // Add location to vars for market-specific messaging
+      const enrichedVars = { ...vars, location };
+      
+      const issue = t(lang, `seo.recommendations.${issueKey}.issue`, enrichedVars);
+      const action = t(lang, `seo.recommendations.${issueKey}.action`, enrichedVars);
       
       if (issue && action && !issue.includes('.issue')) {
-        // Check for duplicates
         const isDuplicate = recommendations.some(r => r.issue === issue);
         if (!isDuplicate) {
           recommendations.push({
@@ -1310,19 +1468,18 @@ class DataForSEOService {
             issue,
             action,
             impact: priority === 'critical' ? 'high' : priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low',
-            effort: ['missingTitle', 'missingDescription', 'missingH1', 'missingCanonical', 'keywordNotInTitle'].includes(issueKey) ? 'easy' : 'moderate',
+            effort: ['missingTitle', 'missingDescription', 'missingH1', 'keywordNotInTitle'].includes(issueKey) ? 'easy' : 'moderate',
+            marketContext: serpData ? `Based on ${location} SERP analysis` : null,
           });
         }
       }
     };
 
     // ===================================================================
-    // CRITICAL PRIORITY (Must fix immediately)
+    // CRITICAL PRIORITY - Blocking Competition
     // ===================================================================
 
-    // Keyword not in content (show first if applicable)
     if (kw && !kw.inContent) {
-      // Include info about variations checked
       const variations = this.generateKeywordVariations(keyword).join('", "');
       addRec('critical', 'keyword', 'keywordNotInContent', 'keywordNotInContent', { 
         keyword,
@@ -1330,61 +1487,98 @@ class DataForSEOService {
       });
     }
 
-    // Missing title tag
     if (!checks.title.exists) {
       addRec('critical', 'meta', 'missingTitle', 'missingTitle');
     }
 
-    // Keyword not in title (when keyword IS in content)
-    if (kw && kw.inContent && !kw.inTitle) {
+    // MARKET-SPECIFIC: Title keyword recommendation
+    if (kw && kw.inContent && !kw.inTitle && bench) {
+      const titleRate = Math.round(bench.percentTitleHasKeyword * 100);
+      if (titleRate >= 70) {
+        addRec('critical', 'competitor', 'competitorTitleAdvantage', 'competitorTitleAdvantage', {
+          percent: titleRate,
+          keyword,
+          topDomains: (bench.topDomains || []).slice(0, 3).join(', '),
+        });
+      } else if (titleRate >= 50) {
+        addRec('high', 'keyword', 'keywordNotInTitle', 'keywordNotInTitle', { keyword });
+      } else {
+        addRec('medium', 'keyword', 'keywordNotInTitle', 'keywordNotInTitle', { keyword });
+      }
+    } else if (kw && kw.inContent && !kw.inTitle) {
       addRec('critical', 'keyword', 'keywordNotInTitle', 'keywordNotInTitle', { keyword });
     }
 
-    // Missing H1
     if (!checks.h1.exists) {
       addRec('critical', 'content', 'missingH1', 'missingH1');
     }
 
-    // Broken links
     if (pageData.broken_links) {
       addRec('critical', 'technical', 'brokenLinks', 'brokenLinks', { count: 'some' });
     }
 
-    // Very low word count
     if (wordCount < 300) {
       addRec('critical', 'content', 'veryLowWordCount', 'veryLowWordCount', { count: wordCount });
     }
 
-    // Missing meta description
-    if (!checks.description.exists) {
-      addRec('critical', 'meta', 'missingDescription', 'missingDescription');
-    }
-
     // ===================================================================
-    // HIGH PRIORITY (Important for ranking)
+    // HIGH PRIORITY - Major Competitive Disadvantages
     // ===================================================================
 
-    // Keyword not in H1 (when in content and title)
-    if (kw && kw.inContent && !kw.inH1) {
+    // MARKET-SPECIFIC: H1 optimization
+    if (kw && kw.inContent && !kw.inH1 && bench) {
+      const top3Rate = bench.top3KeywordInTitle;
+      if (top3Rate >= 2) {
+        addRec('high', 'competitor', 'competitorH1Advantage', 'competitorH1Advantage', {
+          count: top3Rate,
+          keyword,
+        });
+      } else {
+        addRec('high', 'keyword', 'keywordNotInH1', 'keywordNotInH1', { keyword });
+      }
+    } else if (kw && kw.inContent && !kw.inH1) {
       addRec('high', 'keyword', 'keywordNotInH1', 'keywordNotInH1', { keyword });
     }
 
-    // Multiple H1 tags
+    // MARKET-SPECIFIC: Page type mismatch
+    if (bench?.dominantPageType) {
+      const myPageType = this.classifyPageType(pageData.url || '', meta.title || '');
+      const dominantType = bench.dominantPageType;
+      const distribution = bench.pageTypeDistribution?.find(d => d.type === dominantType);
+      const dominance = distribution ? distribution.percentage : 0;
+
+      if (myPageType !== dominantType && dominance >= 60) {
+        addRec('high', 'competitor', 'pageTypeMismatch', 'pageTypeMismatch', {
+          yourType: myPageType,
+          dominantType: dominantType,
+          percent: Math.round(dominance),
+        });
+      }
+    }
+
     if (checks.h1.count > 1) {
       addRec('high', 'content', 'multipleH1', 'multipleH1', { count: checks.h1.count });
     }
 
-    // Missing H2 structure
     if (checks.h2.count === 0) {
       addRec('high', 'content', 'missingH2', 'missingH2');
     }
 
-    // Keyword not in meta description
-    if (kw && !kw.inDescription) {
-      addRec('high', 'keyword', 'keywordNotInDescription', 'keywordNotInDescription', { keyword });
+    // MARKET-SPECIFIC: Description keyword
+    if (kw && !kw.inDescription && bench) {
+      const descRate = Math.round(bench.percentDescHasKeyword * 100);
+      if (descRate >= 70) {
+        addRec('high', 'competitor', 'competitorDescAdvantage', 'competitorDescAdvantage', {
+          percent: descRate,
+          keyword,
+        });
+      } else {
+        addRec('medium', 'keyword', 'keywordNotInDescription', 'keywordNotInDescription', { keyword });
+      }
+    } else if (kw && !kw.inDescription) {
+      addRec('medium', 'keyword', 'keywordNotInDescription', 'keywordNotInDescription', { keyword });
     }
 
-    // Low word count (compared to minimum standards)
     if (wordCount >= 300 && wordCount < 800) {
       addRec('high', 'content', 'lowWordCount', 'lowWordCount', {
         count: wordCount,
@@ -1392,17 +1586,14 @@ class DataForSEOService {
       });
     }
 
-    // Missing canonical tag
     if (!checks.canonical.exists) {
       addRec('high', 'technical', 'missingCanonical', 'missingCanonical');
     }
 
-    // Slow page load
     if (checks.loadTime.value && checks.loadTime.value > 4) {
       addRec('high', 'technical', 'slowLoadTime', 'slowLoadTime', { time: checks.loadTime.value.toFixed(1) });
     }
 
-    // Very low keyword density (when keyword is in content)
     if (kw && kw.inContent && kw.density < 0.5) {
       const needed = Math.max(1, Math.round(wordCount * 0.008) - kw.occurrences);
       addRec('high', 'keyword', 'keywordDensityLow', 'keywordDensityLow', {
@@ -1415,10 +1606,13 @@ class DataForSEOService {
     }
 
     // ===================================================================
-    // MEDIUM PRIORITY (Should improve)
+    // MEDIUM PRIORITY - Optimization Opportunities
     // ===================================================================
 
-    // Title length not optimal
+    if (!checks.description.exists) {
+      addRec('medium', 'meta', 'missingDescription', 'missingDescription');
+    }
+
     if (checks.title.exists) {
       const titleLen = checks.title.length;
       if (titleLen < 30) {
@@ -1428,7 +1622,6 @@ class DataForSEOService {
       }
     }
 
-    // Description length not optimal
     if (checks.description.exists) {
       const descLen = checks.description.length;
       if (descLen < 120 || descLen > 170) {
@@ -1436,27 +1629,22 @@ class DataForSEOService {
       }
     }
 
-    // Keyword not in first 100 words
     if (kw && kw.inContent && !kw.inFirst100Words) {
       addRec('medium', 'keyword', 'keywordNotInFirst100Words', 'keywordNotInFirst100Words', { keyword });
     }
 
-    // Few H2 tags
     if (checks.h2.count > 0 && checks.h2.count < 3 && wordCount > 500) {
       addRec('medium', 'content', 'fewH2', 'fewH2', { count: checks.h2.count });
     }
 
-    // Few internal links
     if (checks.links.internal < 3) {
       addRec('medium', 'content', 'fewInternalLinks', 'fewInternalLinks', { count: checks.links.internal });
     }
 
-    // Moderate page load time
     if (checks.loadTime.value && checks.loadTime.value > 3 && checks.loadTime.value <= 4) {
       addRec('medium', 'technical', 'slowLoadTime', 'slowLoadTime', { time: checks.loadTime.value.toFixed(1) });
     }
 
-    // High keyword density (potential over-optimization)
     if (kw && kw.density > 3) {
       const recommended = Math.round(wordCount * 0.015);
       addRec('medium', 'keyword', 'keywordDensityHigh', 'keywordDensityHigh', {
@@ -1468,55 +1656,35 @@ class DataForSEOService {
     }
 
     // ===================================================================
-    // LOW PRIORITY (Nice to have)
+    // LOW PRIORITY - Nice to Have
     // ===================================================================
 
-    // Keyword not in URL
     if (kw && !kw.inUrl) {
       addRec('low', 'keyword', 'keywordNotInUrl', 'keywordNotInUrl', { keyword });
     }
 
-    // No external links (for credibility)
     if (checks.links.external === 0 && wordCount > 500) {
       addRec('low', 'content', 'noExternalLinks', 'noExternalLinks');
     }
 
     // ===================================================================
-    // SERP COMPETITIVE INSIGHTS
-    // ===================================================================
-    if (serpData && serpData.competitors && serpData.competitors.length > 0 && kw) {
-      const bench = serpData.benchmark;
-      
-      // Alert if most competitors have keyword in title but you don't
-      if (bench.percentTitleHasKeyword >= 0.7 && !kw.inTitle) {
-        addRec('high', 'competitor', 'competitorTitleAdvantage', 'competitorTitleAdvantage', {
-          percent: Math.round(bench.percentTitleHasKeyword * 100),
-          keyword,
-        });
-      }
-
-      // General competitor analysis recommendation
-      if (recommendations.filter(r => r.priority === 'critical' || r.priority === 'high').length <= 2) {
-        addRec('medium', 'competitor', 'competitorAnalysis', 'competitorAnalysis', {
-          count: serpData.competitors.length,
-          keyword,
-        });
-      }
-    }
-
-    // ===================================================================
-    // SUCCESS MESSAGE (if page is well optimized)
+    // SUCCESS MESSAGE (market-specific)
     // ===================================================================
     const criticalIssues = recommendations.filter(r => r.priority === 'critical').length;
     const highIssues = recommendations.filter(r => r.priority === 'high').length;
 
-    if (criticalIssues === 0 && highIssues === 0 && scoring.total >= 70 && keyword) {
-      addRec('low', 'success', 'excellentOptimization', 'excellentOptimization', { keyword });
+    if (criticalIssues === 0 && highIssues === 0 && scoring.total >= 70 && keyword && serpData) {
+      addRec('low', 'success', 'competitivePosition', 'competitivePosition', { 
+        keyword,
+        location: serpData.location,
+      });
     }
 
     // Sort by priority
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     recommendations.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+
+    Logger.info(`[Recommendations] Generated ${recommendations.length} for ${location} (${criticalIssues} critical, ${highIssues} high priority)`);
 
     return recommendations;
   }

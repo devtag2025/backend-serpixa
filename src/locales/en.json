@@ -1,4 +1,5 @@
 {
+ 
   "seo": {
     "checks": {
       "title": "Title Tag",
@@ -54,6 +55,18 @@
       "competitorAvgWordCount": "Competitor Avg Word Count"
     },
     "recommendations": {
+      "veryHighCompetitionMarket": {
+  "issue": "{percent}% of competitors have keyword in title - very high competition market",
+  "action": "You've matched the baseline requirement (keyword in title), but in this highly competitive market, you need {totalPossible} differentiators to stand out. Currently you have {differentiators}. Focus on: keyword in first 100 words, optimal density (0.5-1.5%), 5+ H2 headings, 1500+ words, 5+ internal links, and 5+ relevant images."
+},
+"fewImagesForLength": {
+  "issue": "Only {count} images for {wordCount} words of content",
+  "action": "Add more relevant images to break up this long-form content. Aim for approximately {recommended} images (1 per 500 words). Include infographics, diagrams, screenshots, or relevant photos with descriptive alt text."
+},
+"moreH2ForLongContent": {
+  "issue": "Only {count} H2 headings for {wordCount} words of content",
+  "action": "Add more H2 subheadings to improve readability and structure. Aim for approximately {recommended} H2 headings (1 per 500 words). Include keyword variations and questions users ask."
+},
       "competitorAnalysis": {
         "issue": "Found {count} competitor results for \"{keyword}\"",
         "action": "Review top-ranking competitors to identify optimization opportunities and content gaps"
@@ -78,6 +91,14 @@
         "issue": "Meta description is {length} characters (optimal: 150-160)",
         "action": "Adjust to 150-160 characters. Include your primary keyword naturally, highlight unique benefits, and end with a compelling CTA like 'Learn more' or 'Get started today'."
       },
+      "descriptionTooShort": {
+        "issue": "Meta description is only {length} characters (minimum 120)",
+        "action": "Expand to 150-160 characters. Add unique value propositions, include your target keyword naturally, and end with a compelling CTA."
+      },
+      "descriptionTooLong": {
+        "issue": "Meta description is {length} characters (maximum 170)",
+        "action": "Reduce to 150-160 characters. Keep the most important information and your keyword. Remove redundant phrases."
+      },
       "missingH1": {
         "issue": "Missing H1 tag - Major structural issue",
         "action": "Add exactly one H1 tag that clearly describes the page content and includes your target keyword. The H1 should be unique and different from your title tag."
@@ -94,9 +115,25 @@
         "issue": "Only {count} H2 subheading(s) - Content structure weak",
         "action": "Add more H2 subheadings (aim for 1 per 300 words). Use them to break content into scannable sections. Include LSI keywords and questions users might ask."
       },
+      "couldUseMoreH2": {
+        "issue": "Only {count} H2 headings for content of this length",
+        "action": "Add 2-3 more H2 headings to improve content structure. Break long sections into logical sub-topics. Consider including keyword variations in some H2s."
+      },
+      "missingH3": {
+        "issue": "No H3 headings found in long-form content",
+        "action": "Add H3 subheadings under your H2 sections to create better content hierarchy and improve readability."
+      },
       "imagesNoAlt": {
         "issue": "{count} images missing alt text",
         "action": "Add descriptive alt text to all images. Include your keyword naturally where relevant. Good alt text: 'Professional plumber fixing kitchen sink in Boston home' instead of 'plumber' or 'image1'."
+      },
+      "noImages": {
+        "issue": "No images found in content",
+        "action": "Add 2-3 relevant images to break up text and improve engagement. Use descriptive alt text including your keyword where appropriate."
+      },
+      "fewImages": {
+        "issue": "Only {count} images in long-form content",
+        "action": "Add more relevant images, infographics, or diagrams to enhance visual appeal and user engagement. Aim for 1 image per 300-500 words."
       },
       "tooManyImages": {
         "issue": "{count} images may slow page load",
@@ -106,13 +143,25 @@
         "issue": "{count} broken links detected - Hurts user experience and SEO",
         "action": "Fix or remove all broken links immediately. Broken links signal poor maintenance to search engines and frustrate users. Use 301 redirects where appropriate."
       },
+      "noInternalLinks": {
+        "issue": "No internal links found",
+        "action": "Add 5-8 internal links to related pages on your site. This is critical for SEO and helps distribute link authority across your website."
+      },
       "fewInternalLinks": {
         "issue": "Only {count} internal links - Poor site structure",
         "action": "Add 3-5 relevant internal links to important pages. Use descriptive anchor text with keywords. Internal linking distributes page authority and helps users navigate."
       },
+      "couldUseMoreInternalLinks": {
+        "issue": "Only {count} internal links for content of this length",
+        "action": "Add 2-3 more internal links to related pages on your site. This improves site structure and helps distribute page authority."
+      },
       "noExternalLinks": {
         "issue": "No external links to authoritative sources",
         "action": "Add 2-3 links to authoritative, relevant external sources. This builds trust and provides value to readers. Ensure links open in new tabs and use rel='noopener'."
+      },
+      "fewExternalLinks": {
+        "issue": "Only {count} external link - add more authoritative sources",
+        "action": "Link to 2-3 high-authority external sources (industry publications, research, authoritative sites). This builds trust and credibility."
       },
       "missingCanonical": {
         "issue": "Missing canonical tag - Risk of duplicate content issues",
@@ -138,9 +187,13 @@
         "issue": "Target keyword \"{keyword}\" not in H1 heading",
         "action": "Include \"{keyword}\" in your H1 tag. This confirms the page's topic to search engines. Make it natural and compelling for readers."
       },
+      "keywordNotInH2": {
+        "issue": "Keyword not found in any H2 headings",
+        "action": "Include \"{keyword}\" or its variations in at least one H2 heading to reinforce topical relevance."
+      },
       "keywordNotInContent": {
         "issue": "Target keyword \"{keyword}\" not found in body content",
-        "action": "Add \"{keyword}\" naturally throughout your content. Include it in: first paragraph, at least one subheading, and conclusion. Avoid forced placement."
+        "action": "Add \"{keyword}\" naturally throughout your content. Include it in: first paragraph, at least one subheading, and conclusion. Avoid forced placement. Also checked variations: {variations}"
       },
       "keywordNotInFirst100Words": {
         "issue": "Keyword \"{keyword}\" not in first 100 words",
@@ -150,17 +203,53 @@
         "issue": "Target keyword \"{keyword}\" not in URL",
         "action": "If possible, include your keyword in the URL slug. Example: /your-keyword-guide instead of /page123. Keep URLs short, readable, and keyword-relevant."
       },
+      "keywordDensityCriticallyLow": {
+        "issue": "Keyword density is {density}% (critically low - target 0.5-1.5%)",
+        "action": "Current: {occurrences} occurrences in {wordCount} words. Add {recommended} natural mentions of \"{keyword}\". Use variations and synonyms to avoid repetition."
+      },
       "keywordDensityLow": {
-        "issue": "Keyword density is {density}% (below optimal 1-2%)",
+        "issue": "Keyword density is {density}% (below optimal 0.5-1.5%)",
         "action": "Current: {occurrences} occurrences in {wordCount} words. Add {recommended} more natural mentions of \"{keyword}\". Use variations and synonyms to avoid repetition."
       },
       "keywordDensityHigh": {
         "issue": "Keyword density is {density}% - Risk of over-optimization",
         "action": "Reduce usage of \"{keyword}\" from {occurrences} to approximately {recommended} times. Replace some instances with synonyms, related terms, or pronouns."
       },
+      "keywordDensitySlightlyHigh": {
+        "issue": "Keyword density is {density}% (slightly above optimal 0.5-1.5%)",
+        "action": "Replace some instances of \"{keyword}\" with synonyms or related terms. Use variations like 'link building', 'backlink strategy', etc."
+      },
       "keywordDensityOptimal": {
         "issue": "Keyword density is optimal at {density}%",
         "action": "Maintain current keyword usage. Focus on adding LSI (related) keywords and synonyms to strengthen topical relevance without over-optimization."
+      },
+      "competitorTitleAdvantage": {
+        "issue": "{percent}% of top 10 competitors have keyword in title, creating strong competition",
+        "action": "Ensure \"{keyword}\" is prominently placed in your title tag, ideally near the beginning. In highly competitive markets, title optimization is critical."
+      },
+      "competitorH1Advantage": {
+        "issue": "{count} out of top 3 competitors have keyword in H1, you don't",
+        "action": "Add \"{keyword}\" to your H1 heading. This is critical for topical relevance and competing with top-ranked pages."
+      },
+      "competitorDescAdvantage": {
+        "issue": "{percent}% of top 10 competitors have keyword in meta description",
+        "action": "Include \"{keyword}\" naturally in your meta description. This improves click-through rates and relevance signals."
+      },
+      "pageTypeMismatch": {
+        "issue": "Your page type is '{yourType}' but {percent}% of top 10 are '{dominantType}' pages",
+        "action": "Consider restructuring your content to match the dominant SERP format, or create a new {dominantType}-style page to compete more effectively."
+      },
+      "regularCompetitorMonitoring": {
+        "issue": "Monitor top {count} competitors in {location} for this keyword",
+        "action": "Set up monthly competitor monitoring for \"{keyword}\". Track changes in their content length, structure, and optimization to stay competitive."
+      },
+      "competitivePosition": {
+        "issue": "Strong competitive position achieved (score: {score}/100)",
+        "action": "Your page is well-optimized for \"{keyword}\" in {location}. Focus on building high-quality backlinks and maintaining content freshness to improve rankings further."
+      },
+      "considerContentUpdates": {
+        "issue": "Long-form content may benefit from regular updates",
+        "action": "Review and update this content every 3-6 months. Add new statistics, trends, and examples to maintain freshness and relevance."
       },
       "missingSchema": {
         "issue": "No structured data (Schema markup) detected",
@@ -394,12 +483,12 @@
         "action": "CRITICAL: Add your website URL to Google Business Profile immediately. Then optimize your website: 1) Create location-specific landing pages with local content, 2) Add NAP in footer/header, 3) Include Schema.org LocalBusiness structured data, 4) Add local keywords naturally in content, 5) Ensure mobile-first design. Top 3 rankings require a well-optimized website."
       },
       "localContentRequired": {
-        "issue": "To rank in top 10, your website needs local content targeting '{keyword}'",
-        "action": "Create location-specific content on your website: 1) Add a dedicated page for '{keyword}' with 1000+ words, 2) Include local landmarks, neighborhoods, and area references, 3) Add customer testimonials from local clients, 4) Create blog posts about local events/community involvement, 5) Include location in title tags and meta descriptions. Local content signals relevance to Google."
+        "issue": "Your website needs strong local content targeting '{keyword}' to win and keep local visibility",
+        "action": "Create location-specific content on your website: 1) Add a dedicated page for '{keyword}' with 1000+ words, 2) Include local landmarks, neighborhoods, and area references, 3) Add customer testimonials from local clients, 4) Create blog posts about local events/community involvement, 5) Include location in title tags and meta descriptions. Local content strengthens both existing rankings and future growth."
       },
       "gbpOptimizationRequired": {
-        "issue": "Google Business Profile optimization is critical for top 10 rankings",
-        "action": "Complete and optimize your Google Business Profile: 1) Add all business information (hours, attributes, services), 2) Upload 10+ high-quality photos, 3) Write a compelling 750+ character description with local keywords, 4) Post updates weekly, 5) Respond to all reviews within 24 hours, 6) Add Q&A section with common questions. A complete GBP profile significantly improves local rankings."
+        "issue": "Google Business Profile optimization is critical for strong, stable local rankings",
+        "action": "Complete and optimize your Google Business Profile: 1) Add all business information (hours, attributes, services), 2) Upload 10+ high-quality photos, 3) Write a compelling 750+ character description with local keywords, 4) Post updates weekly, 5) Respond to all reviews within 24 hours, 6) Add Q&A section with common questions. A complete GBP profile helps you maintain and improve local rankings."
       },
       "gbpMissingWebsite": {
         "issue": "Your Google Business Profile is missing a website link",
@@ -430,8 +519,8 @@
         "action": "Create listings on {count} local directories: 1) Major platforms (Google, Yelp, Yellow Pages, Bing Places), 2) Industry-specific directories, 3) Local chamber of commerce, 4) Local business associations, 5) Review sites (TripAdvisor, Trustpilot). Ensure NAP consistency across all. Citations build trust and improve rankings."
       },
       "localSeoElements": {
-        "issue": "Your website needs local SEO elements to rank in top 10",
-        "action": "Add local SEO elements to your website: 1) Location-specific landing pages (one per service area), 2) NAP in footer on every page, 3) Schema.org LocalBusiness structured data, 4) Local keywords in title tags and meta descriptions, 5) Customer testimonials with location mentions, 6) Google Maps embed on contact page. These signals help Google understand your local relevance."
+        "issue": "Your website needs local SEO elements to strengthen and secure your local positions",
+        "action": "Add local SEO elements to your website: 1) Location-specific landing pages (one per service area), 2) NAP in footer on every page, 3) Schema.org LocalBusiness structured data, 4) Local keywords in title tags and meta descriptions, 5) Customer testimonials with location mentions, 6) Google Maps embed on contact page. These signals help Google understand and reinforce your local relevance."
       },
       "freshContentRequired": {
         "issue": "Regularly updated content signals active business to Google",

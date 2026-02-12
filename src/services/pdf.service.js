@@ -830,13 +830,18 @@ class PDFService {
   }
 
   // Helper methods
-  addSection(doc, title, y) {
+  addSection(doc, title, y, margin = 20, maxWidth = 170) {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(title, 20, y);
+    const titleLines = this.splitTextIntoLines(doc, title, maxWidth, margin);
+    let drawY = y;
+    for (const line of titleLines) {
+      doc.text(line, margin, drawY);
+      drawY += 7;
+    }
     doc.setLineWidth(0.5);
-    doc.line(20, y + 2, 190, y + 2);
-    return y + 12;
+    doc.line(margin, drawY + 2, margin + maxWidth, drawY + 2);
+    return drawY + 12;
   }
 
   /**
@@ -1058,11 +1063,17 @@ class PDFService {
     return y + 7;
   }
 
-  addLine(doc, text, y) {
+  addLine(doc, text, y, margin = 25, maxWidth = 165) {
     y = this.checkPageBreak(doc, y, 10);
     doc.setFontSize(10);
-    doc.text(text, 25, y);
-    return y + 7;
+    const lines = this.splitTextIntoLines(doc, text, maxWidth, margin);
+    let drawY = y;
+    for (const line of lines) {
+      if (drawY !== y) drawY = this.checkPageBreak(doc, drawY, 8);
+      doc.text(line, margin, drawY);
+      drawY += 6;
+    }
+    return drawY + 4;
   }
 
   addInfoLine(doc, label, value, y) {
@@ -1473,24 +1484,41 @@ class PDFService {
   }
 
   /**
+   * Sanitize text for PDF rendering to prevent overflow and encoding issues.
+   * Normalizes whitespace and strips characters that break jsPDF width calculation.
+   * Removes common encoding-artifact sequences (e.g. Ø=ÜÊ) that cause odd spacing.
+   */
+
+
+sanitizeTextForPDF(text) {
+  if (text == null || typeof text !== 'string') return '';
+  return text
+    .normalize('NFC')
+    .replace(/\uFFFD/g, '')  // Remove �
+    .replace(/\u00D8=\u00DC\u00CA/g, '')  // Remove Ø=ÜÊ
+    .replace(/\u003D\u00DC\u00CA/g, '')
+    .replace(/\s*Ø\s*=\s*Ü\s*Ê\s*/g, ' ')
+    .replace(/\s*[Ø=ÜÊ]{2,}\s*/g, ' ')
+    .replace(/[\u0080-\u009F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+  /**
    * Strip HTML tags and extract text content
    */
-  stripHtml(html) {
-    if (!html) return '';
-    return html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&apos;/g, "'")
-      .replace(/\n\s*\n/g, '\n')
-      .trim();
-  }
+stripHtml(html) {
+  if (!html) return '';
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')  // ← Collapse whitespace
+    .trim()
+    .replace(/^[^\p{L}\p{N}\p{P}]+/u, '');  // ← Remove leading junk
+}
 
   /**
    * Parse HTML content into structured elements for PDF rendering
@@ -1566,9 +1594,9 @@ class PDFService {
         elements.push(...paragraphs);
       }
       
-      // Add heading
+      // Add heading (sanitize so encoding artifacts don't appear in PDF)
       const level = parseInt(match[1]);
-      const text = this.stripHtml(match[2]);
+      const text = this.sanitizeTextForPDF(this.stripHtml(match[2]));
       if (text.trim()) {
         elements.push({ type: 'heading', level, text: text.trim() });
       }
@@ -1618,7 +1646,7 @@ class PDFService {
       let itemMatch;
       
       while ((itemMatch = itemPattern.exec(listContent)) !== null) {
-        const itemText = this.stripHtml(itemMatch[1]).trim();
+        const itemText = this.sanitizeTextForPDF(this.stripHtml(itemMatch[1]).trim());
         if (itemText) {
           items.push(itemText);
         }
@@ -1655,14 +1683,14 @@ class PDFService {
     while ((paraMatch = paraPattern.exec(html)) !== null) {
       // Add content before paragraph
       if (paraMatch.index > lastIndex) {
-        const beforeText = this.stripHtml(html.substring(lastIndex, paraMatch.index)).trim();
+        const beforeText = this.sanitizeTextForPDF(this.stripHtml(html.substring(lastIndex, paraMatch.index)).trim());
         if (beforeText) {
           elements.push({ type: 'paragraph', text: beforeText });
         }
       }
-      
-      // Add paragraph
-      const paraText = this.stripHtml(paraMatch[1]).trim();
+
+      // Add paragraph (sanitize so Ø=ÜÊ and overflow are avoided)
+      const paraText = this.sanitizeTextForPDF(this.stripHtml(paraMatch[1]).trim());
       if (paraText) {
         elements.push({ type: 'paragraph', text: paraText });
       }
@@ -1674,10 +1702,9 @@ class PDFService {
     if (lastIndex < html.length) {
       const remainingText = this.stripHtml(html.substring(lastIndex)).trim();
       if (remainingText) {
-        // Split by double newlines to create paragraphs
         const paragraphs = remainingText.split(/\n\s*\n/).filter(p => p.trim());
         paragraphs.forEach(p => {
-          elements.push({ type: 'paragraph', text: p.trim() });
+          elements.push({ type: 'paragraph', text: this.sanitizeTextForPDF(p.trim()) });
         });
       }
     }
@@ -1686,12 +1713,20 @@ class PDFService {
   }
 
   /**
-   * Split text into lines that fit within page width
+   * Split text into lines that fit within page width.
+   * Uses a safety reduction in width to avoid edge overflow and sanitizes input.
    */
-  splitTextIntoLines(doc, text, maxWidth, x) {
-    const lines = doc.splitTextToSize(text, maxWidth);
-    return lines || [text];
+ splitTextIntoLines(doc, text, maxWidth, x) {
+  const safe = this.sanitizeTextForPDF(String(text));
+  const safeWidth = Math.max(10, (maxWidth || 0) - 14); // ← 14pt buffer
+  let lines;
+  try {
+    lines = doc.splitTextToSize(safe, safeWidth);
+  } catch (e) {
+    lines = safe ? [safe] : [''];
   }
+  return lines;
+}
 
   /**
    * Generate AI Content PDF Report
@@ -1722,46 +1757,46 @@ class PDFService {
     
     y = 60;
 
-    // Content Info Box
+    // Content Info Box - wrap all values to prevent overflow
+    const valueX = margin + 30;
+    const valueMaxWidth = maxWidth - 35;
+    const infoBoxStartY = y;
+    const infoRows = [
+      ['Topic:', content.topic || 'N/A'],
+      ['Keyword:', content.keyword || 'N/A'],
+      ['Language:', content.language || 'EN'],
+      ['Date:', this.formatEuropeanDate(content.createdAt)],
+      ['Generated for:', user.name || user.email || ''],
+    ];
+    let infoBoxContentHeight = 8;
+    for (const [, value] of infoRows) {
+      const lines = this.splitTextIntoLines(doc, value, valueMaxWidth, valueX);
+      infoBoxContentHeight += 6 * lines.length + 2;
+    }
+    const infoBoxHeight = Math.max(50, infoBoxContentHeight + 10);
+
     doc.setFillColor(248, 249, 250);
-    doc.rect(margin, y, pageWidth - (margin * 2), 50, 'F');
+    doc.rect(margin, infoBoxStartY, pageWidth - (margin * 2), infoBoxHeight, 'F');
     doc.setDrawColor(220, 220, 220);
     doc.setLineWidth(0.5);
-    doc.rect(margin, y, pageWidth - (margin * 2), 50, 'S');
-    
+    doc.rect(margin, infoBoxStartY, pageWidth - (margin * 2), infoBoxHeight, 'S');
+
     doc.setTextColor(0);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    
-    const infoY = y + 8;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Topic:', margin + 5, infoY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(content.topic || 'N/A', margin + 30, infoY);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Keyword:', margin + 5, infoY + 8);
-    doc.setFont('helvetica', 'normal');
-    doc.text(content.keyword, margin + 30, infoY + 8);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Language:', margin + 5, infoY + 16);
-    doc.setFont('helvetica', 'normal');
-    doc.text(content.language || 'EN', margin + 30, infoY + 16);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Date:', margin + 5, infoY + 24);
-    doc.setFont('helvetica', 'normal');
-    doc.text(this.formatEuropeanDate(content.createdAt), margin + 30, infoY + 24);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Generated for:', margin + 5, infoY + 32);
-    doc.setFont('helvetica', 'normal');
-    const userText = user.name || user.email;
-    const userLines = this.splitTextIntoLines(doc, userText, maxWidth - 35, margin + 30);
-    doc.text(userLines[0], margin + 30, infoY + 32);
-    
-    y += 60;
+    let infoBoxY = infoBoxStartY + 8;
+    for (const [label, value] of infoRows) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, margin + 5, infoBoxY);
+      doc.setFont('helvetica', 'normal');
+      const lines = this.splitTextIntoLines(doc, value, valueMaxWidth, valueX);
+      for (const line of lines) {
+        doc.text(line, valueX, infoBoxY);
+        infoBoxY += 6;
+      }
+      infoBoxY += 2;
+    }
+    y = infoBoxStartY + infoBoxHeight;
 
     // SEO Score Section - Simple and Clean Design
     const seoScore = content.seoScore || 75;
@@ -1812,18 +1847,20 @@ class PDFService {
 
     // Meta Information - Enhanced with full text display
     y = this.checkPageBreak(doc, y, 60);
-    y = this.addSection(doc, 'Meta Information', y);
+    y = this.addSection(doc, 'Meta Information', y, margin, maxWidth);
     y += 5;
-    
+
+    const contentMaxWidth = maxWidth - 6; // safety margin to prevent edge overflow
+
     // Meta Title with full text wrapping
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(40, 40, 40);
     doc.text('Meta Title:', margin, y);
-    
+
     doc.setFont('helvetica', 'normal');
     const metaTitle = content.metaTitle || 'N/A';
-    const titleLines = this.splitTextIntoLines(doc, metaTitle, maxWidth - 30, margin + 30);
+    const titleLines = this.splitTextIntoLines(doc, metaTitle, contentMaxWidth - 30, margin + 30);
     let titleY = y;
     for (const line of titleLines) {
       if (titleY !== y) {
@@ -1840,7 +1877,7 @@ class PDFService {
     
     doc.setFont('helvetica', 'normal');
     const metaDescription = content.metaDescription || 'N/A';
-    const descLines = this.splitTextIntoLines(doc, metaDescription, maxWidth - 30, margin + 30);
+    const descLines = this.splitTextIntoLines(doc, metaDescription, contentMaxWidth - 30, margin + 30);
     let descY = y;
     for (const line of descLines) {
       if (descY !== y) {
@@ -1853,14 +1890,14 @@ class PDFService {
 
     // Content Stats
     y = this.checkPageBreak(doc, y, 30);
-    y = this.addSection(doc, 'Content Statistics', y);
-    y = this.addLine(doc, `Word Count: ${content.wordCount || 0}`, y);
-    y = this.addLine(doc, `Keyword Density: ${content.keywordDensity || 'N/A'}`, y);
+    y = this.addSection(doc, 'Content Statistics', y, margin, maxWidth);
+    y = this.addLine(doc, `Word Count: ${content.wordCount || 0}`, y, margin, contentMaxWidth);
+    y = this.addLine(doc, `Keyword Density: ${content.keywordDensity || 'N/A'}`, y, margin, contentMaxWidth);
     y += 10;
 
     // Main Content
     y = this.checkPageBreak(doc, y, 30);
-    y = this.addSection(doc, 'Content', y);
+    y = this.addSection(doc, 'Content', y, margin, maxWidth);
     y += 5;
     
     // Parse HTML into structured elements
@@ -1882,10 +1919,13 @@ class PDFService {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(30, 30, 30);
         
-        const headingLines = this.splitTextIntoLines(doc, element.text, maxWidth, margin);
+        // Slightly reduce usable width so long headings wrap and don't overflow.
+        const headingInnerMargin = margin + 4;
+        const headingMaxWidth = contentMaxWidth - 8;
+        const headingLines = this.splitTextIntoLines(doc, element.text, headingMaxWidth, headingInnerMargin);
         for (const line of headingLines) {
           y = this.checkPageBreak(doc, y, fontSize + 2);
-          doc.text(line, margin, y);
+          doc.text(line, headingInnerMargin, y);
           y += fontSize + 2;
         }
         
@@ -1907,7 +1947,7 @@ class PDFService {
           
           // List item text
           doc.setFont('helvetica', 'normal');
-          const itemLines = this.splitTextIntoLines(doc, item, maxWidth - 15, margin + 10);
+          const itemLines = this.splitTextIntoLines(doc, item, contentMaxWidth - 15, margin + 10);
           let itemY = y;
           
           for (const line of itemLines) {
@@ -1925,11 +1965,11 @@ class PDFService {
         
       } else if (element.type === 'paragraph') {
         y = this.checkPageBreak(doc, y, 12);
-        
-        // Handle paragraphs with proper line breaks
-        const paragraphText = element.text.replace(/\n/g, ' ').trim();
+
+        // Handle paragraphs with proper line breaks and sanitization
+        const paragraphText = (element.text || '').replace(/\n/g, ' ').trim();
         if (paragraphText) {
-          const paraLines = this.splitTextIntoLines(doc, paragraphText, maxWidth, margin);
+          const paraLines = this.splitTextIntoLines(doc, paragraphText, contentMaxWidth, margin);
           
           for (const line of paraLines) {
             y = this.checkPageBreak(doc, y, 8);
@@ -1947,40 +1987,41 @@ class PDFService {
     // FAQ Section
     if (content.faq && content.faq.length > 0) {
       y = this.checkPageBreak(doc, y, 40);
-      y = this.addSection(doc, 'Frequently Asked Questions', y);
+      y = this.addSection(doc, 'Frequently Asked Questions', y, margin, maxWidth);
       y += 5;
       
       doc.setFontSize(10);
       for (let i = 0; i < content.faq.length; i++) {
         const faq = content.faq[i];
         
-        // Question with background
-        y = this.checkPageBreak(doc, y, 25);
-        doc.setFillColor(245, 245, 245);
-        doc.rect(margin, y - 8, pageWidth - (margin * 2), 12, 'F');
-        
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
         doc.setTextColor(40, 40, 40);
-        const questionLines = this.splitTextIntoLines(doc, `Q${i + 1}: ${faq.question}`, maxWidth - 10, margin + 5);
-        let qY = y;
+        // Use full content width for question so it wraps properly (text inset 5pt each side)
+        const questionWrapWidth = contentMaxWidth - 10;
+        const questionLines = this.splitTextIntoLines(doc, `Q${i + 1}: ${faq.question || ''}`, questionWrapWidth, margin + 5);
+        const questionBlockHeight = Math.max(12, questionLines.length * 6 + 4);
+
+        y = this.checkPageBreak(doc, y, questionBlockHeight + 15);
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, y - 6, pageWidth - (margin * 2), questionBlockHeight, 'F');
+        doc.setDrawColor(230, 230, 230);
+        doc.setLineWidth(0.3);
+        doc.rect(margin, y - 6, pageWidth - (margin * 2), questionBlockHeight, 'S');
+
+        let qY = y + 2;
         for (const qLine of questionLines) {
-          if (qY !== y) {
-            qY = this.checkPageBreak(doc, qY, 8);
-            doc.setFillColor(245, 245, 245);
-            doc.rect(margin, qY - 8, pageWidth - (margin * 2), 12, 'F');
-          }
           doc.text(qLine, margin + 5, qY);
           qY += 6;
         }
-        y = qY + 3;
+        y = qY + 4;
         
         // Answer
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(0);
         const answerText = this.stripHtml(faq.answer || '').replace(/\n/g, ' ').trim();
-        const answerLines = this.splitTextIntoLines(doc, answerText, maxWidth - 10, margin + 5);
+        const answerLines = this.splitTextIntoLines(doc, answerText, contentMaxWidth - 10, margin + 5);
         for (const aLine of answerLines) {
           y = this.checkPageBreak(doc, y, 8);
           doc.text(aLine, margin + 5, y);
@@ -1993,33 +2034,36 @@ class PDFService {
     // CTA Section
     if (content.cta) {
       y = this.checkPageBreak(doc, y, 40);
-      y = this.addSection(doc, 'Call to Action', y);
+      y = this.addSection(doc, 'Call to Action', y, margin, maxWidth);
       y += 5;
-      
-      // CTA box with border
-      const ctaHeight = 30;
-      y = this.checkPageBreak(doc, y, ctaHeight);
-      
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.5);
-      doc.rect(margin, y - 5, pageWidth - (margin * 2), ctaHeight, 'S');
-      
-      doc.setFillColor(250, 250, 250);
-      doc.rect(margin + 0.5, y - 4.5, pageWidth - (margin * 2) - 1, ctaHeight - 1, 'F');
-      
+
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(40, 40, 40);
       const ctaText = this.stripHtml(content.cta).replace(/\n/g, ' ').trim();
-      const ctaLines = this.splitTextIntoLines(doc, ctaText, maxWidth - 20, margin + 10);
-      
+      // CTA text inset 10pt each side, so wrap width = content area - 20
+      const ctaWrapWidth = contentMaxWidth - 20;
+      const ctaLines = this.splitTextIntoLines(doc, ctaText, ctaWrapWidth, margin + 10);
+      const ctaLineHeight = 7;
+      const ctaPadding = 12;
+      const ctaHeight = ctaLines.length * ctaLineHeight + ctaPadding;
+
+      y = this.checkPageBreak(doc, y, ctaHeight);
+
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.rect(margin, y, pageWidth - (margin * 2), ctaHeight, 'S');
+
+      doc.setFillColor(250, 250, 250);
+      doc.rect(margin + 0.5, y + 0.5, pageWidth - (margin * 2) - 1, ctaHeight - 1, 'F');
+
       let ctaY = y + 8;
       for (const ctaLine of ctaLines) {
         doc.text(ctaLine, margin + 10, ctaY);
-        ctaY += 7;
+        ctaY += ctaLineHeight;
       }
-      
-      y = ctaY + 5;
+
+      y = ctaY + 6;
     }
 
     // Footer

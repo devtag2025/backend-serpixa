@@ -394,12 +394,12 @@
         "action": "KRITIEK: Voeg uw website URL onmiddellijk toe aan Google Bedrijfsprofiel. Optimaliseer vervolgens uw website: 1) Maak locatiespecifieke landingspagina's met lokale content, 2) Voeg NAP toe in footer/header, 3) Include Schema.org LocalBusiness gestructureerde data, 4) Voeg lokale trefwoorden natuurlijk toe in content, 5) Zorg voor mobile-first design. Top 3 rankings vereisen een goed geoptimaliseerde website."
       },
       "localContentRequired": {
-        "issue": "Om in de top 10 te ranken, heeft uw website lokale content nodig die '{keyword}' target",
-        "action": "Maak locatiespecifieke content op uw website: 1) Voeg een toegewijde pagina toe voor '{keyword}' met 1000+ woorden, 2) Include lokale bezienswaardigheden, wijken en gebiedsreferenties, 3) Voeg klantentestimonials toe van lokale klanten, 4) Maak blogposts over lokale evenementen/gemeenschapsbetrokkenheid, 5) Include locatie in title tags en meta descriptions. Lokale content signaleert relevantie aan Google."
+        "issue": "Uw website heeft sterke lokale content nodig die '{keyword}' target om uw lokale zichtbaarheid te versterken en te behouden",
+        "action": "Maak locatiespecifieke content op uw website: 1) Voeg een toegewijde pagina toe voor '{keyword}' met 1000+ woorden, 2) Neem lokale bezienswaardigheden, wijken en gebiedsreferenties op, 3) Voeg klantentestimonials toe van lokale klanten, 4) Maak blogposts over lokale evenementen of uw betrokkenheid in de gemeenschap, 5) Neem de locatie op in title tags en meta descriptions. Lokale content versterkt zowel bestaande posities als toekomstige groei."
       },
       "gbpOptimizationRequired": {
-        "issue": "Google Bedrijfsprofiel optimalisatie is cruciaal voor top 10 rankings",
-        "action": "Volledig en optimaliseer uw Google Bedrijfsprofiel: 1) Voeg alle bedrijfsinformatie toe (uren, attributen, diensten), 2) Upload 10+ hoogwaardige foto's, 3) Schrijf een overtuigende 750+ karakter beschrijving met lokale trefwoorden, 4) Post wekelijkse updates, 5) Reageer op alle reviews binnen 24 uur, 6) Voeg Q&A sectie toe met veelgestelde vragen. Een compleet GBP profiel verbetert lokale rankings aanzienlijk."
+        "issue": "Optimalisatie van uw Google Bedrijfsprofiel is cruciaal voor sterke, stabiele lokale rankings",
+        "action": "Vul uw Google Bedrijfsprofiel volledig in en optimaliseer het: 1) Voeg alle bedrijfsinformatie toe (uren, attributen, diensten), 2) Upload 10+ hoogwaardige foto's, 3) Schrijf een overtuigende beschrijving van 750+ tekens met lokale trefwoorden, 4) Plaats wekelijkse updates, 5) Reageer op alle reviews binnen 24 uur, 6) Voeg een Q&A-sectie toe met veelgestelde vragen. Een volledig GBP-profiel helpt u bestaande posities te behouden en verder te verbeteren."
       },
       "gbpMissingWebsite": {
         "issue": "Uw Google Business-profiel mist een websitelink",
@@ -430,8 +430,8 @@
         "action": "Maak vermeldingen op {count} lokale directories: 1) Grote platforms (Google, Yelp, Gouden Gids, Bing Places), 2) Branchespecifieke directories, 3) Lokale kamer van koophandel, 4) Lokale bedrijfsverenigingen, 5) Review sites (TripAdvisor, Trustpilot). Zorg voor NAP consistentie overal. Citaties bouwen vertrouwen op en verbeteren rankings."
       },
       "localSeoElements": {
-        "issue": "Uw website heeft lokale SEO elementen nodig om in de top 10 te ranken",
-        "action": "Voeg lokale SEO elementen toe aan uw website: 1) Locatiespecifieke landingspagina's (één per servicegebied), 2) NAP in footer op elke pagina, 3) Schema.org LocalBusiness gestructureerde data, 4) Lokale trefwoorden in title tags en meta descriptions, 5) Klantentestimonials met locatievermeldingen, 6) Google Maps embed op contactpagina. Deze signalen helpen Google uw lokale relevantie te begrijpen."
+        "issue": "Uw website heeft lokale SEO-elementen nodig om uw lokale posities te versterken en te beveiligen",
+        "action": "Voeg lokale SEO-elementen toe aan uw website: 1) Locatiespecifieke landingspagina's (één per servicegebied), 2) NAP in de footer op elke pagina, 3) Schema.org LocalBusiness gestructureerde data, 4) Lokale trefwoorden in title tags en meta descriptions, 5) Klantentestimonials met locatievermeldingen, 6) Een Google Maps-embed op de contactpagina. Deze signalen helpen Google uw lokale relevantie beter te begrijpen en te versterken."
       },
       "freshContentRequired": {
         "issue": "Regelmatig bijgewerkte content signaleert actief bedrijf aan Google",

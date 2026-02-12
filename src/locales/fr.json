@@ -1,4 +1,5 @@
 {
+ 
   "seo": {
     "checks": {
       "title": "Balise Titre",
@@ -54,6 +55,18 @@
       "competitorAvgWordCount": "Moyenne Mots Concurrents"
     },
     "recommendations": {
+      "veryHighCompetitionMarket": {
+  "issue": "{percent}% des concurrents ont le mot-clé dans le titre - marché très compétitif",
+  "action": "Vous avez atteint l'exigence de base (mot-clé dans le titre), mais sur ce marché très compétitif, vous avez besoin de {totalPossible} différenciateurs pour vous démarquer. Actuellement vous en avez {differentiators}. Concentrez-vous sur : mot-clé dans les 100 premiers mots, densité optimale (0,5-1,5%), 5+ titres H2, 1500+ mots, 5+ liens internes, et 5+ images pertinentes."
+},
+"fewImagesForLength": {
+  "issue": "Seulement {count} images pour {wordCount} mots de contenu",
+  "action": "Ajoutez plus d'images pertinentes pour aérer ce contenu long. Visez environ {recommended} images (1 par 500 mots). Incluez des infographies, diagrammes, captures d'écran ou photos pertinentes avec texte alt descriptif."
+},
+"moreH2ForLongContent": {
+  "issue": "Seulement {count} titres H2 pour {wordCount} mots de contenu",
+  "action": "Ajoutez plus de sous-titres H2 pour améliorer la lisibilité et la structure. Visez environ {recommended} titres H2 (1 par 500 mots). Incluez des variations du mot-clé et des questions posées par les utilisateurs."
+},
       "competitorAnalysis": {
         "issue": "{count} résultats de concurrents trouvés pour \"{keyword}\"",
         "action": "Analysez les concurrents les mieux classés pour identifier les opportunités d'optimisation et les lacunes de contenu"
@@ -78,6 +91,14 @@
         "issue": "La meta description fait {length} caractères (optimal : 150-160)",
         "action": "Ajustez à 150-160 caractères. Incluez naturellement votre mot-clé principal, mettez en avant vos avantages uniques et terminez par un CTA convaincant comme 'En savoir plus' ou 'Commencez aujourd'hui'."
       },
+      "descriptionTooShort": {
+        "issue": "La meta description ne fait que {length} caractères (minimum 120)",
+        "action": "Étendez à 150-160 caractères. Ajoutez des propositions de valeur uniques, incluez votre mot-clé cible naturellement, et terminez par un CTA convaincant."
+      },
+      "descriptionTooLong": {
+        "issue": "La meta description fait {length} caractères (maximum 170)",
+        "action": "Réduisez à 150-160 caractères. Gardez les informations les plus importantes et votre mot-clé. Supprimez les phrases redondantes."
+      },
       "missingH1": {
         "issue": "Balise H1 manquante - Problème structurel majeur",
         "action": "Ajoutez exactement une balise H1 qui décrit clairement le contenu de la page et inclut votre mot-clé cible. Le H1 doit être unique et différent de votre balise titre."
@@ -94,9 +115,25 @@
         "issue": "Seulement {count} sous-titre(s) H2 - Structure de contenu faible",
         "action": "Ajoutez plus de sous-titres H2 (visez 1 pour 300 mots). Utilisez-les pour diviser le contenu en sections lisibles. Incluez des mots-clés LSI et des questions que les utilisateurs pourraient poser."
       },
+      "couldUseMoreH2": {
+        "issue": "Seulement {count} titres H2 pour un contenu de cette longueur",
+        "action": "Ajoutez 2-3 titres H2 supplémentaires pour améliorer la structure du contenu. Divisez les longues sections en sous-thèmes logiques. Considérez inclure des variations du mot-clé dans certains H2."
+      },
+      "missingH3": {
+        "issue": "Aucun titre H3 trouvé dans le contenu long",
+        "action": "Ajoutez des sous-titres H3 sous vos sections H2 pour créer une meilleure hiérarchie de contenu et améliorer la lisibilité."
+      },
       "imagesNoAlt": {
         "issue": "{count} images sans texte alt",
         "action": "Ajoutez un texte alt descriptif à toutes les images. Incluez votre mot-clé naturellement. Bon texte alt : 'Plombier professionnel réparant évier de cuisine à Paris' au lieu de 'plombier' ou 'image1'."
+      },
+      "noImages": {
+        "issue": "Aucune image trouvée dans le contenu",
+        "action": "Ajoutez 2-3 images pertinentes pour aérer le texte et améliorer l'engagement. Utilisez un texte alt descriptif incluant votre mot-clé lorsque approprié."
+      },
+      "fewImages": {
+        "issue": "Seulement {count} images dans un contenu long",
+        "action": "Ajoutez plus d'images pertinentes, d'infographies ou de diagrammes pour améliorer l'attrait visuel et l'engagement des utilisateurs. Visez 1 image par 300-500 mots."
       },
       "tooManyImages": {
         "issue": "{count} images peuvent ralentir le chargement",
@@ -106,13 +143,25 @@
         "issue": "{count} liens cassés détectés - Nuit à l'expérience utilisateur et au SEO",
         "action": "Corrigez ou supprimez tous les liens cassés immédiatement. Les liens cassés signalent un mauvais entretien aux moteurs de recherche et frustrent les utilisateurs. Utilisez des redirections 301 si nécessaire."
       },
+      "noInternalLinks": {
+        "issue": "Aucun lien interne trouvé",
+        "action": "Ajoutez 5-8 liens internes vers des pages connexes de votre site. C'est critique pour le SEO et aide à distribuer l'autorité des liens sur votre site web."
+      },
       "fewInternalLinks": {
         "issue": "Seulement {count} liens internes - Mauvaise structure du site",
         "action": "Ajoutez 3-5 liens internes pertinents vers des pages importantes. Utilisez des ancres descriptives avec des mots-clés. Le maillage interne distribue l'autorité et aide la navigation."
       },
+      "couldUseMoreInternalLinks": {
+        "issue": "Seulement {count} liens internes pour un contenu de cette longueur",
+        "action": "Ajoutez 2-3 liens internes supplémentaires vers des pages connexes de votre site. Cela améliore la structure du site et aide à distribuer l'autorité de page."
+      },
       "noExternalLinks": {
         "issue": "Aucun lien externe vers des sources autoritaires",
         "action": "Ajoutez 2-3 liens vers des sources externes pertinentes et autoritaires. Cela construit la confiance. Assurez-vous que les liens s'ouvrent dans de nouveaux onglets avec rel='noopener'."
+      },
+      "fewExternalLinks": {
+        "issue": "Seulement {count} lien externe - ajoutez plus de sources autoritaires",
+        "action": "Créez des liens vers 2-3 sources externes de haute autorité (publications sectorielles, recherches, sites autoritaires). Cela renforce la confiance et la crédibilité."
       },
       "missingCanonical": {
         "issue": "Balise canonique manquante - Risque de contenu dupliqué",
@@ -138,9 +187,13 @@
         "issue": "Mot-clé cible \"{keyword}\" absent du titre H1",
         "action": "Incluez \"{keyword}\" dans votre balise H1. Cela confirme le sujet de la page aux moteurs de recherche. Rendez-le naturel et attrayant pour les lecteurs."
       },
+      "keywordNotInH2": {
+        "issue": "Le mot-clé n'est trouvé dans aucun titre H2",
+        "action": "Incluez \"{keyword}\" ou ses variations dans au moins un titre H2 pour renforcer la pertinence thématique."
+      },
       "keywordNotInContent": {
         "issue": "Mot-clé cible \"{keyword}\" non trouvé dans le contenu",
-        "action": "Ajoutez \"{keyword}\" naturellement dans votre contenu. Incluez-le dans : le premier paragraphe, au moins un sous-titre et la conclusion. Évitez le placement forcé."
+        "action": "Ajoutez \"{keyword}\" naturellement dans votre contenu. Incluez-le dans : le premier paragraphe, au moins un sous-titre et la conclusion. Évitez le placement forcé. Variations vérifiées : {variations}"
       },
       "keywordNotInFirst100Words": {
         "issue": "Mot-clé \"{keyword}\" absent des 100 premiers mots",
@@ -150,17 +203,53 @@
         "issue": "Mot-clé cible \"{keyword}\" absent de l'URL",
         "action": "Si possible, incluez votre mot-clé dans le slug URL. Exemple : /votre-mot-cle-guide au lieu de /page123. Gardez les URLs courtes, lisibles et pertinentes."
       },
+      "keywordDensityCriticallyLow": {
+        "issue": "La densité du mot-clé est de {density}% (critique - cible 0,5-1,5%)",
+        "action": "Actuel : {occurrences} occurrences dans {wordCount} mots. Ajoutez {recommended} mentions naturelles de \"{keyword}\". Utilisez des variations et synonymes pour éviter la répétition."
+      },
       "keywordDensityLow": {
-        "issue": "La densité du mot-clé est de {density}% (en dessous de l'optimal 1-2%)",
+        "issue": "La densité du mot-clé est de {density}% (en dessous de l'optimal 0,5-1,5%)",
         "action": "Actuel : {occurrences} occurrences dans {wordCount} mots. Ajoutez {recommended} mentions naturelles supplémentaires de \"{keyword}\". Utilisez des variations et synonymes pour éviter la répétition."
       },
       "keywordDensityHigh": {
         "issue": "La densité du mot-clé est de {density}% - Risque de sur-optimisation",
         "action": "Réduisez l'utilisation de \"{keyword}\" de {occurrences} à environ {recommended} fois. Remplacez certaines instances par des synonymes, termes connexes ou pronoms."
       },
+      "keywordDensitySlightlyHigh": {
+        "issue": "La densité du mot-clé est de {density}% (légèrement au-dessus de l'optimal 0,5-1,5%)",
+        "action": "Remplacez certaines instances de \"{keyword}\" par des synonymes ou termes connexes. Utilisez des variations comme 'création de liens', 'stratégie de backlinks', etc."
+      },
       "keywordDensityOptimal": {
         "issue": "La densité du mot-clé est optimale à {density}%",
         "action": "Maintenez l'utilisation actuelle du mot-clé. Concentrez-vous sur l'ajout de mots-clés LSI (connexes) et de synonymes pour renforcer la pertinence thématique sans sur-optimisation."
+      },
+      "competitorTitleAdvantage": {
+        "issue": "{percent}% des 10 premiers concurrents ont le mot-clé dans le titre, créant une forte concurrence",
+        "action": "Assurez-vous que \"{keyword}\" est placé en évidence dans votre balise titre, idéalement près du début. Dans les marchés très compétitifs, l'optimisation du titre est critique."
+      },
+      "competitorH1Advantage": {
+        "issue": "{count} des 3 premiers concurrents ont le mot-clé dans le H1, pas vous",
+        "action": "Ajoutez \"{keyword}\" à votre titre H1. C'est critique pour la pertinence thématique et pour rivaliser avec les pages les mieux classées."
+      },
+      "competitorDescAdvantage": {
+        "issue": "{percent}% des 10 premiers concurrents ont le mot-clé dans la méta description",
+        "action": "Incluez \"{keyword}\" naturellement dans votre méta description. Cela améliore le taux de clic et les signaux de pertinence."
+      },
+      "pageTypeMismatch": {
+        "issue": "Votre type de page est '{yourType}' mais {percent}% des 10 premiers sont des pages '{dominantType}'",
+        "action": "Envisagez de restructurer votre contenu pour correspondre au format SERP dominant, ou créez une nouvelle page de style {dominantType} pour être plus compétitif."
+      },
+      "regularCompetitorMonitoring": {
+        "issue": "Surveillez les {count} premiers concurrents en {location} pour ce mot-clé",
+        "action": "Mettez en place une surveillance mensuelle des concurrents pour \"{keyword}\". Suivez les changements dans leur longueur de contenu, structure et optimisation pour rester compétitif."
+      },
+      "competitivePosition": {
+        "issue": "Position concurrentielle forte atteinte (score : {score}/100)",
+        "action": "Votre page est bien optimisée pour \"{keyword}\" en {location}. Concentrez-vous sur la création de backlinks de haute qualité et le maintien de la fraîcheur du contenu pour améliorer davantage le classement."
+      },
+      "considerContentUpdates": {
+        "issue": "Le contenu long pourrait bénéficier de mises à jour régulières",
+        "action": "Révisez et mettez à jour ce contenu tous les 3-6 mois. Ajoutez de nouvelles statistiques, tendances et exemples pour maintenir la fraîcheur et la pertinence."
       },
       "missingSchema": {
         "issue": "Aucune donnée structurée (balisage Schema) détectée",
@@ -394,12 +483,12 @@
         "action": "CRITIQUE : Ajoutez l'URL de votre site web à Google Business Profile immédiatement. Ensuite, optimisez votre site web : 1) Créez des pages de destination spécifiques à la localisation avec du contenu local, 2) Ajoutez NAP dans le pied de page/en-tête, 3) Incluez les données structurées Schema.org LocalBusiness, 4) Ajoutez des mots-clés locaux naturellement dans le contenu, 5) Assurez-vous d'un design mobile-first. Les classements dans le top 3 nécessitent un site web bien optimisé."
       },
       "localContentRequired": {
-        "issue": "Pour figurer dans le top 10, votre site web a besoin de contenu local ciblant '{keyword}'",
-        "action": "Créez du contenu spécifique à la localisation sur votre site web : 1) Ajoutez une page dédiée pour '{keyword}' avec 1000+ mots, 2) Incluez des points de repère locaux, des quartiers et des références de zone, 3) Ajoutez des témoignages clients de clients locaux, 4) Créez des articles de blog sur les événements locaux/l'implication communautaire, 5) Incluez la localisation dans les balises title et les meta descriptions. Le contenu local signale la pertinence à Google."
+        "issue": "Votre site web a besoin d'un contenu local solide ciblant '{keyword}' pour renforcer et maintenir votre visibilité locale",
+        "action": "Créez du contenu spécifique à votre zone sur votre site web : 1) Ajoutez une page dédiée pour '{keyword}' avec 1000+ mots, 2) Incluez des points de repère locaux, des quartiers et des références de zone, 3) Ajoutez des témoignages de clients locaux, 4) Créez des articles de blog sur des événements locaux ou votre engagement dans la communauté, 5) Incluez la localisation dans les balises title et les meta descriptions. Ce contenu local renforce vos positions actuelles et vos futures performances."
       },
       "gbpOptimizationRequired": {
-        "issue": "L'optimisation du Google Business Profile est essentielle pour les classements dans le top 10",
-        "action": "Complétez et optimisez votre Google Business Profile : 1) Ajoutez toutes les informations de l'entreprise (heures, attributs, services), 2) Téléchargez 10+ photos de haute qualité, 3) Rédigez une description convaincante de 750+ caractères avec des mots-clés locaux, 4) Publiez des mises à jour hebdomadaires, 5) Répondez à tous les avis dans les 24 heures, 6) Ajoutez une section Q&R avec des questions courantes. Un profil GBP complet améliore considérablement les classements locaux."
+        "issue": "L'optimisation du Google Business Profile est essentielle pour des performances locales fortes et stables",
+        "action": "Complétez et optimisez votre Google Business Profile : 1) Ajoutez toutes les informations de l'entreprise (heures, attributs, services), 2) Téléchargez 10+ photos de haute qualité, 3) Rédigez une description convaincante de 750+ caractères avec des mots-clés locaux, 4) Publiez des mises à jour hebdomadaires, 5) Répondez à tous les avis dans les 24 heures, 6) Ajoutez une section Q&R avec des questions courantes. Un profil GBP complet vous aide à maintenir et améliorer vos positions locales."
       },
       "gbpMissingWebsite": {
         "issue": "Votre fiche Google Business manque un lien vers le site web",
@@ -430,8 +519,8 @@
         "action": "Créez des listes sur {count} annuaires locaux : 1) Plateformes majeures (Google, Yelp, Pages Jaunes, Bing Places), 2) Annuaires spécifiques à l'industrie, 3) Chambre de commerce locale, 4) Associations commerciales locales, 5) Sites d'avis (TripAdvisor, Trustpilot). Assurez la cohérence NAP sur tous. Les citations renforcent la confiance et améliorent les classements."
       },
       "localSeoElements": {
-        "issue": "Votre site web a besoin d'éléments SEO locaux pour figurer dans le top 10",
-        "action": "Ajoutez des éléments SEO locaux à votre site web : 1) Pages de destination spécifiques à la localisation (une par zone de service), 2) NAP dans le pied de page sur chaque page, 3) Données structurées Schema.org LocalBusiness, 4) Mots-clés locaux dans les balises title et meta descriptions, 5) Témoignages clients avec mentions de localisation, 6) Intégration Google Maps sur la page de contact. Ces signaux aident Google à comprendre votre pertinence locale."
+        "issue": "Votre site web a besoin d'éléments SEO locaux pour renforcer et sécuriser vos positions locales",
+        "action": "Ajoutez des éléments SEO locaux à votre site web : 1) Pages de destination spécifiques à la localisation (une par zone de service), 2) NAP dans le pied de page sur chaque page, 3) Données structurées Schema.org LocalBusiness, 4) Mots-clés locaux dans les balises title et meta descriptions, 5) Témoignages clients avec mentions de localisation, 6) Intégration Google Maps sur la page de contact. Ces signaux aident Google à comprendre et consolider votre pertinence locale."
       },
       "freshContentRequired": {
         "issue": "Le contenu régulièrement mis à jour signale une entreprise active à Google",

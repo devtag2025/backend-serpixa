@@ -406,7 +406,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
 <div style="background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">📊 ${t('email.seoAudit.subject', { url: '' }).replace(' - ', '')}</h1>
+  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.seoAudit.subject', { url: '' }).replace(' - ', '')}</h1>
   <p style="margin:0;opacity:0.9;font-size:14px;color:#ffffff">${audit.url}</p>
 </div>
 
@@ -527,7 +527,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
 <div style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">📍 ${t('email.geoAudit.subject', { keyword: '' }).replace(' - ', '')}</h1>
+  <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.geoAudit.subject', { keyword: '' }).replace(' - ', '')}</h1>
   <p style="margin:0;opacity:0.9;font-size:14px;color:#ffffff">"${audit.keyword}" in ${location}</p>
 </div>
 
@@ -714,7 +714,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-    <div style="font-size:48px;margin-bottom:8px">🎉</div>
+    <div style="font-size:48px;margin-bottom:8px"></div>
     <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.activated.subject', { planName })}</h1>
   </div>
 
@@ -883,7 +883,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-    <div style="font-size:48px;margin-bottom:8px">💰</div>
+    <div style="font-size:48px;margin-bottom:8px"></div>
     <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.refunded.subject', { amount: formattedAmount, currency: currency?.toUpperCase() || 'USD' })}</h1>
   </div>
 
@@ -934,7 +934,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
   <div style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-    <div style="font-size:48px;margin-bottom:8px">⚠️</div>
+    <div style="font-size:48px;margin-bottom:8px"></div>
     <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.subscription.paymentFailed.subject')}</h1>
   </div>
 
@@ -1087,7 +1087,7 @@ class EmailService {
     
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%);padding:40px 32px;text-align:center">
-      <div style="font-size:32px;margin-bottom:12px;line-height:1">✨</div>
+      <div style="font-size:32px;margin-bottom:12px;line-height:1"></div>
       <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px">${t('email.aiContent.subject', { keyword: content.keyword })}</h1>
       <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.9)">${content.topic}</p>
     </div>
@@ -1151,7 +1151,7 @@ class EmailService {
     return `
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc">
 <div style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);color:#fff;padding:32px;border-radius:12px 12px 0 0;text-align:center">
-  <div style="font-size:48px;margin-bottom:8px">⚠️</div>
+  <div style="font-size:48px;margin-bottom:8px"></div>
   <h1 style="margin:0 0 8px 0;font-size:24px;color:#ffffff">${t('email.aiContent.errorSubject', { keyword })}</h1>
 </div>
 
@@ -1195,7 +1195,7 @@ class EmailService {
     const headerColor = isUpgrade 
       ? 'linear-gradient(135deg,#059669 0%,#10b981 100%)' 
       : 'linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)';
-    const emoji = isUpgrade ? '🚀' : '📋';
+    const emoji = '';
     const changeMessage = isUpgrade 
       ? t('email.subscription.planChanged.upgradeMessage')
       : t('email.subscription.planChanged.downgradeMessage');
