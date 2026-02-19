@@ -27,6 +27,7 @@ const optionalEnvVars = [
   "RATE_LIMIT_MAX_REQUESTS",
   // Claude API
   "CLAUDE_API_KEY",
+  "AUDIT_AI_API_KEY",
   // AWS optional vars
   "AWS_REGION",
   "AWS_S3_BUCKET"
@@ -122,6 +123,8 @@ export const env = {
 
   // Claude API Configuration
   CLAUDE_API_KEY: process.env.CLAUDE_API_KEY,
+  // Audit AI: separate key for SEO/Local audits (optional; falls back to CLAUDE_API_KEY)
+  AUDIT_AI_API_KEY: process.env.AUDIT_AI_API_KEY || process.env.CLAUDE_API_KEY,
   // DataForSEO Configuration
   DATAFORSEO_LOGIN: process.env.DATAFORSEO_LOGIN,
   DATAFORSEO_PASSWORD: process.env.DATAFORSEO_PASSWORD,

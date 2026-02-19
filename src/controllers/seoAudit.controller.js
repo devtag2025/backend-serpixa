@@ -1,7 +1,7 @@
 import { ApiResponse, ApiError } from '../utils/index.js';
 import { SEOAudit, User } from '../models/index.js';
-import { dataForSEOService, emailService, pdfService } from '../services/index.js';
-import { getLocaleConfig, DEFAULT_LOCALE } from '../config/index.js';
+import { seoCompetitiveAuditService, emailService, pdfService } from '../services/index.js';
+import { DEFAULT_LOCALE } from '../config/index.js';
 
 export const runAudit = async (req, res, next) => {
   try {
@@ -15,10 +15,7 @@ export const runAudit = async (req, res, next) => {
       );
     }
 
-    // Get locale config for API parameters
-    const localeConfig = getLocaleConfig(locale || DEFAULT_LOCALE);
-
-    const auditResult = await dataForSEOService.runOnPageAudit(
+    const auditResult = await seoCompetitiveAuditService.runCompetitiveAudit(
       url,
       keyword,
       locale || DEFAULT_LOCALE,

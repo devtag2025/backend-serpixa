@@ -9,6 +9,7 @@ const RecommendationSchema = new Schema({
   action: { type: String },
   impact: { type: String, enum: ['high', 'medium', 'low'] },
   effort: { type: String, enum: ['easy', 'moderate', 'difficult'] },
+  context: { type: String, default: '' }, // "Vs. top 10" – what competitors do (makes recommendations feel realistic)
 }, { _id: false });
 
 const SEOAuditSchema = new Schema(
