@@ -67,6 +67,10 @@
   "issue": "Only {count} H2 headings for {wordCount} words of content",
   "action": "Add more H2 subheadings to improve readability and structure. Aim for approximately {recommended} H2 headings (1 per 500 words). Include keyword variations and questions users ask."
 },
+      "noindex": {
+        "issue": "Page has noindex tag",
+        "action": "Remove the noindex meta tag or X-Robots-Tag header immediately so the page can appear in search results."
+      },
       "competitorAnalysis": {
         "issue": "Found {count} competitor results for \"{keyword}\"",
         "action": "Review top-ranking competitors to identify optimization opportunities and content gaps"

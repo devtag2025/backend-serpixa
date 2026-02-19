@@ -67,6 +67,10 @@
   "issue": "Seulement {count} titres H2 pour {wordCount} mots de contenu",
   "action": "Ajoutez plus de sous-titres H2 pour améliorer la lisibilité et la structure. Visez environ {recommended} titres H2 (1 par 500 mots). Incluez des variations du mot-clé et des questions posées par les utilisateurs."
 },
+      "noindex": {
+        "issue": "La page a une balise noindex",
+        "action": "Supprimez la balise meta noindex ou l'en-tête X-Robots-Tag pour que la page puisse apparaître dans les résultats de recherche."
+      },
       "competitorAnalysis": {
         "issue": "{count} résultats de concurrents trouvés pour \"{keyword}\"",
         "action": "Analysez les concurrents les mieux classés pour identifier les opportunités d'optimisation et les lacunes de contenu"

@@ -54,6 +54,10 @@
       "competitorAvgWordCount": "Gem. Woorden Concurrenten"
     },
     "recommendations": {
+      "noindex": {
+        "issue": "Pagina heeft noindex-tag",
+        "action": "Verwijder de noindex meta-tag of X-Robots-Tag header zodat de pagina in zoekresultaten kan verschijnen."
+      },
       "competitorAnalysis": {
         "issue": "{count} concurrent resultaten gevonden voor \"{keyword}\"",
         "action": "Analyseer top-concurrenten om optimalisatiekansen en contentgaten te identificeren"
