@@ -474,7 +474,7 @@ class PageAuditor {
   }
 }
 
-/** Returns true if the target keyword appears in title, meta description, or any H1/H2/H3. */
+/** Returns true if the target keyword (or all its words) appears in title, meta description, or any H1/H2/H3. */
 function isKeywordFoundOnPage(keyword, rawItemSnapshot) {
   if (!keyword || typeof keyword !== 'string' || !rawItemSnapshot) {
     return true;
@@ -484,7 +484,13 @@ function isKeywordFoundOnPage(keyword, rawItemSnapshot) {
 
   const meta = rawItemSnapshot.meta || {};
   const htags = rawItemSnapshot.htags || {};
-  const containsKw = (text) => (typeof text === 'string' ? text : '').toLowerCase().includes(kw);
+  const exactPhrase = (text) => (typeof text === 'string' ? text : '').toLowerCase().includes(kw);
+  const words = kw.split(/\s+/).filter(Boolean);
+  const allWordsPresent = (text) => {
+    const t = (typeof text === 'string' ? text : '').toLowerCase();
+    return words.length > 0 && words.every((w) => t.includes(w));
+  };
+  const containsKw = (text) => exactPhrase(text) || (words.length > 1 && allWordsPresent(text));
 
   if (containsKw(meta.title) || containsKw(meta.description)) return true;
   const h1 = (htags.h1 || []);
@@ -1309,7 +1315,6 @@ async function runCompetitiveAudit(url, keyword, locale = DEFAULT_LOCALE, device
   }
 
   if (!keywordFoundOnPage) {
-    finalScore = 0;
     const hasKeywordRec = finalRecommendations.some(
       (r) => (r.issue || '').toLowerCase().includes('keyword not found') || (r.category || '').toLowerCase() === 'keyword'
     );
@@ -1318,10 +1323,10 @@ async function runCompetitiveAudit(url, keyword, locale = DEFAULT_LOCALE, device
         priority: 'critical',
         category: 'Keyword',
         issue: 'Target keyword not found on page',
-        action: 'Add the target keyword to the page (e.g. in the title, H1, or main content) so the page is relevant for this search. Currently the page does not target this keyword and cannot rank for it.',
+        action: 'Add the target keyword to the page (e.g. in the title, H1, or main content) so the page is relevant for this search. Currently the page does not target this keyword in title, meta description, or headings.',
         impact: 'high',
         effort: 'moderate',
-        context: `Your page has no mention of "${keyword}" in the title, meta description, or headings. Pages that don't target the keyword cannot rank for it.`,
+        context: `Your page has no mention of "${keyword}" in the title, meta description, or H1/H2/H3. Adding it can improve relevance and rankings. Your score above reflects how your page compares to the top 10.`,
       };
       finalRecommendations = [keywordNotFoundRec, ...finalRecommendations];
     } else {
@@ -1337,10 +1342,10 @@ async function runCompetitiveAudit(url, keyword, locale = DEFAULT_LOCALE, device
     if (!finalChecks.scoreSummary) {
       finalChecks = {
         ...finalChecks,
-        scoreSummary: `Your score is 0 because the target keyword "${keyword}" was not found on the page (not in title, meta description, or H1/H2/H3). Add the keyword to make the page relevant for this search in ${locationName}.`,
+        scoreSummary: `The target keyword "${keyword}" was not found in your title, meta description, or headings. Consider adding it for better relevance. Your score reflects your page's comparison to the top 10 in ${locationName}.`,
       };
     }
-    Logger.info(`[SEO Competitive Audit] Keyword "${keyword}" not found on page — score set to 0.`);
+    Logger.info(`[SEO Competitive Audit] Keyword "${keyword}" not found on page — critical recommendation added; score kept consistent (${finalScore}).`);
   }
 
   return {
