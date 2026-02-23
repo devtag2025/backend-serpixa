@@ -54,6 +54,22 @@ const GeoAuditSchema = new Schema(
       min: 0,
       max: 100,
     },
+    scoreSummary: {
+      type: String,
+      default: null,
+    },
+    strengths: {
+      type: [new Schema({ category: String, title: String, description: String }, { _id: false })],
+      default: null,
+    },
+    userPositionInPack: {
+      type: Number,
+      default: null,
+    },
+    businessNotInLocation: {
+      type: Boolean,
+      default: false,
+    },
     businessInfo: {
       name: { type: String, default: null },
       address: { type: String, default: null },

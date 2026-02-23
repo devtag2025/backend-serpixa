@@ -454,6 +454,10 @@
         "issue": "No local pack results found for this keyword and location",
         "action": "Try using a more specific location or a keyword that typically shows local results"
       },
+      "businessNotInLocation": {
+        "issue": "Your business was not found in the top results for {location}",
+        "action": "You are analyzing visibility in a location where your business does not yet appear in the local pack. To compete here: 1) Ensure your Google Business Profile targets this area (service area or location), 2) Add location-specific content and citations for this region, 3) Build local backlinks and reviews from this market. If this is not your target market, run the audit for your actual business location instead."
+      },
       "highCompetition": {
         "issue": "High competition: Average competitor rating is {avgRating}/5",
         "action": "Focus on maintaining excellent service quality and customer satisfaction to compete effectively"
