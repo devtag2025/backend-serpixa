@@ -454,6 +454,10 @@
         "issue": "Aucun résultat de pack local trouvé pour ce mot-clé et cette localisation",
         "action": "Essayez d'utiliser une localisation plus spécifique ou un mot-clé qui affiche généralement des résultats locaux"
       },
+      "businessNotInLocation": {
+        "issue": "Votre entreprise n'apparaît pas dans les premiers résultats pour {location}",
+        "action": "Vous analysez la visibilité dans une zone où votre entreprise n'apparaît pas encore dans le pack local. Pour y concurrencer : 1) Vérifiez que votre fiche Google Business cible cette zone (zone de service ou adresse), 2) Ajoutez du contenu et des citations pour cette région, 3) Obtenez des backlinks et avis locaux. Si ce n'est pas votre marché cible, lancez l'audit pour la localisation réelle de votre entreprise."
+      },
       "highCompetition": {
         "issue": "Forte concurrence : La note moyenne des concurrents est de {avgRating}/5",
         "action": "Concentrez-vous sur le maintien d'une excellente qualité de service et de la satisfaction client pour concurrencer efficacement"

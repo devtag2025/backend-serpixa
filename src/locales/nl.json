@@ -365,6 +365,10 @@
         "issue": "Geen local pack resultaten gevonden voor dit trefwoord en locatie",
         "action": "Probeer een specifiekere locatie of een trefwoord te gebruiken dat meestal lokale resultaten toont"
       },
+      "businessNotInLocation": {
+        "issue": "Uw bedrijf werd niet gevonden in de topresultaten voor {location}",
+        "action": "U analyseert zichtbaarheid in een locatie waar uw bedrijf nog niet in de lokale pack verschijnt. Om hier te concurreren: 1) Zorg dat uw Google Business-profiel op deze regio gericht is (servicegebied of adres), 2) Voeg locatiespecifieke content en vermeldingen toe voor deze regio, 3) Verkrijg lokale backlinks en beoordelingen. Als dit niet uw doelmarkt is, voer de audit uit voor uw feitelijke vestigingslocatie."
+      },
       "highCompetition": {
         "issue": "Hoge concurrentie: Gemiddelde concurrent beoordeling is {avgRating}/5",
         "action": "Focus op het behouden van uitstekende servicekwaliteit en klanttevredenheid om effectief te concurreren"

@@ -5,6 +5,7 @@ import { Logger } from '../utils/logger.js';
 import { t } from '../locales/index.js';
 import { getLocaleConfig, DEFAULT_LOCALE } from '../config/index.js';
 import { gbpService } from './gbp.service.js';
+import { geoAuditAIService } from './geoAuditAI.service.js';
 
 class GeoAuditService {
   constructor() {
@@ -61,9 +62,10 @@ class GeoAuditService {
           ? this.fetchUserGBPData(businessName || keyword, locationName, localeConfig.languageCode, gbpLink)
           : Promise.resolve(null),
       ]);
-
-      // Transform and return results with actionable recommendations (incl. GBP-based when available)
-      return this.transformMapsResult(localFinderData, keyword, locationName, lang, gbpData);
+      
+      // Transform and return results; AI generates score + recommendations from data when available
+      const businessNameForMatch = businessName || (gbpData?.raw ? (gbpData.raw.title || gbpData.raw.name) : null);
+      return await this.transformMapsResult(localFinderData, keyword, locationName, lang, gbpData, businessNameForMatch, locale);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError(502, `Geo audit failed: ${error.message}`);
@@ -123,7 +125,8 @@ class GeoAuditService {
     });
 
     const response = await this.client.post('/v3/serp/google/local_finder/live/advanced', payload);
-
+    console.log("response from client api ",response);
+    
     Logger.log('DataForSEO Local Finder API Response Status:', response.status);
 
     // Handle response structure - pass through DataForSEO response
@@ -171,6 +174,25 @@ class GeoAuditService {
     );
 
     Logger.log('Business items found:', businessItems.length);
+    // Log what API returns for reviews/votes per item (for debugging vote count vs display)
+    businessItems.forEach((item, idx) => {
+      const logItem = (it, label) => {
+        const rating = it.rating;
+        Logger.log(`[Local Finder API] ${label} position ${idx + 1} "${(it.title || it.name || '').slice(0, 40)}":`, {
+          'rating.votes_count': rating?.votes_count,
+          'rating.value': rating?.value,
+          'reviews_count': it.reviews_count,
+          reviews: it.reviews,
+          review_count: it.review_count,
+          type: it.type,
+        });
+      };
+      if (item.items && Array.isArray(item.items)) {
+        item.items.forEach((nested, i) => logItem(nested, `nested item ${i + 1}`));
+      } else {
+        logItem(item, 'item');
+      }
+    });
 
     return {
       items: businessItems,
@@ -229,17 +251,25 @@ class GeoAuditService {
 
   /**
    * Transform Local Finder API response into audit result
-   * Returns: local visibility score, competitors, businessInfo (from GBP when available), and actionable recommendations
+   * Returns: local visibility score (user-centric when business identified), competitors, businessInfo, and actionable recommendations
+   * Score and recommendations are based on "what are first-page results doing that the user is not?" — consistent with SEO audit value.
    * @param {string} lang - Language code for translations (e.g., 'en', 'fr', 'nl')
    * @param {Object} gbpData - User's GBP data from my_business_info API (optional)
+   * @param {string} businessNameForMatch - Business name from request (optional, to match user in results even when GBP fetch failed)
+   * @param {string} locale - Locale for AI (e.g. en, fr-be, nl_be)
    */
-  transformMapsResult(data, keyword, location, lang = 'en', gbpData = null) {
+  async transformMapsResult(data, keyword, location, lang = 'en', gbpData = null, businessNameForMatch = null, locale = 'en') {
+    
     const emptyResult = {
       keyword,
       location,
       localVisibilityScore: 0,
-      competitors: [],
+      scoreSummary: null,
+      strengths: null,
+      userPositionInPack: null,
+      businessNotInLocation: false,
       businessInfo: null,
+      competitors: [],
       recommendations: [{
         priority: 'high',
         issue: t(lang, 'geo.recommendations.noResults.issue'),
@@ -260,12 +290,25 @@ class GeoAuditService {
     // Extract competitors from Local Finder results
     const competitors = [];
     data.items.forEach((item) => {
-      const extractItem = (it) => {
-        const desc = it.description || '';
-        const address = it.address || it.address_lines?.join(', ') || it.address_text || this.extractAddressFromDescription(desc);
-        const phone = it.phone || it.phone_number || this.extractPhoneFromDescription(desc);
-        const website = it.website || it.website_url || it.url || this.extractWebsiteFromDescription(desc);
-        const reviewsCount = it.rating?.votes_count ?? it.reviews_count ?? it.reviews ?? it.review_count ?? 0;
+      const extractItem = (it, parent = null) => {
+        const desc = it.description || (parent && parent.description) || '';
+        const address = it.address || it.address_lines?.join(', ') || it.address_text || (parent && (parent.address || parent.address_lines?.join?.(', '))) || this.extractAddressFromDescription(desc);
+        const phone = it.phone || it.phone_number || (parent && (parent.phone || parent.phone_number)) || this.extractPhoneFromDescription(desc);
+        const website = it.website || it.website_url || it.url || (parent && (parent.website || parent.website_url || parent.url)) || this.extractWebsiteFromDescription(desc);
+        // Use only rating.votes_count (DataForSEO canonical field). Other fields (reviews_count etc.) can be 10x in some responses and must not be used.
+        const votesCount = it.rating?.votes_count;
+        const reviewsCount =
+          votesCount !== undefined && votesCount !== null
+            ? (typeof votesCount === 'number' ? Math.floor(votesCount) : (parseInt(votesCount, 10) || 0))
+            : 0;
+        console.log('[GeoAudit] reviews extraction:', {
+          name: (it.title || it.name || it.business_title || '').slice(0, 40),
+          'API rating.votes_count': it.rating?.votes_count,
+          'API reviews_count': it.reviews_count,
+          'API reviews': it.reviews,
+          'API review_count': it.review_count,
+          'using (reviewsCount)': reviewsCount,
+        });
         return {
           position: competitors.length + 1,
           name: it.title || it.name || it.business_title || '',
@@ -277,23 +320,73 @@ class GeoAuditService {
           website: website || null,
           category: it.category || it.type || it.category_name || null,
           placeId: it.place_id || it.google_place_id || null,
-          cid: it.cid || null,
+          cid: it.cid ?? null,
         };
       };
       if (item.items && Array.isArray(item.items)) {
-        item.items.forEach((nestedItem) => competitors.push(extractItem(nestedItem)));
+        item.items.forEach((nestedItem) => competitors.push(extractItem(nestedItem, item)));
       } else {
         competitors.push(extractItem(item));
       }
     });
 
-    const localVisibilityScore = this.calculateLocalVisibilityScore(competitors);
     const topCompetitors = competitors.slice(0, 10);
 
-    // Generate recommendations (use GBP data when available for credible, user-specific recommendations)
-    const recommendations = this.generateRecommendations(topCompetitors, lang, businessInfo);
+    // Identify user's business in the results (by place_id/cid/name). Use this listing as source of truth for position, rating, reviews in THIS location.
+    const userMatch = this.findUserInCompetitors(competitors, businessInfo, businessNameForMatch);
+    const userListing = userMatch?.listing ?? null;
+    const userPositionInPack = userMatch?.position ?? null;
 
-    // NAP analysis: use user's GBP data when available, else fall back to competitor-based
+    // When user is found in results, prefer listing data for visibility stats (avoids "0 reviews" when listing shows 892)
+    const effectiveUser = userListing
+      ? {
+          position: userListing.position,
+          name: businessInfo?.name || userListing.name,
+          rating: userListing.rating,
+          reviews: userListing.reviews ?? 0,
+          website: userListing.website,
+          address: businessInfo?.address || userListing.address,
+          phone: businessInfo?.phone || userListing.phone,
+          category: userListing.category || businessInfo?.category,
+        }
+      : businessInfo
+        ? {
+            position: null,
+            name: businessInfo.name,
+            rating: businessInfo.rating,
+            reviews: businessInfo.reviews ?? 0,
+            website: businessInfo.website,
+            address: businessInfo.address,
+            phone: businessInfo.phone,
+            category: businessInfo.category,
+          }
+        : null;
+
+    const businessNotInLocation = !!(businessInfo || businessNameForMatch) && !userListing;
+    const userProvidedBusiness = !!(businessInfo || businessNameForMatch);
+
+    // AI generates score and recommendations from data only (Local SEO expert). Fallback to rule-based if AI unavailable.
+    const aiPayload = {
+      keyword,
+      location,
+      competitors: topCompetitors,
+      userBusiness: effectiveUser,
+      businessNotInLocation,
+      userProvidedBusiness,
+    };
+    const aiResult = await geoAuditAIService.analyzeFromData(aiPayload, locale);
+
+    const localVisibilityScore =
+      aiResult.score !== undefined && aiResult.score !== null
+        ? aiResult.score
+        : this.calculateLocalVisibilityScore(competitors, effectiveUser, businessNotInLocation);
+    const recommendations =
+      Array.isArray(aiResult.recommendations) && aiResult.recommendations.length > 0
+        ? aiResult.recommendations
+        : this.generateRecommendations(topCompetitors, lang, businessInfo, effectiveUser, businessNotInLocation, location);
+    const scoreSummary = aiResult.scoreSummary || null;
+    const strengths = aiResult.strengths || null;
+
     const napIssues = businessInfo
       ? this.analyzeNAPConsistencyFromUser(businessInfo, lang)
       : this.analyzeNAPConsistency(topCompetitors, lang);
@@ -304,6 +397,10 @@ class GeoAuditService {
       keyword,
       location,
       localVisibilityScore,
+      scoreSummary,
+      strengths,
+      userPositionInPack,
+      businessNotInLocation,
       businessInfo,
       competitors: topCompetitors,
       recommendations,
@@ -355,40 +452,77 @@ class GeoAuditService {
   }
 
   /**
-   * Calculate local visibility score (0-100)
-   * Based on competitors analysis: average rating, total competitors, data completeness
+   * Calculate local visibility score (0-100).
+   * When we know the user's business (effectiveUser): score reflects how well they compete with first-page results — position, completeness vs top 3, rating/reviews vs top 3.
+   * When business not in this location (businessNotInLocation): low score — they are not visible for this keyword/location.
+   * Otherwise: market-level score (no user identified).
    */
-  calculateLocalVisibilityScore(competitors) {
-    if (!competitors || competitors.length === 0) {
+  calculateLocalVisibilityScore(competitors, effectiveUser = null, businessNotInLocation = false) {
+    if (!competitors || competitors.length === 0) return 0;
+
+    const top3 = competitors.slice(0, 3);
+
+    if (businessNotInLocation) {
       return 0;
     }
 
-    let score = 0;
+    if (effectiveUser?.position != null) {
+      const pos = effectiveUser.position;
+      let score = 0;
+      if (pos <= 3) score += 50;
+      else if (pos <= 5) score += 38;
+      else if (pos <= 7) score += 28;
+      else if (pos <= 10) score += 18;
+      else score += 8;
 
-    // Number of competitors (0-30 points)
-    // More competitors = more competitive market = higher potential visibility
+      const top3WithRating = top3.filter(c => c.rating != null);
+      const top3AvgRating = top3WithRating.length
+        ? top3WithRating.reduce((s, c) => s + c.rating, 0) / top3WithRating.length
+        : null;
+      const top3WithReviews = top3.filter(c => (c.reviews ?? 0) > 0);
+      const top3AvgReviews = top3WithReviews.length
+        ? top3WithReviews.reduce((s, c) => s + (c.reviews || 0), 0) / top3WithReviews.length
+        : 0;
+
+      if (top3AvgRating != null && effectiveUser.rating != null) {
+        const ratingRatio = Math.min(effectiveUser.rating / top3AvgRating, 1.2);
+        score += Math.round(20 * (ratingRatio / 1.2));
+      } else score += 10;
+
+      const userReviews = effectiveUser.reviews ?? 0;
+      if (top3AvgReviews > 0 && userReviews >= 0) {
+        const reviewRatio = Math.min(userReviews / top3AvgReviews, 1.5);
+        score += Math.round(15 * (reviewRatio / 1.5));
+      } else score += 8;
+
+      const top3WithWebsite = top3.filter(c => c.website).length;
+      const userHasWebsite = !!effectiveUser.website;
+      const userHasNAP = !!(effectiveUser.address && effectiveUser.phone);
+      score += userHasWebsite ? (top3WithWebsite === 3 ? 10 : 6) : 0;
+      score += userHasNAP ? 5 : 0;
+
+      return Math.round(Math.min(Math.max(score, 0), 100));
+    }
+
+    let score = 0;
     const competitorCount = competitors.length;
     if (competitorCount >= 20) score += 30;
     else if (competitorCount >= 10) score += 25;
     else if (competitorCount >= 5) score += 20;
     else score += 15;
 
-    // Average rating of competitors (0-30 points)
     const ratings = competitors.filter(c => c.rating).map(c => c.rating);
     if (ratings.length > 0) {
       const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
-      score += (avgRating / 5) * 30; // Scale to 30 points
+      score += (avgRating / 5) * 30;
     }
 
-    // Average reviews (0-20 points)
     const reviews = competitors.filter(c => c.reviews).map(c => c.reviews);
     if (reviews.length > 0) {
       const avgReviews = reviews.reduce((sum, r) => sum + r, 0) / reviews.length;
-      const reviewScore = Math.min(avgReviews / 100, 1) * 20;
-      score += reviewScore;
+      score += Math.min(avgReviews / 100, 1) * 20;
     }
 
-    // Data completeness across competitors (0-20 points)
     let completeness = 0;
     competitors.forEach(comp => {
       if (comp.name) completeness += 0.2;
@@ -397,8 +531,7 @@ class GeoAuditService {
       if (comp.website) completeness += 0.2;
       if (comp.category) completeness += 0.2;
     });
-    const avgCompleteness = completeness / competitors.length;
-    score += avgCompleteness * 20;
+    score += (completeness / competitors.length) * 20;
 
     return Math.round(Math.min(score, 100));
   }
@@ -410,43 +543,66 @@ class GeoAuditService {
    * @param {Object} businessInfo - User's business data from GBP (optional)
    */
   /**
-   * Find user's business position in competitor list (1-based) by matching name or placeId/cid
+   * Find user's business in competitor list by place_id/cid (preferred) or name.
+   * Used so we can use the listing's real position, rating, and reviews (what Google shows in this location) instead of GBP data that may be wrong or from another locale.
+   * @param {Array} competitors - Full competitor list
+   * @param {Object|null} businessInfo - User's GBP data (optional)
+   * @param {string|null} businessNameForMatch - Business name from request (optional, when GBP fetch failed)
+   * @returns {{ position: number, listing: Object }|null}
    */
-  findUserPositionInCompetitors(competitors, businessInfo) {
-    if (!businessInfo || !competitors?.length) return null;
-    const nameA = (businessInfo.name || '').trim().toLowerCase();
-    const placeId = businessInfo.placeId || null;
-    const idx = competitors.findIndex((c) => {
-      if (placeId && (c.placeId === placeId || c.cid === placeId)) return true;
+  findUserInCompetitors(competitors, businessInfo, businessNameForMatch = null) {
+    if (!competitors?.length) return null;
+    const nameFromInfo = (businessInfo?.name || '').trim().toLowerCase();
+    const nameToMatch = nameFromInfo || (businessNameForMatch || '').trim().toLowerCase();
+    const placeId = businessInfo?.placeId || null;
+    const cidFromInfo = businessInfo?.placeId?.toString().startsWith('cid:') ? businessInfo.placeId : null;
+
+    for (let i = 0; i < competitors.length; i++) {
+      const c = competitors[i];
+      if (placeId && (c.placeId === placeId || c.cid === placeId || (c.cid && `cid:${c.cid}` === placeId))) {
+        return { position: i + 1, listing: c };
+      }
+      if (cidFromInfo && c.cid && (`cid:${c.cid}` === cidFromInfo || c.cid === cidFromInfo)) {
+        return { position: i + 1, listing: c };
+      }
+      if (!nameToMatch) continue;
       const nameB = (c.name || '').trim().toLowerCase();
-      if (!nameA || !nameB) return false;
-      if (nameA === nameB) return true;
-      if (nameA.includes(nameB) || nameB.includes(nameA)) return true;
-      return false;
-    });
-    return idx >= 0 ? idx + 1 : null;
+      if (!nameB) continue;
+      if (nameToMatch === nameB) return { position: i + 1, listing: c };
+      if (nameToMatch.includes(nameB) || nameB.includes(nameToMatch)) return { position: i + 1, listing: c };
+    }
+    return null;
   }
 
-  generateRecommendations(competitors, lang = 'en', businessInfo = null) {
+  generateRecommendations(competitors, lang = 'en', businessInfo = null, effectiveUser = null, businessNotInLocation = false, location = '') {
     const recommendations = [];
 
     if (!competitors || competitors.length === 0) {
       return recommendations;
     }
 
-    const userPosition = this.findUserPositionInCompetitors(competitors, businessInfo);
+    const userPosition = effectiveUser?.position ?? null;
     const userInTop3 = userPosition != null && userPosition <= 3;
-    const userHasCompleteNAP = businessInfo?.name && businessInfo?.address && businessInfo?.phone;
+    const userInTop10 = userPosition != null && userPosition <= 10;
+    const userReviews = effectiveUser?.reviews ?? businessInfo?.reviews ?? 0;
+    const userRating = effectiveUser?.rating ?? businessInfo?.rating ?? null;
+    const userHasWebsite = !!(effectiveUser?.website ?? businessInfo?.website);
+    const userHasCompleteNAP = !!(businessInfo?.name && businessInfo?.address && businessInfo?.phone);
 
-    // Helper to add recommendation with enhanced structure (like SEO Audit)
+    const top3Competitors = competitors.slice(0, 3);
+    const top3AvgReviews = top3Competitors.filter(c => (c.reviews ?? 0) > 0).length
+      ? top3Competitors.reduce((s, c) => s + (c.reviews || 0), 0) / top3Competitors.filter(c => (c.reviews ?? 0) > 0).length
+      : 0;
+    const top3AvgRating = top3Competitors.filter(c => c.rating != null).length
+      ? top3Competitors.reduce((s, c) => s + (c.rating || 0), 0) / top3Competitors.filter(c => c.rating != null).length
+      : null;
+
     const addRec = (priority, category, issueKey, actionKey, vars = {}, impact = null, effort = null) => {
       const issue = t(lang, `geo.recommendations.${issueKey}.issue`, vars);
       const action = t(lang, `geo.recommendations.${issueKey}.action`, vars);
       if (issue && action && !issue.includes('.issue')) {
-        // Auto-determine impact and effort if not provided
         const autoImpact = impact || (priority === 'critical' || priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low');
         const autoEffort = effort || (['website', 'content', 'citations'].includes(category) ? 'moderate' : 'easy');
-        
         recommendations.push({
           priority,
           category,
@@ -458,132 +614,92 @@ class GeoAuditService {
       }
     };
 
-    // === CRITICAL: Website Optimization ===
+    if (businessNotInLocation) {
+      addRec('critical', 'gbp', 'businessNotInLocation', 'businessNotInLocation', { location: location || 'this location' }, 'high', 'moderate');
+      addRec('high', 'content', 'localContentRequired', 'localContentRequired', { keyword: effectiveUser?.name || businessInfo?.name || 'your business' }, 'high', 'moderate');
+      addRec('high', 'citations', 'buildLocalCitations', 'buildLocalCitations', { count: '30+' }, 'high', 'moderate');
+      return recommendations;
+    }
+
     const competitorsWithWebsite = competitors.filter(c => c.website).length;
     const websitePercentage = (competitorsWithWebsite / competitors.length) * 100;
-    const top3Competitors = competitors.slice(0, 3);
     const top3WithWebsite = top3Competitors.filter(c => c.website).length;
 
-    if (top3WithWebsite === 3 && websitePercentage >= 80) {
-      addRec('critical', 'website', 'topCompetitorsHaveWebsite', 'topCompetitorsHaveWebsite', 
-        { percentage: Math.round(websitePercentage) }, 'high', 'moderate');
-    } else if (websitePercentage < 50) {
-      addRec('high', 'website', 'missingWebsite', 'missingWebsite', 
-        { percentage: Math.round(100 - websitePercentage) }, 'high', 'moderate');
-    }
-
-    // === CRITICAL: Local Content on Website ===
-    // Never use a competitor name — only user's business name or neutral phrase
-    const contentKeyword = businessInfo?.name || 'your business';
-    if (!userInTop3) {
-      addRec('critical', 'content', 'localContentRequired', 'localContentRequired',
-        { keyword: contentKeyword }, 'high', 'moderate');
-    }
-
-    // === GBP-SPECIFIC RECOMMENDATIONS (when we have user's data from GBP API) ===
-    if (businessInfo) {
-      if (!businessInfo.website) {
+    if (!userHasWebsite) {
+      if (top3WithWebsite === 3 && websitePercentage >= 80) {
+        addRec('critical', 'website', 'top3CompetitorsHaveWebsite', 'top3CompetitorsHaveWebsite', { percentage: Math.round(websitePercentage) }, 'high', 'moderate');
+      } else if (businessInfo && !businessInfo.website) {
         addRec('critical', 'website', 'gbpMissingWebsite', 'gbpMissingWebsite', {}, 'high', 'easy');
-      }
-      if (!businessInfo.phone) {
-        addRec('high', 'citations', 'gbpMissingPhone', 'gbpMissingPhone', {}, 'high', 'easy');
-      }
-      if (!businessInfo.address) {
-        addRec('high', 'citations', 'gbpMissingAddress', 'gbpMissingAddress', {}, 'high', 'easy');
-      }
-      if (businessInfo.rating !== null && businessInfo.rating < 4) {
-        addRec('high', 'reviews', 'lowRating', 'lowRating', { rating: businessInfo.rating }, 'high', 'moderate');
-      }
-      if (businessInfo.reviews < 10) {
-        const avg = Math.round(top3Competitors.reduce((s, c) => s + (c.reviews || 0), 0) / Math.max(top3Competitors.length, 1));
-        addRec('high', 'reviews', 'fewReviews', 'fewReviews',
-          { count: businessInfo.reviews, avg, target: Math.max(20, avg) }, 'high', 'moderate');
+      } else if (websitePercentage < 50) {
+        addRec('high', 'website', 'missingWebsite', 'missingWebsite', { percentage: Math.round(100 - websitePercentage) }, 'high', 'moderate');
       }
     }
 
-    // === CRITICAL: Google Business Profile Optimization ===
-    // Skip when we have user's GBP data — we already show specific missing-field recs or profile is complete (avoid "optimize GBP" when already optimized)
+    const contentKeyword = businessInfo?.name || effectiveUser?.name || 'your business';
+    if (!userInTop3) {
+      addRec('critical', 'content', 'localContentRequired', 'localContentRequired', { keyword: contentKeyword }, 'high', 'moderate');
+    }
+
+    if (businessInfo) {
+      if (!businessInfo.phone) addRec('high', 'citations', 'gbpMissingPhone', 'gbpMissingPhone', {}, 'high', 'easy');
+      if (!businessInfo.address) addRec('high', 'citations', 'gbpMissingAddress', 'gbpMissingAddress', {}, 'high', 'easy');
+      if (userRating !== null && userRating < 4 && (userReviews < 50 || !userInTop3)) {
+        addRec('high', 'reviews', 'lowRating', 'lowRating', { rating: userRating }, 'high', 'moderate');
+      }
+      const needMoreReviews = userReviews < 10 || (!userInTop3 && top3AvgReviews > 0 && userReviews < Math.min(50, top3AvgReviews * 0.5));
+      if (needMoreReviews && userReviews < 30) {
+        const avg = Math.round(top3AvgReviews);
+        addRec('high', 'reviews', 'fewReviews', 'fewReviews', { count: userReviews, avg, target: Math.max(20, avg) }, 'high', 'moderate');
+      }
+    }
+
     if (!businessInfo) {
       addRec('critical', 'gbp', 'gbpOptimizationRequired', 'gbpOptimizationRequired', {}, 'high', 'easy');
     }
 
-    // Analyze competitor ratings (skip "reach top 3" targets when user is already in top 3)
-    const ratings = competitors.filter(c => c.rating).map(c => c.rating);
-    if (ratings.length > 0) {
-      const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
-      const top3AvgRating = top3Competitors
-        .filter(c => c.rating)
-        .map(c => c.rating)
-        .reduce((sum, r) => sum + r, 0) / Math.max(top3Competitors.filter(c => c.rating).length, 1);
+    if (top3AvgRating != null && !userInTop3 && (userRating == null || userRating < top3AvgRating)) {
+      addRec('critical', 'reviews', 'top3RatingTarget', 'top3RatingTarget', { targetRating: '4.5+', avgRating: top3AvgRating.toFixed(1) }, 'high', 'moderate');
+    }
+    const avgRating = competitors.filter(c => c.rating).map(c => c.rating).reduce((a, b) => a + b, 0) / (competitors.filter(c => c.rating).length || 1);
+    if (avgRating >= 4.5 && !userInTop3) {
+      addRec('high', 'reviews', 'highCompetition', 'highCompetition', { avgRating: avgRating.toFixed(1) }, 'high', 'moderate');
+    }
 
-      if (avgRating >= 4.5) {
-        addRec('high', 'reviews', 'highCompetition', 'highCompetition', 
-          { avgRating: avgRating.toFixed(1) }, 'high', 'moderate');
-      }
-
-      if (!userInTop3 && top3AvgRating >= 4.5) {
-        addRec('critical', 'reviews', 'top3RatingTarget', 'top3RatingTarget', 
-          { targetRating: '4.5+', avgRating: top3AvgRating.toFixed(1) }, 'high', 'moderate');
+    if (!userInTop3 && top3AvgReviews > 50 && userReviews < top3AvgReviews * 0.5) {
+      addRec('critical', 'reviews', 'top3ReviewTarget', 'top3ReviewTarget', { targetReviews: Math.round(top3AvgReviews), avgReviews: Math.round(competitors.reduce((s, c) => s + (c.reviews || 0), 0) / competitors.length) }, 'high', 'moderate');
+    } else if (userInTop10 && top3AvgReviews > 50 && userReviews >= top3AvgReviews * 0.5) {
+    } else if (competitors.filter(c => c.reviews).length > 0) {
+      const avgReviews = competitors.reduce((s, c) => s + (c.reviews || 0), 0) / competitors.length;
+      if (avgReviews > 50 && !userInTop3) {
+        addRec('high', 'reviews', 'competitiveMarket', 'competitiveMarket', { avgReviews: Math.round(avgReviews) }, 'high', 'moderate');
       }
     }
 
-    // Analyze review counts (skip "get 605+ reviews to compete" when user is already in top 3)
-    const reviews = competitors.filter(c => c.reviews).map(c => c.reviews);
-    if (reviews.length > 0) {
-      const avgReviews = reviews.reduce((sum, r) => sum + r, 0) / reviews.length;
-      const top3AvgReviews = top3Competitors
-        .filter(c => c.reviews)
-        .map(c => c.reviews)
-        .reduce((sum, r) => sum + r, 0) / Math.max(top3Competitors.filter(c => c.reviews).length, 1);
-
-      if (!userInTop3 && top3AvgReviews > 50) {
-        addRec('critical', 'reviews', 'top3ReviewTarget', 'top3ReviewTarget', 
-          { targetReviews: Math.round(top3AvgReviews), avgReviews: Math.round(avgReviews) }, 'high', 'moderate');
-      } else if (avgReviews > 50) {
-        addRec('high', 'reviews', 'competitiveMarket', 'competitiveMarket', 
-          { avgReviews: Math.round(avgReviews) }, 'high', 'moderate');
-      }
-    }
-
-    // === HIGH PRIORITY: NAP Consistency ===
-    // Skip when user's NAP is already complete (from GBP) — avoid "NAP missing" when it's present
     if (!userHasCompleteNAP) {
       const competitorsWithNAP = competitors.filter(c => c.name && c.address && c.phone).length;
       const napCompleteness = (competitorsWithNAP / competitors.length) * 100;
       const top3WithNAP = top3Competitors.filter(c => c.name && c.address && c.phone).length;
-
       if (top3WithNAP === 3) {
         addRec('high', 'citations', 'top3NAPComplete', 'top3NAPComplete', {}, 'high', 'easy');
       } else if (napCompleteness < 80) {
-        addRec('high', 'citations', 'napIncomplete', 'napIncomplete', 
-          { percentage: Math.round(100 - napCompleteness) }, 'high', 'easy');
+        addRec('high', 'citations', 'napIncomplete', 'napIncomplete', { percentage: Math.round(100 - napCompleteness) }, 'high', 'easy');
       }
     }
 
-    // === HIGH PRIORITY: Local Citations ===
-    addRec('high', 'citations', 'buildLocalCitations', 'buildLocalCitations', 
-      { count: '30+' }, 'high', 'moderate');
+    addRec('high', 'citations', 'buildLocalCitations', 'buildLocalCitations', { count: '30+' }, 'high', 'moderate');
 
-    // === HIGH PRIORITY: Website Local SEO Elements ===
-    // Skip when already in top 3 — message says "to appear in top 10" which doesn't apply
     if (!userInTop3) {
       addRec('high', 'website', 'localSeoElements', 'localSeoElements', {}, 'high', 'moderate');
     }
 
-    // === MEDIUM PRIORITY: Category Optimization ===
     const competitorsWithCategory = competitors.filter(c => c.category).length;
     const categoryPercentage = (competitorsWithCategory / competitors.length) * 100;
     if (categoryPercentage < 80) {
-      addRec('medium', 'gbp', 'missingCategory', 'missingCategory', 
-        { percentage: Math.round(100 - categoryPercentage) }, 'medium', 'easy');
+      addRec('medium', 'gbp', 'missingCategory', 'missingCategory', { percentage: Math.round(100 - categoryPercentage) }, 'medium', 'easy');
     }
 
-    // === MEDIUM PRIORITY: Content Freshness ===
     addRec('medium', 'content', 'freshContentRequired', 'freshContentRequired', {}, 'medium', 'moderate');
-
-    // === MEDIUM PRIORITY: Local Backlinks ===
-    addRec('medium', 'backlinks', 'localBacklinksRequired', 'localBacklinksRequired', 
-      { count: '10+' }, 'medium', 'difficult');
+    addRec('medium', 'backlinks', 'localBacklinksRequired', 'localBacklinksRequired', { count: '10+' }, 'medium', 'difficult');
 
     return recommendations;
   }

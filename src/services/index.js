@@ -5,6 +5,7 @@ export { seoCompetitiveAuditService } from './seoCompetitiveAudit.service.js';
 export { seoAuditAIService } from './seoAuditAI.service.js';
 export { gbpService } from './gbp.service.js';
 export { geoAuditService } from './geoAudit.service.js';
+export { geoAuditAIService } from './geoAuditAI.service.js';
 export { pdfService } from './pdf.service.js';
 
 export { stripeService } from './stripe.service.js';

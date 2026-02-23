@@ -69,26 +69,26 @@ async function analyzeAuditFromData(payload, locale = 'en') {
 You MUST do the following so the score and recommendations stay aligned:
 
 SCORE CALCULATION (mandatory):
-- If keywordFoundOnPage is false: output score = 0.
-- Else: Using appliedGaps and scoringFormula only:
+- Always compute the score from appliedGaps and scoringFormula. Do NOT force score to 0 when keywordFoundOnPage is false. The score must reflect how the page compares to the top 10 (consistent and realistic).
+- Using appliedGaps and scoringFormula only:
   1. Sum "points" of appliedGaps per category: serp (category "serp"), content (category "content"), onpage (category "onpage").
   2. ComponentScore per category = max(0, min(100, 100 - categoryPoints)).
   3. finalScore = round(serpScore * 0.45 + contentScore * 0.35 + onpageScore * 0.20).
 - Output this exact score. Do not guess or round differently.
 
 RECOMMENDATIONS (must match appliedGaps):
-- If keywordFoundOnPage is false: your first recommendation MUST be critical, category "Keyword", issue "Target keyword not found on page", action to add the keyword to title/H1/content, then one recommendation per appliedGap (same order as appliedGaps), translated and adapted to the user's language. Include "context" that references this market (e.g. "In France...", "vs top 10 in Belgium...").
+- If keywordFoundOnPage is false: your first recommendation MUST be critical, category "Keyword", issue "Target keyword not found on page", action to add the keyword to title/H1/content, then one recommendation per appliedGap (same order as appliedGaps), translated and adapted to the user's language. Include "context" that references this market (e.g. "In France...", "vs top 10 in Belgium..."). The score is still from the formula above (do not output 0).
 - Else: Output exactly one recommendation per appliedGap, in the same order. Map severity to priority: CRITICAL->critical, HIGH->high, MEDIUM->medium, LOW->low. Use the gap's issue as "issue", recommendation as "action", vsCompetitors as base for "context" (translate and add market name). So score and recommendations are driven by the same appliedGaps and formula.
 
 SCORE SUMMARY & STRENGTHS:
-- scoreSummary: 1-2 sentences in the user's language explaining the score and mentioning the market (e.g. "In France, compared to the top 10..."). Never say "100/100" or "perfect 100"—the scale caps at 95 for excellent; use "excellent", "top score", or "95" when there are no gaps.
+- scoreSummary: 1-2 sentences in the user's language explaining the score and mentioning the market (e.g. "In France, compared to the top 10..."). Never say "100/100" or "perfect 100"—the scale caps at 95 for excellent; use "excellent", "top score", or "95" when there are no gaps. If keywordFoundOnPage is false, mention that adding the keyword can help relevance but the score reflects comparison to top 10.
 - strengths: 2-4 items for what the page does well vs competitors in this market (or fewer if keywordFoundOnPage is false).
 
 ${instruction}
 
 Output format (strict JSON):
 {
-  "score": <number 0-95, computed from formula or 0 if keyword not found; max is 95>,
+  "score": <number 0-95, computed from formula only; max is 95; never force 0>,
   "scoreSummary": "<1-2 sentences in target language>",
   "recommendations": [ { "priority": "critical|high|medium|low", "category": "<string>", "issue": "<string>", "action": "<string>", "impact": "high|medium|low", "effort": "easy|moderate|difficult", "context": "<string>" } ],
   "strengths": [ { "category": "<string>", "title": "<string>", "description": "<string>" } ]
@@ -122,7 +122,7 @@ Output format (strict JSON):
     scoringFormula,
   };
 
-  const userPrompt = `Using the data below, (1) compute the score with the scoringFormula from appliedGaps (if keywordFoundOnPage is false, output score 0). (2) Output one recommendation per appliedGap, in order, translated/adapted to ${language}, with context mentioning the market "${locationName}". (3) Write a short scoreSummary and 2-4 strengths for this market.
+  const userPrompt = `Using the data below, (1) compute the score with the scoringFormula from appliedGaps (always use the formula; do not output 0 when keywordFoundOnPage is false—score must reflect comparison to top 10). (2) Output one recommendation per appliedGap, in order, translated/adapted to ${language}, with context mentioning the market "${locationName}". If keywordFoundOnPage is false, add a critical first recommendation about adding the keyword. (3) Write a short scoreSummary and 2-4 strengths for this market.
 
 Market: ${locationName} (${marketLabel}). Different locations have different competitors and benchmarks—this data is for this market only.
 
