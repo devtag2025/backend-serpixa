@@ -752,6 +752,8 @@
       "occurrences": "Occurrences",
       "competitorRankings": "Classement des Concurrents",
       "recommendations": "Recommandations Actionnables",
+      "issuesFoundLabel": "problèmes identifiés",
+      "recommendationsIntro": "Basé sur la comparaison avec les 10 premiers résultats pour votre mot-clé dans la zone sélectionnée. Traitez les écarts ci-dessous pour augmenter vos chances d'atteindre la première page.",
       "priorityActions": "Actions Prioritaires",
       "quickWins": "Gains Rapides",
       "pos": "Pos",
@@ -769,7 +771,9 @@
       "summary": "Résumé Exécutif",
       "technicalSeo": "SEO Technique",
       "contentAnalysis": "Analyse du Contenu",
-      "competitorInsights": "Insights Concurrentiels"
+      "competitorInsights": "Insights Concurrentiels",
+      "strengthsTitle": "Ce que vous faites bien",
+      "strengthsSubtitle": "Comparé aux 10 premiers résultats pour votre mot-clé — conservez ces points forts."
     },
     "gbp": {
       "title": "Rapport d'Audit Google Business Profile",

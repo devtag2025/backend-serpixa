@@ -752,6 +752,8 @@
       "occurrences": "Occurrences",
       "competitorRankings": "Competitor Rankings",
       "recommendations": "Actionable Recommendations",
+      "issuesFoundLabel": "issues found",
+      "recommendationsIntro": "Based on comparison with the top 10 results for your keyword in your selected location. Address the gaps below to improve your chances of reaching the first page.",
       "priorityActions": "Priority Actions",
       "quickWins": "Quick Wins",
       "pos": "Pos",
@@ -769,7 +771,9 @@
       "summary": "Executive Summary",
       "technicalSeo": "Technical SEO",
       "contentAnalysis": "Content Analysis",
-      "competitorInsights": "Competitor Insights"
+      "competitorInsights": "Competitor Insights",
+      "strengthsTitle": "What you're doing well",
+      "strengthsSubtitle": "Compared to the top 10 results for your keyword — keep these strengths."
     },
     "gbp": {
       "title": "Google Business Profile Audit Report",

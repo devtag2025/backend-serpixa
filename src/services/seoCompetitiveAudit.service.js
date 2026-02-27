@@ -173,7 +173,7 @@ function extractPageData(onPageResult, url) {
 
 function extractCompetitorData(serpResult, keyword) {
   const items = serpResult?.tasks?.[0]?.result?.[0]?.items || [];
-  const organicResults = items.filter(item => item.type === 'organic').slice(0, 10);
+    const organicResults = items.filter(item => item.type === 'organic').slice(0, 10);
 
   return organicResults.map((result, index) => ({
     position: index + 1,
@@ -209,8 +209,8 @@ async function fetchCompetitorDetails(client, competitors, keyword) {
           hasKeywordInH1: pageData.h1Tags.some(h => h.toLowerCase().includes(keyword.toLowerCase())),
         });
         Logger.info(`  ✓ #${competitor.position}: ${competitor.domain} - ${pageData.wordCount} words`);
-      }
-    } catch (error) {
+        }
+      } catch (error) {
       Logger.warn(`  ✗ Failed to analyze ${competitor.url}: ${error.message}`);
     }
   }
@@ -471,7 +471,7 @@ async function runCompetitiveAudit(url, keyword, locale = DEFAULT_LOCALE, device
       componentScores: aiResult.componentScores,
       strengths: aiResult.strengths || [],
       competitorBenchmark: aiResult.competitorBenchmark,
-      pageAnalysis: {
+    pageAnalysis: {
         wordCount: auditedPage.wordCount,
         h1Count: auditedPage.h1Tags.length,
         h2Count: auditedPage.h2Tags.length,
@@ -480,9 +480,9 @@ async function runCompetitiveAudit(url, keyword, locale = DEFAULT_LOCALE, device
       },
     },
     keywordAnalysis: {
-      keyword,
-      location: localeConfig?.locationName || locale,
-      language: languageCode,
+    keyword,
+    location: localeConfig?.locationName || locale,
+    language: languageCode,
       competitorCount: competitorDetails.length,
       topicRelevance: aiResult.topicRelevance?.score || 0,
       isTopicRelevant: aiResult.topicRelevance?.isRelevant || false,
@@ -498,10 +498,10 @@ async function runCompetitiveAudit(url, keyword, locale = DEFAULT_LOCALE, device
       ...(competitorDetails.find(d => d.url === c.url) || {}),
     })),
     serpInfo: {
-      keyword,
-      locationCode,
-      languageCode,
-      location: localeConfig?.locationName || locale,
+    keyword,
+    locationCode,
+    languageCode,
+    location: localeConfig?.locationName || locale,
       device,
       competitorUrls: serpCompetitors.map(c => c.url),
     },
