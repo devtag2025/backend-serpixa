@@ -1,6 +1,5 @@
 export { emailService } from './email.service.js';
 export { claudeService } from './claude.service.js';
-export { dataForSEOService } from './dataforseo.service.js';
 export { seoCompetitiveAuditService } from './seoCompetitiveAudit.service.js';
 export { gbpService } from './gbp.service.js';
 export { geoAuditService } from './geoAudit.service.js';

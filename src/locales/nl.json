@@ -663,6 +663,8 @@
       "occurrences": "Voorkomens",
       "competitorRankings": "Concurrent Rankings",
       "recommendations": "Actiegerichte Aanbevelingen",
+      "issuesFoundLabel": "problemen gevonden",
+      "recommendationsIntro": "Gebaseerd op vergelijking met de top 10 resultaten voor uw zoekwoord in de geselecteerde locatie. Pak de onderstaande hiaten aan om uw kansen op de eerste pagina te vergroten.",
       "priorityActions": "Prioriteitsacties",
       "quickWins": "Quick Wins",
       "pos": "Pos",
@@ -680,7 +682,9 @@
       "summary": "Samenvatting",
       "technicalSeo": "Technische SEO",
       "contentAnalysis": "Content Analyse",
-      "competitorInsights": "Concurrent Inzichten"
+      "competitorInsights": "Concurrent Inzichten",
+      "strengthsTitle": "Wat u goed doet",
+      "strengthsSubtitle": "Vergeleken met de top 10 resultaten voor uw zoekwoord — behoud deze sterke punten."
     },
     "gbp": {
       "title": "Google Bedrijfsprofiel Audit Rapport",

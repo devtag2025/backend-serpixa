@@ -180,108 +180,81 @@ class PDFService {
     }
     y += 10;
 
-    // ===== KEYWORD ANALYSIS SECTION =====
-    if (audit.keywordAnalysis) {
-      y = this.checkPageBreak(doc, y, 80);
-      y = this.addSectionHeader(doc, audit.keywordAnalysis.title || t(lang, 'pdf.seo.keywordAnalysis'), y, margin, maxWidth);
-      
-      const kw = audit.keywordAnalysis;
-      
-      // Keyword checks in grid layout
-      const kwChecks = [
-        { label: kw.inTitleLabel || t(lang, 'seo.keywordAnalysis.inTitle'), value: kw.inTitle },
-        { label: kw.inDescriptionLabel || t(lang, 'seo.keywordAnalysis.inDescription'), value: kw.inDescription },
-        { label: kw.inH1Label || t(lang, 'seo.keywordAnalysis.inH1'), value: kw.inH1 },
-        { label: kw.inContentLabel || t(lang, 'seo.keywordAnalysis.inContent'), value: kw.inContent },
-      ];
-      
-      // Draw 2x2 grid for keyword checks
-      const gridWidth = (maxWidth - 10) / 2;
-      const gridHeight = 22;
-      
-      for (let i = 0; i < kwChecks.length; i++) {
-        const col = i % 2;
-        const row = Math.floor(i / 2);
-        const x = margin + (col * (gridWidth + 10));
-        const gridY = y + (row * (gridHeight + 5));
-        
-        if (row > 0 || i === 0) {
-          this.checkPageBreak(doc, gridY, gridHeight);
-        }
-        
-        // Card background
-        doc.setFillColor(252, 252, 252);
-        doc.rect(x, gridY, gridWidth, gridHeight, 'F');
-        doc.setDrawColor(235, 235, 235);
-        doc.setLineWidth(0.3);
-        doc.rect(x, gridY, gridWidth, gridHeight, 'S');
-        
-        // Check icon
-        const iconX = x + 8;
-        const iconY = gridY + 11;
-        if (kwChecks[i].value) {
-          doc.setFillColor(40, 167, 69);
-          doc.circle(iconX, iconY, 4, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'bold');
-          doc.text('✓', iconX - 2, iconY + 2.5);
-        } else {
-          doc.setFillColor(220, 53, 69);
-          doc.circle(iconX, iconY, 4, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'bold');
-          doc.text('✗', iconX - 2, iconY + 2.5);
-        }
-        
-        // Label
-        doc.setTextColor(50, 50, 50);
+    // (Keyword analysis section removed: the new SEO audit no longer provides per-field keyword data,
+    // and this block was showing undefined values. We keep the PDF focused on score, strengths, and recommendations.)
+
+    // ===== STRENGTHS SECTION (WHAT YOU'RE DOING WELL) =====
+    const strengths = audit.checks?.strengths || [];
+    if (Array.isArray(strengths) && strengths.length > 0) {
+      y = this.checkPageBreak(doc, y, 60);
+      const headerY = y;
+      y = this.addSectionHeader(doc, t(lang, 'pdf.seo.strengthsTitle'), y, margin, maxWidth);
+
+      // Subtitle under header
+      const subtitle = t(lang, 'pdf.seo.strengthsSubtitle');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      const subtitleLines = doc.splitTextToSize(subtitle, maxWidth - 8);
+      const subtitleY = headerY + 9;
+      doc.text(subtitleLines, margin + 2, subtitleY);
+      let currentY = subtitleY + (subtitleLines.length * 5) + 6;
+
+      // Strength cards
+      strengths.forEach((s) => {
+        const category = (s.category || '').toUpperCase();
+        const title = s.title || '';
+        const description = s.description || '';
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 64, 175); // blue-ish for category/title
+        const titleLines = doc.splitTextToSize(title, maxWidth - 20);
+
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        doc.text(kwChecks[i].label, x + 18, gridY + 13);
-      }
-      
-      y += (Math.ceil(kwChecks.length / 2) * (gridHeight + 5)) + 10;
-      
-      // Density and Occurrences in styled boxes
-      y = this.checkPageBreak(doc, y, 25);
-      
-      const statWidth = (maxWidth - 10) / 2;
-      
-      // Density box
-      doc.setFillColor(248, 249, 250);
-      doc.rect(margin, y, statWidth, 20, 'F');
-      doc.setDrawColor(220, 220, 220);
-      doc.rect(margin, y, statWidth, 20, 'S');
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 100, 100);
-      doc.text(kw.densityLabel || t(lang, 'pdf.seo.keywordDensity'), margin + 8, y + 8);
-      
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(40, 40, 40);
-      doc.text(`${kw.density}%`, margin + 8, y + 16);
-      
-      // Occurrences box
-      doc.setFillColor(248, 249, 250);
-      doc.rect(margin + statWidth + 10, y, statWidth, 20, 'F');
-      doc.setDrawColor(220, 220, 220);
-      doc.rect(margin + statWidth + 10, y, statWidth, 20, 'S');
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 100, 100);
-      doc.text(kw.occurrencesLabel || t(lang, 'pdf.seo.occurrences'), margin + statWidth + 18, y + 8);
-      
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(40, 40, 40);
-      doc.text(`${kw.occurrences}`, margin + statWidth + 18, y + 16);
-      
-      y += 30;
+        doc.setTextColor(55, 65, 81); // gray-700 for description
+        const descLines = doc.splitTextToSize(description, maxWidth - 20);
+
+        const titleHeight = titleLines.length * 5;
+        const descHeight = Math.min(descLines.length, 3) * 5;
+        const cardHeight = Math.max(26, 10 + titleHeight + descHeight + 6);
+
+        currentY = this.checkPageBreak(doc, currentY, cardHeight + 6);
+
+        // Card background
+        doc.setFillColor(240, 253, 244); // light green
+        doc.rect(margin, currentY, maxWidth, cardHeight, 'F');
+        doc.setDrawColor(187, 247, 208); // green border
+        doc.setLineWidth(0.3);
+        doc.rect(margin, currentY, maxWidth, cardHeight, 'S');
+
+        // Category label (small, top-left)
+        if (category) {
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(22, 101, 52); // green-700
+          doc.text(category, margin + 8, currentY + 8);
+        }
+
+        // Title
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(15, 23, 42); // slate-900
+        const titleY = currentY + 14;
+        doc.text(titleLines, margin + 8, titleY);
+
+        // Description (below title)
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(55, 65, 81); // gray-700
+        const descY = titleY + (titleLines.length * 5) + 2;
+        doc.text(descLines.slice(0, 3), margin + 8, descY);
+
+        currentY += cardHeight + 6;
+      });
+
+      y = currentY + 4;
     }
 
     // ===== COMPETITOR RANKING TABLE =====
@@ -291,12 +264,45 @@ class PDFService {
       y = this.addStyledCompetitorTable(doc, audit.competitors, y, margin, maxWidth, lang);
       y += 15;
     }
-
+    
     // ===== RECOMMENDATIONS SECTION =====
     if (audit.recommendations?.length > 0) {
       y = this.checkPageBreak(doc, y, 60);
+      const headerY = y;
       y = this.addSectionHeader(doc, t(lang, 'pdf.seo.recommendations'), y, margin, maxWidth);
 
+      // Subheader: issues count and score summary / explanation
+      const issueCount = audit.recommendations.length;
+      const issuesLabel = t(lang, 'pdf.seo.issuesFoundLabel') || 'issues found';
+      const issuesText = `${issueCount} ${issuesLabel}`;
+      const recIntro = t(lang, 'pdf.seo.recommendationsIntro') || '';
+      const scoreSummary = audit.checks?.scoreSummary || '';
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+
+      // First line: \"X issues found\"
+      const metaY = headerY + 9;
+      doc.text(issuesText, margin + 2, metaY);
+      let textY = metaY + 6;
+
+      // Score summary from AI (if available)
+      if (scoreSummary) {
+        const summaryLines = doc.splitTextToSize(scoreSummary, maxWidth - 8);
+        doc.text(summaryLines, margin + 2, textY);
+        textY += summaryLines.length * 5 + 4;
+      }
+
+      // Generic explanation about comparison with top 10
+      if (recIntro) {
+        const introLines = doc.splitTextToSize(recIntro, maxWidth - 8);
+        doc.text(introLines, margin + 2, textY);
+        textY += introLines.length * 5 + 8;
+      }
+
+      y = textY;
+      
       for (let i = 0; i < audit.recommendations.length; i++) {
         const rec = audit.recommendations[i];
         y = this.checkPageBreak(doc, y, 35);
@@ -735,24 +741,38 @@ class PDFService {
       
       y += gridHeight + 8;
       
-      // NAP Issues list
+      // NAP Issues list (with wrapped text so content is fully visible)
       if (nap.issues && nap.issues.length > 0) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const lineHeight = 5;
+        const textWidth = maxWidth - 16;
+
+        // Precompute wrapped lines to know the required card height
+        const wrappedIssues = nap.issues.map((issue) =>
+          doc.splitTextToSize(`• ${issue}`, textWidth)
+        );
+        const totalLines = wrappedIssues.reduce((sum, lines) => sum + lines.length, 0);
+        const issuesHeight = 12 + totalLines * lineHeight;
+
         doc.setFillColor(254, 243, 199);
-        const issuesHeight = 10 + (nap.issues.length * 6);
         doc.rect(margin, y, maxWidth, issuesHeight, 'F');
-        
+
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(146, 64, 14);
         doc.text('Issues Found:', margin + 5, y + 8);
-        
+
         doc.setFont('helvetica', 'normal');
+        doc.setTextColor(90, 64, 14);
         let issueY = y + 15;
-        nap.issues.forEach(issue => {
-          doc.text(`• ${issue}`, margin + 8, issueY);
-          issueY += 6;
+        wrappedIssues.forEach((lines) => {
+          lines.forEach((line) => {
+            doc.text(line, margin + 8, issueY);
+            issueY += lineHeight;
+          });
         });
-        
+
         y += issuesHeight + 5;
       }
       y += 10;
@@ -765,48 +785,75 @@ class PDFService {
       
       const citations = audit.citationIssues;
       
-      // Missing Citations
+      // Missing Citations (wrap lines so text doesn't overflow horizontally)
       if (citations.missingCitations && citations.missingCitations.length > 0) {
-        const missingHeight = 12 + (citations.missingCitations.length * 6);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const lineHeight = 5;
+        const textWidth = maxWidth - 16;
+
+        const wrappedMissing = citations.missingCitations.map((item) =>
+          doc.splitTextToSize(`• ${item}`, textWidth)
+        );
+        const totalLines = wrappedMissing.reduce((sum, lines) => sum + lines.length, 0);
+        const missingHeight = 14 + totalLines * lineHeight;
+
         doc.setFillColor(254, 226, 226);
         doc.rect(margin, y, maxWidth, missingHeight, 'F');
-        
+
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(153, 27, 27);
         doc.text(citations.missingCitationsLabel || t(lang, 'pdf.geo.missingCitations'), margin + 5, y + 9);
-        
+
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
+        doc.setTextColor(120, 53, 27);
         let itemY = y + 17;
-        citations.missingCitations.forEach(item => {
-          doc.text(`• ${item}`, margin + 8, itemY);
-          itemY += 6;
+        wrappedMissing.forEach((lines) => {
+          lines.forEach((line) => {
+            doc.text(line, margin + 8, itemY);
+            itemY += lineHeight;
+          });
         });
-        
+
         y += missingHeight + 8;
       }
       
-      // Inconsistent Data
+      // Inconsistent Data (wrap lines so text doesn't overflow horizontally)
       if (citations.inconsistentData && citations.inconsistentData.length > 0) {
-        y = this.checkPageBreak(doc, y, 30);
-        const inconsistentHeight = 12 + (citations.inconsistentData.length * 6);
+        const lineHeight = 5;
+        const textWidth = maxWidth - 16;
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+
+        const wrappedInconsistent = citations.inconsistentData.map((item) =>
+          doc.splitTextToSize(`• ${item}`, textWidth)
+        );
+        const totalLinesInc = wrappedInconsistent.reduce((sum, lines) => sum + lines.length, 0);
+        const inconsistentHeight = 14 + totalLinesInc * lineHeight;
+
+        y = this.checkPageBreak(doc, y, inconsistentHeight + 10);
         doc.setFillColor(254, 249, 195);
         doc.rect(margin, y, maxWidth, inconsistentHeight, 'F');
-        
+
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(133, 77, 14);
         doc.text(citations.inconsistentDataLabel || t(lang, 'pdf.geo.inconsistentData'), margin + 5, y + 9);
-        
+
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
+        doc.setTextColor(120, 77, 14);
         let itemY = y + 17;
-        citations.inconsistentData.forEach(item => {
-          doc.text(`• ${item}`, margin + 8, itemY);
-          itemY += 6;
+        wrappedInconsistent.forEach((lines) => {
+          lines.forEach((line) => {
+            doc.text(line, margin + 8, itemY);
+            itemY += lineHeight;
+          });
         });
-        
+
         y += inconsistentHeight + 8;
       }
       y += 5;
