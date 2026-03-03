@@ -194,18 +194,23 @@ async function fetchCompetitorDetails(client, competitors, keyword) {
       const pageData = extractPageData(onPageData, competitor.url);
 
       if (pageData) {
+        // Prefer the on-page title if available, otherwise fall back to the SERP title
+        const effectiveTitle = pageData.title && pageData.title.trim()
+          ? pageData.title
+          : (competitor.title || '');
+
         details.push({
           position: competitor.position,
           url: competitor.url,
           domain: competitor.domain,
-          title: pageData.title,
+          title: effectiveTitle,
           wordCount: pageData.wordCount,
           h1Count: pageData.h1Tags.length,
           h2Count: pageData.h2Tags.length,
           h3Count: pageData.h3Tags.length,
           h1Tags: pageData.h1Tags.slice(0, 3),
           h2Tags: pageData.h2Tags.slice(0, 5),
-          hasKeywordInTitle: pageData.title.toLowerCase().includes(keyword.toLowerCase()),
+          hasKeywordInTitle: effectiveTitle.toLowerCase().includes(keyword.toLowerCase()),
           hasKeywordInH1: pageData.h1Tags.some(h => h.toLowerCase().includes(keyword.toLowerCase())),
         });
         Logger.info(`  ✓ #${competitor.position}: ${competitor.domain} - ${pageData.wordCount} words`);

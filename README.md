@@ -2,7 +2,7 @@
 
 Express.js REST API backend for Serpixa.
 
-## Tech Stack
+## Tech Stack#
 
 - **Runtime:** Node.js (ES Modules)
 - **Framework:** Express 5
