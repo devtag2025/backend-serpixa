@@ -1540,13 +1540,22 @@ class PDFService {
 sanitizeTextForPDF(text) {
   if (text == null || typeof text !== 'string') return '';
   return text
+    // Normalize composed characters
     .normalize('NFC')
-    .replace(/\uFFFD/g, '')  // Remove �
-    .replace(/\u00D8=\u00DC\u00CA/g, '')  // Remove Ø=ÜÊ
+    // Normalize non‑breaking and exotic spaces to regular space
+    .replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, ' ')
+    // Normalize “smart” quotes to plain quotes (avoids odd spacing/encoding)
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    // Remove replacement char and legacy control chars
+    .replace(/\uFFFD/g, '')
+    .replace(/[\u0080-\u009F]/g, '')
+    // Clean up previously observed Ø=ÜÊ sequences from bad encodings
+    .replace(/\u00D8=\u00DC\u00CA/g, '')
     .replace(/\u003D\u00DC\u00CA/g, '')
     .replace(/\s*Ø\s*=\s*Ü\s*Ê\s*/g, ' ')
     .replace(/\s*[Ø=ÜÊ]{2,}\s*/g, ' ')
-    .replace(/[\u0080-\u009F]/g, '')
+    // Collapse whitespace so jsPDF word wrapping is stable
     .replace(/\s+/g, ' ')
     .trim();
 }
