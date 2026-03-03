@@ -185,7 +185,11 @@ Single H1 with main keyword
 Initial summary with key points
 6-8 main sections (H2)
 FAQ section with MINIMUM 6 questions and answers (REQUIRED - must be included in JSON response)
-CTA (Call-to-Action): Create an impactful and persuasive CTA that is coherent with the generated content
+CTA (Call-to-Action): Create an impactful and persuasive CTA that is coherent with the generated content and that ALWAYS includes ALL of the following elements in plain text (no emojis or icons):
+- A clear invitation to request a FREE audit or consultation
+- A mention of a PERSONALISED/TAILORED strategy
+- A reference to EXPERT support or guidance
+The CTA should usually be 1–2 sentences (or one sentence with multiple clauses) and strong, but realistic – no exaggerated or impossible promises.
 Summary conclusion
 Breadcrumb navigation included
 
@@ -213,6 +217,14 @@ Inline CSS optimized for performance
 Responsive design (mobile-first)
 WCAG AA accessibility
 PageSpeed performance 90+
+
+TEXT-ONLY / CHARACTER RULES (IMPORTANT FOR CONSISTENT PDF & FRONTEND RENDERING):
+- DO NOT use emojis or pictograms of any kind (for example ✅, ❌, ⭐, 🔥, 🎯, 🚀, etc.).
+- DO NOT use decorative unicode symbols (arrows like →, special bullets, box-drawing characters, etc.).
+- Use ONLY standard letters, digits, and basic punctuation that exist in normal web fonts:
+  a–z, A–Z, 0–9, language accents (é, è, ë, ç, etc.), and punctuation like . , ; : ! ? ' " ( ) - / %.
+- Bullet lists must be represented only as HTML lists (<ul><li> or <ol><li>), without emoji bullets.
+- The CTA text MUST also follow these rules (no emojis, no symbols), pure text only.
 
 The content must be 100% original, factual, and provide real added value. No filler. No unrealistic promises. Expert but accessible tone.
 
