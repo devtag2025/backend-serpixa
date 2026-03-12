@@ -101,7 +101,13 @@ export const getLocations = async (req, res, next) => {
     };
 
     if (search && typeof search === 'string' && search.trim().length > 0) {
-      filter.locationName = new RegExp(escapeRegex(search.trim()), 'i');
+      // If search is "City, Region, Country", match by city (first segment) so pasted/full names still find results
+      const searchTerm = search.trim().includes(',')
+        ? search.trim().split(',')[0].trim()
+        : search.trim();
+      if (searchTerm.length > 0) {
+        filter.locationName = new RegExp(escapeRegex(searchTerm), 'i');
+      }
     }
 
     const locations = await Location.find(filter)

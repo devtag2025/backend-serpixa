@@ -863,6 +863,24 @@
       "dateLabel": "Date",
       "userIdLabel": "User ID"
     },
+    "contact": {
+      "confirmation": {
+        "title": "We received your message",
+        "subject": "We received your message - Serpixa",
+        "greeting": "Hi {name},",
+        "message": "Thank you for contacting us. We have received your message and will get back to you as soon as possible.",
+        "footer": "Best regards, The Serpixa Team"
+      },
+      "notification": {
+        "title": "New contact form submission",
+        "subject": "[Serpixa] New contact form submission",
+        "fromLabel": "From",
+        "emailLabel": "Email",
+        "websiteLabel": "Website",
+        "messageLabel": "Message",
+        "dateLabel": "Date"
+      }
+    },
     "seoAudit": {
       "subject": "Your SEO Audit is Ready - {url}",
       "greeting": "Hi {name},",

@@ -346,6 +346,50 @@ const submitSupportRequest = validateRequest(Joi.object({
   locale: Joi.string().valid('en', 'fr', 'nl').optional(),
 }));
 
+// Contact form (public) - returns structured field-level errors, never raw DB messages
+const contactSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required().messages({
+    'any.required': 'Name is required',
+    'string.min': 'Name must be at least 2 characters',
+    'string.max': 'Name must be at most 100 characters',
+  }),
+  email: Joi.string().email().required().messages({
+    'any.required': 'Email is required',
+    'string.email': 'Please provide a valid email address',
+  }),
+  website: Joi.string().max(500).allow('', null).optional(),
+  message: Joi.string().min(10).max(5000).required().messages({
+    'any.required': 'Message is required',
+    'string.min': 'Message must be at least 10 characters',
+    'string.max': 'Message must be at most 5000 characters',
+  }),
+  locale: Joi.string().valid('en', 'fr', 'nl').optional().default('en'),
+});
+
+const submitContact = (req, res, next) => {
+  if (!req.body) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: { form: 'Request body is required' },
+    });
+  }
+  const { error } = contactSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    const errors = {};
+    error.details.forEach((d) => {
+      const key = d.path[0] || 'form';
+      if (!errors[key]) errors[key] = d.message;
+    });
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors,
+    });
+  }
+  next();
+};
+
 // Admin - Support tickets list query
 const supportTicketsQuery = (req, res, next) => {
   const schema = Joi.object({
@@ -419,4 +463,7 @@ export const validate = {
   // Support
   submitSupportRequest,
   supportTicketsQuery,
+
+  // Contact (public)
+  submitContact,
 }

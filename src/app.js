@@ -22,7 +22,7 @@ app.use(helmet({
   crossOriginOpenerPolicy: { policy: "unsafe-none" }
 }));
 
-// Parse allowed origins
+// Parse allowed origins from environment variable
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()) || [];
 
 // CORS configuration

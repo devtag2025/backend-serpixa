@@ -1,4 +1,4 @@
-import { User, Subscription, SEOAudit, GBPAudit, GeoAudit, Plan, Settings, ActivityLog, AIContent, SupportTicket } from '../models/index.js';
+import { User, Subscription, SEOAudit, GBPAudit, GeoAudit, Plan, Settings, ActivityLog, AIContent, SupportTicket, ContactSubmission } from '../models/index.js';
 import { ApiError, paginate } from '../utils/index.js';
 import Stripe from 'stripe';
 import { env } from '../config/index.js';
@@ -483,7 +483,7 @@ export const getAllUsers = async (options = {}) => {
     order = 'desc'
   } = options;
 
-  let query = { user_type: 'user' };
+  let query = {};
 
   if (search) {
     query.$or = [
@@ -508,7 +508,7 @@ export const getAllUsers = async (options = {}) => {
     limit,
     sort,
     order,
-    select: 'name email is_email_verified is_suspended credits createdAt stripe_customer_id'
+    select: 'name email user_type is_email_verified is_suspended credits createdAt stripe_customer_id'
   });
 
   const userIds = result.data.map(u => u._id);
@@ -836,6 +836,19 @@ export const getSupportTickets = async (options = {}) => {
 };
 
 /**
+ * Get all contact form submissions with pagination
+ */
+export const getContactRequests = async (options = {}) => {
+  const { page = 1, limit = 20, sort = 'createdAt', order = 'desc' } = options;
+  return paginate(ContactSubmission, {}, {
+    page,
+    limit,
+    sort,
+    order,
+  });
+};
+
+/**
  * Suspend a user account
  */
 export const suspendUser = async (userId, reason, adminId) => {
@@ -886,6 +899,35 @@ export const reactivateUser = async (userId, adminId) => {
   });
 
   return { message: 'User reactivated successfully', user: { _id: user._id, email: user.email, is_suspended: false } };
+};
+
+/**
+ * Assign admin role to a user (promote to admin)
+ */
+export const assignAdminRole = async (userId, adminId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  if (user.user_type === 'admin') {
+    throw new ApiError(400, 'User is already an admin');
+  }
+
+  user.user_type = 'admin';
+  await user.save();
+
+  await ActivityLog.log({
+    user_id: userId,
+    action: 'role_assigned_admin',
+    details: { assigned_by: adminId?.toString?.() || adminId },
+    performed_by: adminId
+  });
+
+  return {
+    message: 'User promoted to admin successfully',
+    user: { _id: user._id, email: user.email, user_type: user.user_type }
+  };
 };
 
 /**
@@ -1490,9 +1532,11 @@ export const adminService = {
   getAuditById,
   getAllSubscriptions,
   getSupportTickets,
+  getContactRequests,
 
   suspendUser,
   reactivateUser,
+  assignAdminRole,
   getUserActivityLogs,
   cancelUserSubscription,
   processRefund,

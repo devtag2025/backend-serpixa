@@ -221,6 +221,21 @@ export const getSupportTickets = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get contact form submissions (contact requests)
+ * @route   GET /api/v1/admin/contact-requests
+ * @access  Admin
+ */
+export const getContactRequests = async (req, res, next) => {
+  try {
+    const options = req.validatedQuery || req.query;
+    const result = await adminService.getContactRequests(options);
+    res.json(new ApiResponse(200, result, 'Contact requests retrieved successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ============================================
 // NEW CONTROLLERS
 // ============================================
@@ -253,6 +268,22 @@ export const reactivateUser = async (req, res, next) => {
     const adminId = req.user._id;
     const result = await adminService.reactivateUser(userId, adminId);
     res.json(new ApiResponse(200, result, 'User reactivated successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Assign admin role to a user (promote to admin)
+ * @route   POST /api/v1/admin/users/:userId/assign-admin
+ * @access  Admin
+ */
+export const assignAdminRole = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user._id;
+    const result = await adminService.assignAdminRole(userId, adminId);
+    res.json(new ApiResponse(200, result, 'User promoted to admin successfully'));
   } catch (error) {
     next(error);
   }

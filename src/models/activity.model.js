@@ -20,6 +20,7 @@ const ActivityLogSchema = new Schema({
       'subscription_created',
       'subscription_cancelled',
       'subscription_upgraded',
+      'subscription_downgraded',
       'audit_seo_created',
       'audit_geo_created',
       'audit_gbp_created',
@@ -27,7 +28,9 @@ const ActivityLogSchema = new Schema({
       'credits_purchased',
       'credits_adjusted',
       'account_suspended',
-      'account_reactivated'
+      'account_reactivated',
+      'role_assigned_admin',
+      'refund_processed'
     ],
     index: true
   },

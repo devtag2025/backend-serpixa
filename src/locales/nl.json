@@ -774,6 +774,24 @@
       "dateLabel": "Datum",
       "userIdLabel": "Gebruikers-ID"
     },
+    "contact": {
+      "confirmation": {
+        "title": "We hebben uw bericht ontvangen",
+        "subject": "We hebben uw bericht ontvangen - Serpixa",
+        "greeting": "Hallo {name},",
+        "message": "Bedankt voor uw bericht. We hebben het ontvangen en nemen zo snel mogelijk contact met u op.",
+        "footer": "Met vriendelijke groet, Het Serpixa-team"
+      },
+      "notification": {
+        "title": "Nieuw contactformulier",
+        "subject": "[Serpixa] Nieuw contactformulier",
+        "fromLabel": "Van",
+        "emailLabel": "E-mail",
+        "websiteLabel": "Website",
+        "messageLabel": "Bericht",
+        "dateLabel": "Datum"
+      }
+    },
     "seoAudit": {
       "subject": "Uw SEO-audit is klaar - {url}",
       "greeting": "Hallo {name},",

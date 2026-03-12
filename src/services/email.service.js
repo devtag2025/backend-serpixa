@@ -1275,6 +1275,85 @@ class EmailService {
 </div>`;
   }
 
+  /**
+   * Send contact form confirmation to the user (locale-aware).
+   * @param {string} email - User email
+   * @param {object} data - { name, locale }
+   */
+  async sendContactConfirmation(email, data = {}) {
+    const locale = this.getLocale(data);
+    const lang = ['fr', 'nl'].includes(locale) ? locale : 'en';
+    const t = (path, replacements = {}) => getTranslation(lang, path, replacements);
+    const subject = t('email.contact.confirmation.subject');
+    const html = this.contactConfirmationHTML(data, lang);
+    return this.send(email, subject, html).catch((err) => {
+      console.error('Failed to send contact confirmation email:', err?.message || err);
+    });
+  }
+
+  contactConfirmationHTML(data = {}, locale = 'en') {
+    const name = data.name || 'there';
+    const t = (path, replacements = {}) => getTranslation(locale, path, replacements);
+    const greeting = t('email.contact.confirmation.greeting', { name });
+    const message = t('email.contact.confirmation.message');
+    const footer = t('email.contact.confirmation.footer');
+    return `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <div style="background:#1f2937;color:#fff;padding:24px;border-radius:8px 8px 0 0">
+    <h1 style="margin:0;font-size:20px;color:#ffffff">${t('email.contact.confirmation.title')}</h1>
+  </div>
+  <div style="background:#f8fafc;padding:24px;border-radius:0 0 8px 8px">
+    <p style="color:#111827">${greeting}</p>
+    <p style="color:#374151">${message}</p>
+    <p style="font-size:13px;color:#6b7280;margin-top:20px">${footer}</p>
+  </div>
+</div>`;
+  }
+
+  /**
+   * Send contact form submission notification to admin/support team (internal, English).
+   * @param {object} data - { name, email, website?, message }
+   */
+  async sendContactNotificationToTeam(data = {}) {
+    const to = env.SUPPORT_EMAIL || env.FROM_EMAIL;
+    const t = (path, replacements = {}) => getTranslation('en', path, replacements);
+    const subject = t('email.contact.notification.subject');
+    const html = this.contactNotificationToTeamHTML(data);
+    return this.send(to, subject, html).catch((err) => {
+      console.error('Failed to send contact notification to team:', err?.message || err);
+    });
+  }
+
+  contactNotificationToTeamHTML(data = {}) {
+    const { name, email, website, message } = data;
+    const t = (path, replacements = {}) => getTranslation('en', path, replacements);
+    const fromLabel = t('email.contact.notification.fromLabel');
+    const emailLabel = t('email.contact.notification.emailLabel');
+    const websiteLabel = t('email.contact.notification.websiteLabel');
+    const messageLabel = t('email.contact.notification.messageLabel');
+    const dateLabel = t('email.contact.notification.dateLabel');
+    const date = new Date().toISOString();
+    const websiteRow = website
+      ? `<tr><td style="padding:8px 0;color:#6b7280">${websiteLabel}</td><td style="padding:8px 0;color:#111827">${website}</td></tr>`
+      : '';
+    return `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+  <div style="background:#1f2937;color:#fff;padding:24px;border-radius:8px 8px 0 0">
+    <h1 style="margin:0;font-size:20px;color:#ffffff">[Serpixa] ${t('email.contact.notification.title')}</h1>
+  </div>
+  <div style="background:#f8fafc;padding:24px;border-radius:0 0 8px 8px">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <tr><td style="padding:8px 0;color:#6b7280">${fromLabel}</td><td style="padding:8px 0;color:#111827">${name || '(not provided)'}</td></tr>
+      <tr><td style="padding:8px 0;color:#6b7280">${emailLabel}</td><td style="padding:8px 0;color:#111827">${email}</td></tr>
+      ${websiteRow}
+      <tr><td style="padding:8px 0;color:#6b7280">${dateLabel}</td><td style="padding:8px 0;color:#111827">${date}</td></tr>
+    </table>
+    <p style="color:#6b7280;font-size:14px;margin-bottom:8px">${messageLabel}</p>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;color:#374151;white-space:pre-wrap">${(message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+  </div>
+</div>`;
+  }
+
 }
 
 export const emailService = new EmailService();

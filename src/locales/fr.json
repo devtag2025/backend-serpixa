@@ -863,6 +863,24 @@
       "dateLabel": "Date",
       "userIdLabel": "ID utilisateur"
     },
+    "contact": {
+      "confirmation": {
+        "title": "Nous avons bien reçu votre message",
+        "subject": "Nous avons bien reçu votre message - Serpixa",
+        "greeting": "Bonjour {name},",
+        "message": "Merci de nous avoir contactés. Nous avons bien reçu votre message et vous répondrons dans les plus brefs délais.",
+        "footer": "Cordialement, L'équipe Serpixa"
+      },
+      "notification": {
+        "title": "Nouveau formulaire de contact",
+        "subject": "[Serpixa] Nouveau formulaire de contact",
+        "fromLabel": "De",
+        "emailLabel": "E-mail",
+        "websiteLabel": "Site web",
+        "messageLabel": "Message",
+        "dateLabel": "Date"
+      }
+    },
     "seoAudit": {
       "subject": "Votre audit SEO est prêt - {url}",
       "greeting": "Bonjour {name},",

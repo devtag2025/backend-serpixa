@@ -11,6 +11,7 @@ import planRoutes from './plan.route.js';
 import dashboardRoutes from './dashboard.route.js';
 import adminRoutes from './admin.route.js';
 import supportRoutes from './support.route.js';
+import contactRoutes from './contact.route.js';
 const router = Router();
 
 // Note: Stripe webhook route is handled in app.js before express.json() middleware
@@ -28,5 +29,6 @@ router.use('/admin', adminRoutes);
 router.use('/admin/locations', locationAdminRoutes);
 router.use('/locations', publicLocationRoutes);
 router.use('/support', supportRoutes);
+router.use('/contact', contactRoutes);
 
 export default router;
